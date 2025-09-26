@@ -1,0 +1,23 @@
+{
+  "name": "be_dacn_v1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -n GW,CAT,ORD -c cyan,magenta,yellow \"cd apps/api-gateway && npm run dev\" \"cd apps/catalog && npm run dev\" \"cd apps/order && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HoVietThang190704/BE_DACN_v1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HoVietThang190704/BE_DACN_v1/issues"
+  },
+  "homepage": "https://github.com/HoVietThang190704/BE_DACN_v1#readme",
+  "description": ""
+}
