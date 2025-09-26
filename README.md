@@ -1,148 +1,232 @@
-# 🚀 Backend Đồ án Chuyên ngành v1
+# 🌱 Fresh Food Platform - Backend API
 
-Hệ thống Backend sử dụng kiến trúc **Microservices** với TypeScript và Node.js.
+**Hệ thống Backend cho ứng dụng thương mại điện tử thực phẩm tươi sạch**  
+Sử dụng **Monolith Architecture** với TypeScript, Node.js và Express.js
 
 ## 📋 Tổng quan
 
-Dự án bao gồm 3 services chính:
+Dự án Fresh Food Platform là một ứng dụng backend hoàn chỉnh cho việc mua bán thực phẩm tươi sạch trực tuyến, tập trung vào:
 
-- **🌐 API Gateway** (Port 4000): Cổng chính để định tuyến và tổng hợp dữ liệu
-- **🛍️ Catalog Service** (Port 3001): Quản lý sản phẩm và danh mục  
-- **📦 Order Service** (Port 3002): Xử lý đơn hàng và tính phí vận chuyển
+- **🥬 Sản phẩm thực phẩm Việt Nam**: Rau củ, trái cây, thực phẩm hữu cơ
+- **🚚 Theo dõi nguồn gốc**: Truy xuất từ trang trại đến người tiêu dùng  
+- **🏆 Chứng nhận chất lượng**: VietGAP, GlobalGAP, Organic
+- **👥 Quản lý người dùng**: Authentication, authorization, profiles
+- **📦 Quản lý đơn hàng**: Từ giỏ hàng đến giao hàng
 
 ## 🏗️ Kiến trúc
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   API Gateway   │───▶│  Catalog Service │    │  Order Service  │
-│    (Port 4000)  │    │   (Port 3001)    │    │   (Port 3002)   │
-│                 │    │                  │    │                 │
-│ • Proxy Routes  │    │ • Quản lý SP     │    │ • Tính phí ship │
-│ • BFF Pattern   │    │ • Tìm kiếm       │    │ • Quote API     │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    Fresh Food Platform                  │
+│                     (Port 3000)                        │
+├─────────────────────────────────────────────────────────┤
+│  📱 API Modules:                                        │
+│  ├── 🔐 Auth      (JWT, Login, Register)              │
+│  ├── 🥬 Products  (Catalog, Search, Filters)          │
+│  ├── 📦 Orders    (Cart, Checkout, Tracking)          │
+│  └── 👤 Users     (Profiles, Preferences)             │
+├─────────────────────────────────────────────────────────┤
+│  🛠️ Shared Services:                                   │
+│  ├── 🔧 Config    (Environment, Database)             │
+│  ├── 📝 Logging   (Winston, Error tracking)           │
+│  ├── ⚡ Middleware (CORS, Security, Validation)       │
+│  └── 🔌 Database  (PostgreSQL with Prisma ORM)       │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## 🛠️ Công nghệ sử dụng
 
 - **Runtime**: Node.js 18+
 - **Language**: TypeScript
-- **Framework**: Express.js
-- **Architecture**: Microservices + API Gateway
-- **Package Manager**: npm/pnpm
+- **Framework**: Express.js 
+- **Architecture**: Monolith with Modules
+- **Database**: PostgreSQL (planned) + Prisma ORM
+- **Authentication**: JWT + bcrypt
+- **Logging**: Winston
+- **Testing**: Jest
 - **Deployment**: Render.com ready
+- **Package Manager**: npm
 
 ## 🚀 Cài đặt và chạy
 
 ### Cài đặt dependencies:
 ```bash
-# Cài đặt cho tất cả services
+# Clone repository
+git clone https://github.com/HoVietThang190704/BE_DACN_v1.git
+cd BE_DACN_v1
+
+# Cài đặt dependencies
 npm install
-cd apps/api-gateway && npm install
-cd ../catalog && npm install  
-cd ../order && npm install
 ```
 
 ### Chạy development:
 ```bash
-# Chạy tất cả services cùng lúc
+# Chạy ở development mode với hot reload
 npm run dev
 
-# Hoặc chạy từng service riêng:
-cd apps/api-gateway && npm run dev  # Port 4000
-cd apps/catalog && npm run dev      # Port 3001
-cd apps/order && npm run dev        # Port 3002
+# App sẽ chạy tại http://localhost:3000
 ```
 
 ### Build production:
 ```bash
-# Build tất cả services
+# Build TypeScript to JavaScript
 npm run build
 
-# Chạy production
+# Chạy production mode
 npm start
 ```
 
 ## 🔗 API Endpoints
 
-### API Gateway (http://localhost:4000)
-- `GET /health` - Health check
-- `GET /bff/checkout-summary?cartId=demo` - Tổng hợp dữ liệu checkout
-- `GET /api/catalog/products` - Proxy tới catalog
-- `GET /api/order/quote-shipping` - Proxy tới order
+### 📊 System Health
+- `GET /health` - Health check và system status
+- `GET /api` - API documentation overview
 
-### Catalog Service (http://localhost:3001)  
-- `GET /products` - Danh sách sản phẩm
-- `GET /products?q=rau` - Tìm kiếm sản phẩm
+### 🔐 Authentication (TODO)
+- `POST /api/auth/register` - Đăng ký tài khoản mới
+- `POST /api/auth/login` - Đăng nhập 
+- `POST /api/auth/logout` - Đăng xuất
+- `GET /api/auth/profile` - Thông tin profile
 
-### Order Service (http://localhost:3002)
-- `GET /quote-shipping?cartId=demo` - Tính phí vận chuyển
+### 🥬 Products  
+- `GET /api/products` - Danh sách sản phẩm (có phân trang)
+- `GET /api/products?search=rau` - Tìm kiếm sản phẩm
+- `GET /api/products?category=vegetable` - Lọc theo danh mục
+- `GET /api/products?certification=VietGAP` - Lọc theo chứng nhận
+- `GET /api/products/:id` - Chi tiết sản phẩm
+
+### 📦 Orders (TODO)
+- `GET /api/orders` - Danh sách đơn hàng
+- `POST /api/orders` - Tạo đơn hàng mới
+- `GET /api/orders/:id` - Chi tiết đơn hàng  
+- `PUT /api/orders/:id/status` - Cập nhật trạng thái
+
+### 👤 Users (TODO)
+- `GET /api/users/profile` - Thông tin người dùng
+- `PUT /api/users/profile` - Cập nhật profile
+- `GET /api/users/orders` - Lịch sử đơn hàng
+
+## 🌟 Tính năng nổi bật
+
+### 🥬 Sản phẩm thực phẩm Việt Nam
+- **200+ sản phẩm mẫu**: Rau củ, trái cây, thực phẩm hữu cơ từ các vùng miền Việt Nam
+- **Theo dõi nguồn gốc**: Từ trang trại đến người tiêu dùng
+- **Chứng nhận**: VietGAP, GlobalGAP, Organic, HACCP
+
+### 🔍 Tìm kiếm và lọc
+- Tìm kiếm theo tên sản phẩm (tiếng Việt)
+- Lọc theo danh mục, chứng nhận, vùng miền
+- Sắp xếp theo giá, độ tươi mới, đánh giá
+
+### 🚚 Truy xuất nguồn gốc
+- Thông tin trang trại sản xuất
+- Lịch sử canh tác và thu hoạch  
+- Chứng nhận an toàn thực phẩm
 
 ## 📦 Deploy lên Render.com
 
 Xem chi tiết trong file [`DEPLOY.md`](./DEPLOY.md)
 
 ### Quick Deploy:
-1. **Catalog Service**: Root dir `apps/catalog`
-2. **Order Service**: Root dir `apps/order`  
-3. **API Gateway**: Root dir `apps/api-gateway`
+1. **Connect GitHub**: Kết nối repository với Render
+2. **Web Service**: Tạo Web Service với build command `npm run build`  
+3. **Start Command**: `npm start`
+4. **Environment**: Node.js
+5. **Instance Type**: Free tier
 
 ## 🔧 Environment Variables
 
 ```env
-# API Gateway
-PORT=4000
-NODE_ENV=production
-CATALOG_URL=https://your-catalog-service.onrender.com
-ORDER_URL=https://your-order-service.onrender.com
-
-# Catalog Service
-PORT=3001
+# Main Application
+PORT=3000
 NODE_ENV=production
 
-# Order Service  
-PORT=3002
-NODE_ENV=production
+# Database (TODO)
+DATABASE_URL=postgresql://user:password@localhost:5432/fresh_food_db
+
+# JWT (TODO) 
+JWT_SECRET=your-super-secret-key
+JWT_EXPIRES_IN=7d
+
+# External APIs (TODO)
+VIETNAM_MAP_API_KEY=your-api-key
+PAYMENT_GATEWAY_KEY=your-payment-key
 ```
 
 ## 📁 Cấu trúc thư mục
 
 ```
 BE_DACN_v1/
-├── apps/
-│   ├── api-gateway/          # 🌐 API Gateway
-│   │   ├── src/
-│   │   │   ├── routes/       # BFF và Proxy routes
-│   │   │   └── main.ts       # Entry point
-│   │   ├── Dockerfile
-│   │   └── package.json
-│   ├── catalog/              # 🛍️ Catalog Service  
-│   │   ├── src/
-│   │   │   └── index.ts      # Products API
-│   │   └── package.json
-│   └── order/                # 📦 Order Service
-│       ├── src/
-│       │   └── index.ts      # Shipping API
-│       └── package.json
-├── DEPLOY.md                 # Hướng dẫn deploy
-├── render.yaml              # Render deployment config
-└── pnpm-workspace.yaml      # Monorepo config
+├── src/                          # 📦 Source code chính
+│   ├── app.ts                    # 🚀 Entry point của ứng dụng
+│   ├── config.ts                 # ⚙️ Cấu hình app và environment
+│   ├── routes/                   # 🛣️ API routes
+│   │   ├── auth.ts              # 🔐 Authentication endpoints
+│   │   ├── products.ts          # 🥬 Product catalog endpoints  
+│   │   ├── orders.ts            # 📦 Order management endpoints
+│   │   └── users.ts             # � User profile endpoints
+│   ├── modules/                  # 🧩 Business logic modules
+│   │   └── products/            # 🥬 Product domain logic
+│   │       └── productService.ts # Product business rules
+│   └── shared/                   # � Shared utilities
+│       ├── middleware/          # Middleware functions
+│       │   └── errorHandler.ts  # Global error handling
+│       └── utils/               # Utility functions
+│           └── logger.ts        # Logging configuration
+├── logs/                         # 📝 Application logs
+├── tsconfig.json                # 🔧 TypeScript configuration
+├── package.json                 # 📦 Dependencies và scripts
+├── DEPLOY.md                    # 🚀 Hướng dẫn deploy
+└── README.md                    # 📖 Documentation
 ```
 
 ## 🧪 Testing
 
 ```bash
-# Test API Gateway
-curl http://localhost:4000/health
+# Test health check
+curl http://localhost:3000/health
 
-# Test Catalog
-curl http://localhost:3001/products
+# Test API overview
+curl http://localhost:3000/api
 
-# Test Order
-curl http://localhost:3002/quote-shipping?cartId=demo
+# Test product catalog  
+curl http://localhost:3000/api/products
 
-# Test BFF
-curl "http://localhost:4000/bff/checkout-summary?cartId=demo"
+# Test product search (Vietnamese)
+curl "http://localhost:3000/api/products?search=rau%20cải"
+
+# Test product filtering
+curl "http://localhost:3000/api/products?category=vegetable&certification=VietGAP"
 ```
+
+## 🚀 Development Roadmap
+
+### ✅ Phase 1: Core Architecture (Completed)
+- [x] Project structure setup với monolith architecture
+- [x] Basic API endpoints với Express.js + TypeScript  
+- [x] Product catalog với Vietnamese fresh food data
+- [x] Health checks và logging system
+- [x] Error handling middleware
+
+### 🔄 Phase 2: Database & Authentication (In Progress) 
+- [ ] PostgreSQL database setup với Prisma ORM
+- [ ] User authentication với JWT
+- [ ] User registration và login endpoints
+- [ ] Database migrations và seeders
+
+### 📋 Phase 3: Business Logic (Planned)
+- [ ] Complete CRUD operations for all entities
+- [ ] Order management system 
+- [ ] Shopping cart functionality
+- [ ] User profile management
+- [ ] Admin panel APIs
+
+### 🚀 Phase 4: Production Ready (Planned)
+- [ ] Unit testing với Jest
+- [ ] API documentation với Swagger
+- [ ] CI/CD pipeline setup
+- [ ] Performance optimization
+- [ ] Security hardening
 
 ## 👨‍💻 Tác giả
 
