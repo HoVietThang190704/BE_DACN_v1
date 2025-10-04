@@ -55,11 +55,23 @@ npm run dev
 
 ## 🔒 Security Notes
 
-**⚠️ NEVER commit sensitive data to git:**
+**⚠️ CRITICAL: NEVER commit sensitive data to git:**
 - ✅ Use `.env` file for secrets (already in `.gitignore`)
 - ✅ Use `.env.example` as template
 - ❌ Don't put passwords/tokens directly in code
 - ❌ Don't commit `.env` file to repository
+
+**🚨 If credentials are exposed:**
+1. **Immediately change passwords** in MongoDB Atlas/services
+2. **Rotate JWT secrets** and API keys  
+3. **Update .env** with new credentials
+4. **Consider repository cleanup** if history contains secrets
+
+**🛡️ Best Practices:**
+- Use environment variables for ALL sensitive data
+- Regularly rotate passwords and API keys
+- Enable GitHub secret scanning alerts
+- Review commits before pushing
 
 ## 🏗️ Kiến trúc
 
