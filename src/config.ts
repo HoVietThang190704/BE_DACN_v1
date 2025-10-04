@@ -16,8 +16,8 @@ export const config = {
   JWT_SECRET: process.env.JWT_SECRET || (() => {
     throw new Error('JWT_SECRET environment variable is required. Please check your .env file.');
   })(),
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
-  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  JWT_EXPIRES_IN: (process.env.JWT_EXPIRES_IN || '24h') as string,
+  JWT_REFRESH_EXPIRES_IN: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as string,
   
   // Upload
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',

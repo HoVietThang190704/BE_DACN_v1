@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User';
 import { config } from '../config';
 import { logger } from '../shared/utils/logger';
@@ -119,11 +119,9 @@ authRoutes.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      config.JWT_SECRET,
-      { expiresIn: config.JWT_EXPIRES_IN }
-    );
+    const payload = { userId: user._id, email: user.email, role: user.role };
+    const secret = config.JWT_SECRET as string;
+    const token = jwt.sign(payload, secret, { expiresIn: '24h' });
 
     logger.info(`New user registered: ${email}`);
 
@@ -226,11 +224,9 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      config.JWT_SECRET,
-      { expiresIn: config.JWT_EXPIRES_IN }
-    );
+    const payload = { userId: user._id, email: user.email, role: user.role };
+    const secret = config.JWT_SECRET as string;
+    const token = jwt.sign(payload, secret, { expiresIn: '24h' });
 
     logger.info(`User logged in: ${email}`);
 
