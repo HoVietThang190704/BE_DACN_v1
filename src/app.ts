@@ -5,6 +5,9 @@ import compression from 'compression';
 import { config } from './config';
 import { errorHandler } from './shared/middleware/errorHandler';
 import { logger } from './shared/utils/logger';
+import { database } from './shared/database/connection';
+import { setupSwagger } from './shared/swagger/setup';
+import { ProductService } from './modules/products/productService';
 
 // Import routes
 import { authRoutes } from './routes/auth';
@@ -38,6 +41,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 
+// Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
+setupSwagger(app);
+
 // API documentation
 app.get('/api', (req, res) => {
   res.json({
@@ -67,8 +73,26 @@ app.use((req, res) => {
 
 const PORT = config.PORT || 3000;
 
-app.listen(PORT, () => {
-  logger.info(`🚀 Fresh Food Platform API đang chạy tại http://localhost:${PORT}`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  logger.info(`📖 API docs: http://localhost:${PORT}/api`);
-});
+// Start server with database connection
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await database.connect();
+    
+    // Seed database with sample data
+    await ProductService.seedDatabase();
+    
+    // Start Express server
+    app.listen(PORT, () => {
+      logger.info(`🚀 Fresh Food Platform API đang chạy tại http://localhost:${PORT}`);
+      logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+      logger.info(`📖 API docs: http://localhost:${PORT}/api`);
+      logger.info(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
+    });
+  } catch (error) {
+    logger.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

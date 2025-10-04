@@ -13,6 +13,54 @@ Dự án Fresh Food Platform là một ứng dụng backend hoàn chỉnh cho vi
 - **👥 Quản lý người dùng**: Authentication, authorization, profiles
 - **📦 Quản lý đơn hàng**: Từ giỏ hàng đến giao hàng
 
+## 🚀 Quick Start
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/HoVietThang190704/BE_DACN_v1.git
+cd BE_DACN_v1
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Environment Setup
+```bash
+# Copy template file
+cp .env.example .env
+
+# Edit .env with your actual values
+# IMPORTANT: Never commit .env to git!
+```
+
+**Required environment variables:**
+```env
+NODE_ENV=development
+MONGODB_URI=your-mongodb-connection-string
+JWT_SECRET=your-super-secure-jwt-secret
+PORT=3000
+```
+
+### 4. Start Development Server
+```bash
+npm run dev
+```
+
+**🎯 Server will be running at:**
+- API: http://localhost:3000
+- Swagger Docs: http://localhost:3000/api/docs
+- Health Check: http://localhost:3000/health
+
+## 🔒 Security Notes
+
+**⚠️ NEVER commit sensitive data to git:**
+- ✅ Use `.env` file for secrets (already in `.gitignore`)
+- ✅ Use `.env.example` as template
+- ❌ Don't put passwords/tokens directly in code
+- ❌ Don't commit `.env` file to repository
+
 ## 🏗️ Kiến trúc
 
 ```
@@ -40,9 +88,10 @@ Dự án Fresh Food Platform là một ứng dụng backend hoàn chỉnh cho vi
 - **Language**: TypeScript
 - **Framework**: Express.js 
 - **Architecture**: Monolith with Modules
-- **Database**: PostgreSQL (planned) + Prisma ORM
+- **Database**: MongoDB Atlas + Mongoose ODM
 - **Authentication**: JWT + bcrypt
 - **Logging**: Winston
+- **API Documentation**: Swagger/OpenAPI 3.0
 - **Testing**: Jest
 - **Deployment**: Render.com ready
 - **Package Manager**: npm
@@ -81,12 +130,13 @@ npm start
 ### 📊 System Health
 - `GET /health` - Health check và system status
 - `GET /api` - API documentation overview
+- `GET /api/docs` - **Swagger UI Documentation** 🔥
 
-### 🔐 Authentication (TODO)
-- `POST /api/auth/register` - Đăng ký tài khoản mới
-- `POST /api/auth/login` - Đăng nhập 
+### 🔐 Authentication ✅
+- `POST /api/auth/register` - Đăng ký tài khoản mới (có validation)
+- `POST /api/auth/login` - Đăng nhập với JWT token
 - `POST /api/auth/logout` - Đăng xuất
-- `GET /api/auth/profile` - Thông tin profile
+- `GET /api/auth/profile` - Thông tin profile (TODO: JWT middleware)
 
 ### 🥬 Products  
 - `GET /api/products` - Danh sách sản phẩm (có phân trang)
@@ -141,8 +191,8 @@ Xem chi tiết trong file [`DEPLOY.md`](./DEPLOY.md)
 PORT=3000
 NODE_ENV=production
 
-# Database (TODO)
-DATABASE_URL=postgresql://user:password@localhost:5432/fresh_food_db
+# MongoDB Atlas
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/DAChuyenNganh?retryWrites=true&w=majority
 
 # JWT (TODO) 
 JWT_SECRET=your-super-secret-key
@@ -208,11 +258,12 @@ curl "http://localhost:3000/api/products?category=vegetable&certification=VietGA
 - [x] Health checks và logging system
 - [x] Error handling middleware
 
-### 🔄 Phase 2: Database & Authentication (In Progress) 
-- [ ] PostgreSQL database setup với Prisma ORM
-- [ ] User authentication với JWT
-- [ ] User registration và login endpoints
-- [ ] Database migrations và seeders
+### ✅ Phase 2: Database & Authentication (Completed) 
+- [x] MongoDB Atlas connection với Mongoose ODM
+- [x] User authentication với JWT và bcrypt
+- [x] User registration và login endpoints với validation
+- [x] **Swagger UI documentation** cho API testing
+- [x] User schema với roles: customer, shop_owner, admin
 
 ### 📋 Phase 3: Business Logic (Planned)
 - [ ] Complete CRUD operations for all entities

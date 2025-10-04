@@ -4,11 +4,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
-    "build": "tsc -p src/tsconfig.json",
+    "build": "tsc",
     "start": "node dist/app.js",
-    "dev:services": "concurrently -n GW,CAT,ORD -c cyan,magenta,yellow \"cd apps/api-gateway && npm run dev\" \"cd apps/catalog && npm run dev\" \"cd apps/order && npm run dev\"",
     "test": "jest",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "check-env": "node check-env.js",
+    "setup": "npm run check-env && npm run dev"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -43,7 +44,12 @@
   "homepage": "https://github.com/HoVietThang190704/BE_DACN_v1#readme",
   "description": "Hệ thống Backend Đồ án Chuyên ngành - Kiến trúc Microservices với API Gateway, Catalog Service và Order Service",
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/mongoose": "^5.11.96",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -52,7 +58,10 @@
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.0",
     "multer": "^2.0.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0"
   }
 }

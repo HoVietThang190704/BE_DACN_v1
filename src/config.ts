@@ -7,11 +7,15 @@ export const config = {
   PORT: parseInt(process.env.PORT || '3000'),
   NODE_ENV: process.env.NODE_ENV || 'development',
   
-  // Database
-  DATABASE_URL: process.env.DATABASE_URL || 'postgresql://dacn:dacn123@localhost:5432/dacn_fresh_food',
+  // Database - MongoDB
+  MONGODB_URI: process.env.MONGODB_URI || (() => {
+    throw new Error('MONGODB_URI environment variable is required. Please check your .env file.');
+  })(),
   
   // JWT
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
+  JWT_SECRET: process.env.JWT_SECRET || (() => {
+    throw new Error('JWT_SECRET environment variable is required. Please check your .env file.');
+  })(),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   
