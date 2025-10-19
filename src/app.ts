@@ -8,7 +8,7 @@ import { logger } from './shared/utils/logger';
 import { database } from './shared/database/connection';
 import { setupSwagger } from './shared/swagger/setup';
 import { ProductService } from './modules/products/productService';
-
+import os from 'os';
 // Import routes
 import { authRoutes } from './routes/auth';
 import { productRoutes } from './routes/products';
@@ -72,7 +72,7 @@ app.use((req, res) => {
 });
 
 const PORT = config.PORT || 3000;
-
+const IP = config.NODE_IP || 'localhost';
 // Start server with database connection
 async function startServer() {
   try {
@@ -81,13 +81,25 @@ async function startServer() {
     
     // Seed database with sample data
     await ProductService.seedDatabase();
-    
-    // Start Express server
-    app.listen(PORT, () => {
-      logger.info(`🚀 Fresh Food Platform API đang chạy tại http://localhost:${PORT}`);
-      logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-      logger.info(`📖 API docs: http://localhost:${PORT}/api`);
-      logger.info(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
+    function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const iface of Object.values(interfaces)) {
+    if (!iface) continue;
+    for (const config of iface) {
+      if (config.family === 'IPv4' && !config.internal) {
+        return config.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+const localIp = getLocalIp();
+// Start Express server
+app.listen(PORT,"0.0.0.0", () => {
+  logger.info(`🚀 Fresh Food Platform API đang chạy tại http://${localIp}:${PORT}`);
+  logger.info(`📊 Health check: http://${localIp}:${PORT}/health`);
+  logger.info(`📖 API docs: http://${localIp}:${PORT}/api`);
+  logger.info(`📚 Swagger docs: http://${localIp}:${PORT}/api/docs`);
     });
   } catch (error) {
     logger.error('❌ Failed to start server:', error);

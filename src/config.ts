@@ -6,7 +6,7 @@ export const config = {
   // Server
   PORT: parseInt(process.env.PORT || '3000'),
   NODE_ENV: process.env.NODE_ENV || 'development',
-  
+  NODE_IP: process.env.IP || 'localhost',
   // Database - MongoDB
   MONGODB_URI: process.env.MONGODB_URI || (() => {
     throw new Error('MONGODB_URI environment variable is required. Please check your .env file.');
