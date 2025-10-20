@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { GetUserProfileUseCase } from '../../domain/usecases/user/GetUserProfile.usecase';
 import { UpdateUserProfileUseCase } from '../../domain/usecases/user/UpdateUserProfile.usecase';
+import { ResetPasswordUseCase } from '../../domain/usecases/user/ResetPassword.usecase';
+import { ChangePasswordUseCase } from '../../domain/usecases/user/ChangePassword.usecase';
 import { UserMapper } from '../dto/user/User.dto';
 import { logger } from '../../shared/utils/logger';
 
@@ -11,7 +13,9 @@ import { logger } from '../../shared/utils/logger';
 export class UserController {
   constructor(
     private getUserProfileUseCase: GetUserProfileUseCase,
-    private updateUserProfileUseCase: UpdateUserProfileUseCase
+    private updateUserProfileUseCase: UpdateUserProfileUseCase,
+    private resetPasswordUseCase: ResetPasswordUseCase,
+    private changePasswordUseCase: ChangePasswordUseCase
   ) {}
 
   /**
@@ -120,6 +124,123 @@ export class UserController {
       res.status(500).json({
         success: false,
         message: 'Lỗi server khi cập nhật profile'
+      });
+    }
+  }
+
+  /**
+   * POST /auth/reset-password
+   * Reset password using token (public endpoint)
+   */
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Token và mật khẩu mới là bắt buộc'
+        });
+        return;
+      }
+
+      await this.resetPasswordUseCase.execute(token, newPassword);
+
+      logger.info('Password reset successfully');
+
+      res.json({
+        success: true,
+        message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới.'
+      });
+    } catch (error: any) {
+      logger.error('Reset password error:', error);
+
+      if (
+        error.message.includes('Token') ||
+        error.message.includes('token') ||
+        error.message.includes('hết hạn')
+      ) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      if (error.message.includes('Mật khẩu')) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi đặt lại mật khẩu'
+      });
+    }
+  }
+
+  /**
+   * POST /api/users/me/change-password
+   * Change password for authenticated user
+   */
+  async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+        return;
+      }
+
+      const { oldPassword, newPassword } = req.body;
+
+      if (!oldPassword || !newPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Mật khẩu cũ và mật khẩu mới là bắt buộc'
+        });
+        return;
+      }
+
+      await this.changePasswordUseCase.execute(userId, oldPassword, newPassword);
+
+      logger.info(`Password changed for user: ${userId}`);
+
+      res.json({
+        success: true,
+        message: 'Đổi mật khẩu thành công'
+      });
+    } catch (error: any) {
+      logger.error('Change password error:', error);
+
+      if (error.message === 'Người dùng không tồn tại') {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      if (
+        error.message.includes('Mật khẩu') ||
+        error.message.includes('password')
+      ) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi đổi mật khẩu'
       });
     }
   }

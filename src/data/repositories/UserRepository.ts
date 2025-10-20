@@ -1,6 +1,7 @@
 import { IUserRepository } from '../../domain/repositories/IUserRepository';
 import { UserEntity } from '../../domain/entities/User.entity';
 import { User as UserModel, IUser } from '../../models/users/User';
+import { logger } from '../../shared/utils/logger';
 
 /**
  * User Repository Implementation
@@ -152,5 +153,71 @@ export class UserRepository implements IUserRepository {
       model.createdAt,
       model.updatedAt
     );
+  }
+
+  async updatePassword(id: string, hashedPassword: string): Promise<boolean> {
+    try {
+      const user = await UserModel.findById(id);
+      if (!user) return false;
+
+      user.password = hashedPassword;
+      await user.save();
+      return true;
+    } catch (error) {
+      logger.error('UserRepository.updatePassword error:', error);
+      return false;
+    }
+  }
+
+  async setResetPasswordToken(email: string, token: string, expires: Date): Promise<boolean> {
+    try {
+      const result = await UserModel.updateOne(
+        { email },
+        {
+          $set: {
+            resetPasswordToken: token,
+            resetPasswordExpires: expires
+          }
+        }
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      logger.error('UserRepository.setResetPasswordToken error:', error);
+      return false;
+    }
+  }
+
+  async findByResetPasswordToken(token: string): Promise<UserEntity | null> {
+    try {
+      const user = await UserModel.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
+      });
+
+      if (!user) return null;
+
+      return this.mapToEntity(user);
+    } catch (error) {
+      logger.error('UserRepository.findByResetPasswordToken error:', error);
+      return null;
+    }
+  }
+
+  async clearResetPasswordToken(id: string): Promise<boolean> {
+    try {
+      const result = await UserModel.updateOne(
+        { _id: id },
+        {
+          $unset: {
+            resetPasswordToken: '',
+            resetPasswordExpires: ''
+          }
+        }
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      logger.error('UserRepository.clearResetPasswordToken error:', error);
+      return false;
+    }
   }
 }

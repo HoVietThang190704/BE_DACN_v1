@@ -11,6 +11,8 @@ import { ProductRepository } from '../data/repositories/ProductRepository';
 // User Use Cases
 import { GetUserProfileUseCase } from '../domain/usecases/user/GetUserProfile.usecase';
 import { UpdateUserProfileUseCase } from '../domain/usecases/user/UpdateUserProfile.usecase';
+import { ResetPasswordUseCase } from '../domain/usecases/user/ResetPassword.usecase';
+import { ChangePasswordUseCase } from '../domain/usecases/user/ChangePassword.usecase';
 
 // Product Use Cases
 import { GetProductsUseCase } from '../domain/usecases/product/GetProducts.usecase';
@@ -30,6 +32,8 @@ const productRepository = new ProductRepository();
 // User Use Cases
 const getUserProfileUseCase = new GetUserProfileUseCase(userRepository);
 const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository);
+const resetPasswordUseCase = new ResetPasswordUseCase(userRepository);
+const changePasswordUseCase = new ChangePasswordUseCase(userRepository);
 
 // Product Use Cases
 const getProductsUseCase = new GetProductsUseCase(productRepository);
@@ -40,7 +44,9 @@ const getCategoriesUseCase = new GetCategoriesUseCase(productRepository);
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
   getUserProfileUseCase,
-  updateUserProfileUseCase
+  updateUserProfileUseCase,
+  resetPasswordUseCase,
+  changePasswordUseCase
 );
 
 export const productController = new ProductController(
@@ -60,6 +66,8 @@ export const useCases = {
   // User
   getUserProfileUseCase,
   updateUserProfileUseCase,
+  resetPasswordUseCase,
+  changePasswordUseCase,
   // Product
   getProductsUseCase,
   getProductByIdUseCase,
