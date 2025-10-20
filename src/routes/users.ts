@@ -1,25 +1,37 @@
 import { Router } from 'express';
+import { userController } from '../di/container';
+import { authenticate } from '../shared/middleware/auth';
+import { validate } from '../shared/middleware/validate';
+import { updateProfileSchema } from '../shared/validation/user.schema';
 
 export const userRoutes = Router();
 
-// GET /api/users/profile
-userRoutes.get('/profile', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Tính năng profile sẽ được triển khai sau khi hoàn thành auth module'
-  });
+// GET /api/users/me/profile - Get current user profile
+userRoutes.get(
+  '/me/profile',
+  authenticate,
+  (req, res) => userController.getProfile(req, res)
+);
+
+// PUT /api/users/me/profile - Update current user profile
+userRoutes.put(
+  '/me/profile',
+  authenticate,
+  validate(updateProfileSchema),
+  (req, res) => userController.updateProfile(req, res)
+);
+
+// Legacy endpoints
+userRoutes.get('/profile', authenticate, (req, res) => {
+  res.redirect(307, '/api/users/me/profile');
 });
 
-// PUT /api/users/profile
-userRoutes.put('/profile', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Tính năng cập nhật profile sẽ được triển khai sau khi hoàn thành auth module'
-  });
+userRoutes.put('/profile', authenticate, validate(updateProfileSchema), (req, res) => {
+  res.redirect(307, '/api/users/me/profile');
 });
 
-// GET /api/users/addresses
-userRoutes.get('/addresses', (req, res) => {
+// GET /api/users/addresses - Manage user addresses
+userRoutes.get('/addresses', authenticate, (req, res) => {
   res.json({
     success: true,
     message: 'Quản lý địa chỉ giao hàng sẽ được triển khai trong Sprint tiếp theo'

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { User, IUser } from '../models/User';
+import { User, IUser } from '../models/users/User';
 import { config } from '../config';
 import { logger } from '../shared/utils/logger';
 
