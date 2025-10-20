@@ -64,4 +64,24 @@ export interface IUserRepository {
    * Check if phone exists
    */
   phoneExists(phone: string): Promise<boolean>;
+
+  /**
+   * Update password
+   */
+  updatePassword(id: string, hashedPassword: string): Promise<boolean>;
+
+  /**
+   * Set reset password token
+   */
+  setResetPasswordToken(email: string, token: string, expires: Date): Promise<boolean>;
+
+  /**
+   * Find user by reset password token
+   */
+  findByResetPasswordToken(token: string): Promise<UserEntity | null>;
+
+  /**
+   * Clear reset password token
+   */
+  clearResetPasswordToken(id: string): Promise<boolean>;
 }

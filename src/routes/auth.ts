@@ -3,6 +3,8 @@ import * as jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/users/User';
 import { config } from '../config';
 import { logger } from '../shared/utils/logger';
+import { userController } from '../di/container';
+import { authenticate } from '../shared/middleware/auth';
 
 export const authRoutes = Router();
 
@@ -450,4 +452,107 @@ authRoutes.get('/profile', async (req: Request, res: Response) => {
     success: true,
     message: 'Endpoint sẽ được bảo vệ bằng JWT middleware sau'
   });
+});
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Đặt lại mật khẩu (Xác nhận token)
+ *     tags: [Auth]
+ *     description: Đặt lại mật khẩu mới bằng reset token nhận được qua email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Reset password token
+ *                 example: "abc123xyz789"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: Mật khẩu mới
+ *                 example: "newpassword123"
+ *     responses:
+ *       200:
+ *         description: Đặt lại mật khẩu thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới."
+ *       400:
+ *         description: Token không hợp lệ hoặc mật khẩu không đúng định dạng
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/reset-password', async (req: Request, res: Response) => {
+  await userController.resetPassword(req, res);
+});
+
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     summary: Đổi mật khẩu (Đã đăng nhập)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Đổi mật khẩu cho người dùng đã đăng nhập (yêu cầu xác thực mật khẩu cũ)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 description: Mật khẩu hiện tại
+ *                 example: "oldpassword123"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 description: Mật khẩu mới (phải khác mật khẩu cũ)
+ *                 example: "newpassword456"
+ *     responses:
+ *       200:
+ *         description: Đổi mật khẩu thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Đổi mật khẩu thành công"
+ *       400:
+ *         description: Mật khẩu cũ không đúng hoặc mật khẩu mới không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Người dùng không tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/change-password', authenticate, async (req: Request, res: Response) => {
+  await userController.changePassword(req, res);
 });

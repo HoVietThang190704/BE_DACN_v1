@@ -14,6 +14,8 @@ export interface IUser extends Document {
   role: 'customer' | 'shop_owner' | 'admin';
   isVerified: boolean;
   date_of_birth?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   
@@ -85,6 +87,12 @@ const UserSchema: Schema = new Schema({
     default: false // Mặc định chưa xác thực khi đăng ký
   },
   date_of_birth: {
+    type: Date
+  },
+  resetPasswordToken: {
+    type: String
+  },
+  resetPasswordExpires: {
     type: Date
   }
 }, {
