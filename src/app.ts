@@ -7,7 +7,6 @@ import { errorHandler } from './shared/middleware/errorHandler';
 import { logger } from './shared/utils/logger';
 import { database } from './shared/database/connection';
 import { setupSwagger } from './shared/swagger/setup';
-import { ProductService } from './modules/products/productService';
 import os from 'os';
 // Import routes
 import { authRoutes } from './routes/auth';
@@ -79,8 +78,9 @@ async function startServer() {
     // Connect to MongoDB
     await database.connect();
     
-    // Seed database with sample data
-    await ProductService.seedDatabase();
+    // TODO: Seed database with sample data
+    // await seedDatabase();
+    
     function getLocalIp() {
   const interfaces = os.networkInterfaces();
   for (const iface of Object.values(interfaces)) {
