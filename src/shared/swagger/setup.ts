@@ -67,6 +67,10 @@ const options: swaggerJSDoc.Options = {
         description: 'Quản lý sản phẩm thực phẩm tươi sạch'
       },
       {
+        name: 'Categories',
+        description: 'Quản lý danh mục sản phẩm (cấu trúc cây đa cấp)'
+      },
+      {
         name: 'Orders',
         description: 'Quản lý đơn hàng và giỏ hàng'
       },
