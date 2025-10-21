@@ -9,7 +9,8 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "check-env": "node check-env.js",
-    "setup": "npm run check-env && npm run dev"
+    "setup": "npm run check-env && npm run dev",
+    "seed:categories": "ts-node-dev --transpile-only src/shared/database/seed-categories.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

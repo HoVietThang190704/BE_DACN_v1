@@ -6,6 +6,7 @@
 // ==================== REPOSITORIES ====================
 import { UserRepository } from '../data/repositories/UserRepository';
 import { ProductRepository } from '../data/repositories/ProductRepository';
+import { CategoryRepository } from '../data/repositories/CategoryRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -20,13 +21,20 @@ import { GetProductByIdUseCase } from '../domain/usecases/product/GetProductById
 import { GetProductTraceabilityUseCase } from '../domain/usecases/product/GetProductTraceability.usecase';
 import { GetCategoriesUseCase } from '../domain/usecases/product/GetCategories.usecase';
 
+// Category Use Cases
+import { GetCategoriesTreeUseCase } from '../domain/usecases/category/GetCategoriesTree.usecase';
+import { GetCategoryByIdUseCase } from '../domain/usecases/category/GetCategoryById.usecase';
+import { GetCategoryBreadcrumbUseCase } from '../domain/usecases/category/GetCategoryBreadcrumb.usecase';
+
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
 import { ProductController } from '../presentation/controllers/ProductController';
+import { CategoryController } from '../presentation/controllers/CategoryController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
 const productRepository = new ProductRepository();
+const categoryRepository = new CategoryRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -40,6 +48,11 @@ const getProductsUseCase = new GetProductsUseCase(productRepository);
 const getProductByIdUseCase = new GetProductByIdUseCase(productRepository);
 const getProductTraceabilityUseCase = new GetProductTraceabilityUseCase(productRepository);
 const getCategoriesUseCase = new GetCategoriesUseCase(productRepository);
+
+// Category Use Cases
+const getCategoriesTreeUseCase = new GetCategoriesTreeUseCase(categoryRepository);
+const getCategoryByIdUseCase = new GetCategoryByIdUseCase(categoryRepository);
+const getCategoryBreadcrumbUseCase = new GetCategoryBreadcrumbUseCase(categoryRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -56,10 +69,17 @@ export const productController = new ProductController(
   getCategoriesUseCase
 );
 
+export const categoryController = new CategoryController(
+  getCategoriesTreeUseCase,
+  getCategoryByIdUseCase,
+  getCategoryBreadcrumbUseCase
+);
+
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
   userRepository,
-  productRepository
+  productRepository,
+  categoryRepository
 };
 
 export const useCases = {
@@ -72,5 +92,9 @@ export const useCases = {
   getProductsUseCase,
   getProductByIdUseCase,
   getProductTraceabilityUseCase,
-  getCategoriesUseCase
+  getCategoriesUseCase,
+  // Category
+  getCategoriesTreeUseCase,
+  getCategoryByIdUseCase,
+  getCategoryBreadcrumbUseCase
 };
