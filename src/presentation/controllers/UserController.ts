@@ -76,13 +76,15 @@ export class UserController {
         return;
       }
 
-      const { userName, phone, dateOfBirth, avatar } = req.body;
+      // Accept both camelCase (dateOfBirth) and snake_case (date_of_birth)
+      const { userName, phone, dateOfBirth, date_of_birth, avatar } = req.body;
+      const normalizedDateOfBirth = dateOfBirth || date_of_birth;
 
       const updatedUser = await this.updateUserProfileUseCase.execute({
         userId,
         userName,
         phone,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        dateOfBirth: normalizedDateOfBirth ? new Date(normalizedDateOfBirth) : undefined,
         avatar
       });
 
