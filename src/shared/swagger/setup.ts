@@ -54,6 +54,226 @@ const options: swaggerJSDoc.Options = {
               }
             }
           }
+        },
+        Address: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011'
+            },
+            recipientName: {
+              type: 'string',
+              example: 'Nguyễn Văn A'
+            },
+            phone: {
+              type: 'string',
+              example: '0901234567'
+            },
+            address: {
+              type: 'string',
+              example: '123 Đường ABC'
+            },
+            ward: {
+              type: 'string',
+              example: 'Phường 1'
+            },
+            district: {
+              type: 'string',
+              example: 'Quận 1'
+            },
+            province: {
+              type: 'string',
+              example: 'TP. Hồ Chí Minh'
+            },
+            fullAddress: {
+              type: 'string',
+              example: '123 Đường ABC, Phường 1, Quận 1, TP. Hồ Chí Minh'
+            },
+            isDefault: {
+              type: 'boolean',
+              example: true
+            },
+            label: {
+              type: 'string',
+              enum: ['home', 'work', 'other'],
+              example: 'home'
+            },
+            note: {
+              type: 'string',
+              example: 'Gọi trước khi giao'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Order: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439011'
+            },
+            orderNumber: {
+              type: 'string',
+              example: 'ORD251026001'
+            },
+            userId: {
+              type: 'string',
+              example: '507f1f77bcf86cd799439012'
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: {
+                    type: 'string',
+                    example: '507f1f77bcf86cd799439013'
+                  },
+                  productName: {
+                    type: 'string',
+                    example: 'Rau muống hữu cơ'
+                  },
+                  productImage: {
+                    type: 'string',
+                    example: 'https://example.com/image.jpg'
+                  },
+                  quantity: {
+                    type: 'number',
+                    example: 2
+                  },
+                  price: {
+                    type: 'number',
+                    example: 15000
+                  },
+                  subtotal: {
+                    type: 'number',
+                    example: 30000
+                  }
+                }
+              }
+            },
+            totalItems: {
+              type: 'number',
+              example: 5
+            },
+            subtotal: {
+              type: 'number',
+              example: 150000
+            },
+            shippingFee: {
+              type: 'number',
+              example: 20000
+            },
+            discount: {
+              type: 'number',
+              example: 10000
+            },
+            total: {
+              type: 'number',
+              example: 160000
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled', 'refunded'],
+              example: 'pending'
+            },
+            statusDisplay: {
+              type: 'string',
+              example: 'Chờ xác nhận'
+            },
+            paymentMethod: {
+              type: 'string',
+              enum: ['cod', 'momo', 'zalopay', 'vnpay', 'card'],
+              example: 'cod'
+            },
+            paymentStatus: {
+              type: 'string',
+              enum: ['pending', 'paid', 'failed', 'refunded'],
+              example: 'pending'
+            },
+            isInProgress: {
+              type: 'boolean',
+              example: true
+            },
+            isCompleted: {
+              type: 'boolean',
+              example: false
+            },
+            canBeCancelled: {
+              type: 'boolean',
+              example: true
+            },
+            shippingAddress: {
+              type: 'object',
+              properties: {
+                recipientName: {
+                  type: 'string',
+                  example: 'Nguyễn Văn A'
+                },
+                phone: {
+                  type: 'string',
+                  example: '0901234567'
+                },
+                address: {
+                  type: 'string',
+                  example: '123 Đường ABC'
+                },
+                ward: {
+                  type: 'string',
+                  example: 'Phường 1'
+                },
+                district: {
+                  type: 'string',
+                  example: 'Quận 1'
+                },
+                province: {
+                  type: 'string',
+                  example: 'TP. Hồ Chí Minh'
+                },
+                fullAddress: {
+                  type: 'string',
+                  example: '123 Đường ABC, Phường 1, Quận 1, TP. Hồ Chí Minh'
+                }
+              }
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            estimatedDelivery: {
+              type: 'string',
+              format: 'date-time'
+            },
+            deliveredAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            daysUntilDelivery: {
+              type: 'number',
+              example: 3,
+              nullable: true
+            },
+            note: {
+              type: 'string',
+              example: 'Giao hàng vào buổi sáng'
+            },
+            cancelReason: {
+              type: 'string',
+              example: 'Đặt nhầm sản phẩm'
+            }
+          }
         }
       }
     },
