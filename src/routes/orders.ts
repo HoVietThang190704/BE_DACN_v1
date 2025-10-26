@@ -1,6 +1,18 @@
 import { Router } from 'express';
 
 export const orderRoutes = Router();
+// Task 5: Thêm sản phẩm vào giỏ hàng
+orderRoutes.post('/cart/add', (req, res) => {
+  // Nhận dữ liệu sản phẩm từ body
+  const { productId, quantity } = req.body;
+  // Trả về thông tin giỏ hàng sau khi thêm (mẫu)
+  res.status(201).json({
+    cart: [
+      { productId, quantity }
+    ],
+    message: 'Đã thêm vào giỏ hàng thành công!'
+  });
+});
 
 // GET /api/orders/quote-shipping
 orderRoutes.get('/quote-shipping', (req, res) => {
