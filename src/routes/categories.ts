@@ -3,6 +3,18 @@ import { asyncHandler } from '../shared/middleware/errorHandler';
 import { categoryController } from '../di/container';
 
 export const categoryRoutes = Router();
+// Task 4: Thêm danh mục mới cho admin
+categoryRoutes.post('/admin/categories', (req, res) => {
+  // Nhận dữ liệu danh mục từ body
+  const { name, description } = req.body;
+  // Trả về danh mục vừa tạo (mẫu)
+  res.status(201).json({
+    id: 'new_category_id',
+    name,
+    description,
+    createdAt: new Date()
+  });
+});
 
 /**
  * @swagger
