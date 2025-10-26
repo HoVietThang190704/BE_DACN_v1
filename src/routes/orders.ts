@@ -1,11 +1,47 @@
 import { Router } from 'express';
 
 export const orderRoutes = Router();
-// Task 5: Thêm sản phẩm vào giỏ hàng
+
+/**
+ * @swagger
+ * /api/orders/cart/add:
+ *   post:
+ *     summary: Thêm sản phẩm vào giỏ hàng
+ *     tags: [Orders]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Đã thêm vào giỏ hàng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cart:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       productId:
+ *                         type: string
+ *                       quantity:
+ *                         type: integer
+ *                 message:
+ *                   type: string
+ *                   example: Đã thêm vào giỏ hàng thành công!
+ */
 orderRoutes.post('/cart/add', (req, res) => {
-  // Nhận dữ liệu sản phẩm từ body
   const { productId, quantity } = req.body;
-  // Trả về thông tin giỏ hàng sau khi thêm (mẫu)
   res.status(201).json({
     cart: [
       { productId, quantity }

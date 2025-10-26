@@ -3,13 +3,52 @@ import { asyncHandler } from '../shared/middleware/errorHandler';
 import { productController } from '../di/container';
 
 export const productRoutes = Router();
-// Task 3: Thêm sản phẩm mới cho seller
+
+/**
+ * @swagger
+ * /api/products/seller/products:
+ *   post:
+ *     summary: Thêm sản phẩm mới (seller)
+ *     tags: [Products]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Sản phẩm đã được tạo thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 price:
+ *                   type: number
+ *                 category:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ */
+let nextProductId = 1;
 productRoutes.post('/seller/products', (req, res) => {
-  // Nhận dữ liệu sản phẩm từ body
   const { name, price, category } = req.body;
-  // Trả về sản phẩm vừa tạo (mẫu)
+  const id = nextProductId++;
   res.status(201).json({
-    id: 'new_product_id',
+    id,
     name,
     price,
     category,
