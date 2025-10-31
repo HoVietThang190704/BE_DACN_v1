@@ -2,6 +2,55 @@ import { Router } from 'express';
 
 export const orderRoutes = Router();
 
+/**
+ * @swagger
+ * /api/orders/cart/add:
+ *   post:
+ *     summary: Thêm sản phẩm vào giỏ hàng
+ *     tags: [Orders]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productId:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Đã thêm vào giỏ hàng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cart:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       productId:
+ *                         type: string
+ *                       quantity:
+ *                         type: integer
+ *                 message:
+ *                   type: string
+ *                   example: Đã thêm vào giỏ hàng thành công!
+ */
+orderRoutes.post('/cart/add', (req, res) => {
+  const { productId, quantity } = req.body;
+  res.status(201).json({
+    cart: [
+      { productId, quantity }
+    ],
+    message: 'Đã thêm vào giỏ hàng thành công!'
+  });
+});
+
+// GET /api/orders/quote-shipping
 orderRoutes.get('/quote-shipping', (req, res) => {
   const cartId = req.query.cartId || 'demo';
   const items = req.query.items ? parseInt(req.query.items as string) : 1;

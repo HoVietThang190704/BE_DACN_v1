@@ -15,6 +15,10 @@ export const productRoutes = Router();
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
+ * /api/products/seller/products:
+ *   post:
+ *     summary: Thêm sản phẩm mới (seller)
+ *     tags: [Products]
  *     requestBody:
  *       required: true
  *       content:
@@ -265,6 +269,45 @@ productRoutes.post('/:id/images', authenticate, authorizeRoles('shop_owner', 'ad
 productRoutes.delete('/:id/images', authenticate, authorizeRoles('shop_owner', 'admin'), asyncHandler(async (req: Request, res: Response) => {
   await productController.deleteImage(req, res);
 }));
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Sản phẩm đã được tạo thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 price:
+ *                   type: number
+ *                 category:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ */
+let nextProductId = 1;
+productRoutes.post('/seller/products', (req, res) => {
+  const { name, price, category } = req.body;
+  const id = nextProductId++;
+  res.status(201).json({
+    id,
+    name,
+    price,
+    category,
+    createdAt: new Date()
+  });
+});
 
 // GET /api/products - Danh sách sản phẩm với tìm kiếm và lọc
 productRoutes.get('/', asyncHandler(async (req: Request, res: Response) => {
