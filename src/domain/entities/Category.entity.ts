@@ -1,8 +1,3 @@
-/**
- * Category Entity - Pure domain model for hierarchical categories
- * Supports multi-level category tree structure
- */
-
 export interface ICategoryEntity {
   id: string;
   name: string;
@@ -12,14 +7,11 @@ export interface ICategoryEntity {
   icon?: string;
   image?: string;
   parentId?: string | null;
-  level: number; // 0 = root, 1 = level 1, etc.
-  order: number; // Display order
+  level: number; 
+  order: number; 
   isActive: boolean;
   productCount: number;
-  
-  // Tree structure helpers
   children?: ICategoryEntity[];
-  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,39 +51,22 @@ export class CategoryEntity implements ICategoryEntity {
     this.updatedAt = data.updatedAt;
   }
 
-  // Business Logic Methods
-
-  /**
-   * Check if category is root (top-level)
-   */
   isRoot(): boolean {
     return !this.parentId && this.level === 0;
   }
 
-  /**
-   * Check if category has children
-   */
   hasChildren(): boolean {
     return !!this.children && this.children.length > 0;
   }
 
-  /**
-   * Check if category is leaf (no children)
-   */
   isLeaf(): boolean {
     return !this.hasChildren();
   }
 
-  /**
-   * Get number of children
-   */
   getChildrenCount(): number {
     return this.children?.length || 0;
   }
 
-  /**
-   * Get all descendant IDs (recursive)
-   */
   getAllDescendantIds(): string[] {
     const ids: string[] = [];
     
@@ -106,9 +81,6 @@ export class CategoryEntity implements ICategoryEntity {
     return ids;
   }
 
-  /**
-   * Get total product count including children
-   */
   getTotalProductCount(): number {
     let total = this.productCount;
     
@@ -122,9 +94,6 @@ export class CategoryEntity implements ICategoryEntity {
     return total;
   }
 
-  /**
-   * Find child by ID
-   */
   findChildById(id: string): ICategoryEntity | null {
     if (!this.children) return null;
     
@@ -139,9 +108,6 @@ export class CategoryEntity implements ICategoryEntity {
     return null;
   }
 
-  /**
-   * Get breadcrumb path from root to this category
-   */
   getBreadcrumb(allCategories: ICategoryEntity[]): ICategoryEntity[] {
     const breadcrumb: ICategoryEntity[] = [this];
     let currentParentId = this.parentId;
@@ -157,9 +123,6 @@ export class CategoryEntity implements ICategoryEntity {
     return breadcrumb;
   }
 
-  /**
-   * Validate category data
-   */
   validate(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -189,9 +152,6 @@ export class CategoryEntity implements ICategoryEntity {
     };
   }
 
-  /**
-   * Convert to plain object (for JSON serialization)
-   */
   toJSON(): ICategoryEntity {
     return {
       id: this.id,

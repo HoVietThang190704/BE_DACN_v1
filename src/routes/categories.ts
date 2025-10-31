@@ -1,6 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../shared/middleware/errorHandler';
 import { categoryController } from '../di/container';
+import { authenticate } from '../shared/middleware/auth';
+import { authorizeRoles } from '../shared/middleware/authorize';
+import { validate } from '../shared/middleware/validate';
+import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from '../shared/validation/category.schema';
 
 export const categoryRoutes = Router();
 
@@ -335,4 +339,195 @@ categoryRoutes.get('/:id', asyncHandler(async (req: Request, res: Response) => {
  */
 categoryRoutes.get('/:id/breadcrumb', asyncHandler(async (req: Request, res: Response) => {
   await categoryController.getCategoryBreadcrumb(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories:
+ *   post:
+ *     summary: Tạo danh mục mới (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - slug
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên danh mục
+ *                 example: "Rau củ quả"
+ *               nameEn:
+ *                 type: string
+ *                 description: Tên tiếng Anh
+ *                 example: "Vegetables"
+ *               slug:
+ *                 type: string
+ *                 description: URL slug (chữ thường, số, dấu gạch ngang)
+ *                 example: "rau-cu-qua"
+ *               description:
+ *                 type: string
+ *                 description: Mô tả danh mục
+ *               icon:
+ *                 type: string
+ *                 description: Icon emoji
+ *                 example: "🥬"
+ *               image:
+ *                 type: string
+ *                 description: URL hình ảnh
+ *               parentId:
+ *                 type: string
+ *                 description: ID danh mục cha (null = root)
+ *                 nullable: true
+ *               order:
+ *                 type: integer
+ *                 description: Thứ tự hiển thị
+ *                 default: 0
+ *               isActive:
+ *                 type: boolean
+ *                 description: Trạng thái kích hoạt
+ *                 default: true
+ *     responses:
+ *       201:
+ *         description: Tạo danh mục thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ */
+categoryRoutes.post('/', authenticate, authorizeRoles('admin'), validate(createCategorySchema), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.createCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   put:
+ *     summary: Cập nhật danh mục (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               nameEn:
+ *                 type: string
+ *               slug:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *                 nullable: true
+ *               order:
+ *                 type: integer
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.put('/:id', authenticate, authorizeRoles('admin'), validate(updateCategorySchema), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.updateCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   delete:
+ *     summary: Xóa danh mục - Soft delete (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *       - in: query
+ *         name: force
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Force delete ngay cả khi có sản phẩm
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *       400:
+ *         description: Không thể xóa (có danh mục con hoặc sản phẩm)
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.delete('/:id', authenticate, authorizeRoles('admin'), validate(deleteCategorySchema), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.deleteCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}/restore:
+ *   post:
+ *     summary: Khôi phục danh mục đã xóa (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *     responses:
+ *       200:
+ *         description: Khôi phục thành công
+ *       400:
+ *         description: Danh mục chưa bị xóa hoặc không thể khôi phục
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.post('/:id/restore', authenticate, authorizeRoles('admin'), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.restoreCategory(req, res);
 }));

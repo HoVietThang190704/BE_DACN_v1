@@ -4,14 +4,8 @@ import { Category, ICategory } from '../../models/Category';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
 
-/**
- * Category Repository Implementation using Mongoose
- */
 export class CategoryRepository implements ICategoryRepository {
   
-  /**
-   * Map Mongoose document to Domain Entity
-   */
   private toDomainEntity(model: ICategory): CategoryEntity {
     return new CategoryEntity({
       id: String(model._id),
@@ -31,20 +25,15 @@ export class CategoryRepository implements ICategoryRepository {
     });
   }
 
-  /**
-   * Build category tree from flat list
-   */
   private buildTree(categories: CategoryEntity[]): CategoryEntity[] {
     const categoryMap = new Map<string, any>();
     const rootCategories: any[] = [];
 
-    // First pass: create map of all categories
     categories.forEach(category => {
       const categoryData = category.toJSON();
       categoryMap.set(category.id, { ...categoryData, children: [] });
     });
 
-    // Second pass: build tree structure
     categories.forEach(category => {
       const categoryWithChildren = categoryMap.get(category.id);
       if (!categoryWithChildren) return;
@@ -62,7 +51,6 @@ export class CategoryRepository implements ICategoryRepository {
       }
     });
 
-    // Sort by order at each level
     const sortChildren = (cats: any[]) => {
       cats.sort((a, b) => a.order - b.order);
       cats.forEach(cat => {
@@ -71,9 +59,7 @@ export class CategoryRepository implements ICategoryRepository {
         }
       });
     };
-
     sortChildren(rootCategories);
-
     return rootCategories.map(c => new CategoryEntity(c));
   }
 
@@ -287,8 +273,7 @@ export class CategoryRepository implements ICategoryRepository {
         categoryId,
         { $inc: { productCount: -1 } }
       );
-      
-      // Ensure product count doesn't go below 0
+
       await Category.findByIdAndUpdate(
         categoryId,
         { $max: { productCount: 0 } }

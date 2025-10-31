@@ -3,10 +3,6 @@ import { UserEntity } from '../../domain/entities/User.entity';
 import { User as UserModel, IUser } from '../../models/users/User';
 import { logger } from '../../shared/utils/logger';
 
-/**
- * User Repository Implementation
- * Implements IUserRepository using Mongoose
- */
 export class UserRepository implements IUserRepository {
   async create(user: UserEntity): Promise<UserEntity> {
     const newUser = new UserModel({
@@ -43,7 +39,6 @@ export class UserRepository implements IUserRepository {
   }
 
   async update(id: string, data: Partial<UserEntity>): Promise<UserEntity | null> {
-    // Map entity fields to model fields
     const updateData: any = {};
     if (data.userName !== undefined) updateData.userName = data.userName;
     if (data.phone !== undefined) updateData.phone = data.phone;
@@ -133,9 +128,6 @@ export class UserRepository implements IUserRepository {
     return count > 0;
   }
 
-  /**
-   * Map Mongoose model to Domain Entity
-   */
   private mapToEntity(model: IUser): UserEntity {
     return new UserEntity(
       model.email,
