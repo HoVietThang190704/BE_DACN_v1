@@ -1,7 +1,3 @@
-/**
- * Order Entity - Domain model for orders
- */
-
 export type OrderStatus = 
   | 'pending'       // Chờ xác nhận
   | 'confirmed'     // Đã xác nhận

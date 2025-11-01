@@ -4,14 +4,8 @@ import { Address, IAddress } from '../../models/Address';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
 
-/**
- * Address Repository Implementation
- */
 export class AddressRepository implements IAddressRepository {
   
-  /**
-   * Map Mongoose document to Domain Entity
-   */
   private toDomainEntity(model: IAddress): AddressEntity {
     return new AddressEntity({
       id: String(model._id),
@@ -69,7 +63,6 @@ export class AddressRepository implements IAddressRepository {
 
   async create(address: Omit<import('../../domain/entities/Address.entity').IAddressEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<AddressEntity> {
     try {
-      // If this is the first address, set it as default
       const count = await this.countByUserId(address.userId);
       const isFirstAddress = count === 0;
 
@@ -103,54 +96,43 @@ export class AddressRepository implements IAddressRepository {
 
   async delete(id: string, userId: string): Promise<boolean> {
     try {
-      // Check if this is the default address
       const address = await Address.findOne({
         _id: id,
         userId: new mongoose.Types.ObjectId(userId)
       });
-
       if (!address) {
         return false;
       }
-
       const result = await Address.findOneAndDelete({
         _id: id,
         userId: new mongoose.Types.ObjectId(userId)
       });
-
-      // If deleted address was default, set another address as default
       if (result && result.isDefault) {
         const firstAddress = await Address.findOne({
           userId: new mongoose.Types.ObjectId(userId)
         }).sort({ createdAt: 1 });
-
         if (firstAddress) {
           await Address.findByIdAndUpdate(firstAddress._id, { isDefault: true });
         }
       }
-
       return result !== null;
     } catch (error) {
       logger.error('AddressRepository.delete error:', error);
       throw new Error('Lỗi khi xóa địa chỉ');
     }
   }
-
+  
   async setDefault(id: string, userId: string): Promise<AddressEntity | null> {
     try {
-      // First, unset all default addresses for this user
       await Address.updateMany(
         { userId: new mongoose.Types.ObjectId(userId) },
         { $set: { isDefault: false } }
       );
-
-      // Then set the specified address as default
       const updated = await Address.findOneAndUpdate(
         { _id: id, userId: new mongoose.Types.ObjectId(userId) },
         { $set: { isDefault: true } },
         { new: true }
       ).lean();
-
       return updated ? this.toDomainEntity(updated as unknown as IAddress) : null;
     } catch (error) {
       logger.error('AddressRepository.setDefault error:', error);

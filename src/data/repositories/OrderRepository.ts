@@ -4,14 +4,8 @@ import { Order, IOrder } from '../../models/Order';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
 
-/**
- * Order Repository Implementation
- */
 export class OrderRepository implements IOrderRepository {
   
-  /**
-   * Map Mongoose document to Domain Entity
-   */
   private toDomainEntity(model: IOrder): OrderEntity {
     return new OrderEntity({
       id: String(model._id),
@@ -43,9 +37,6 @@ export class OrderRepository implements IOrderRepository {
     });
   }
 
-  /**
-   * Build filter query
-   */
   private buildFilter(userId: string, filters?: OrderFilters): any {
     const filter: any = { userId: new mongoose.Types.ObjectId(userId) };
 
@@ -147,18 +138,14 @@ export class OrderRepository implements IOrderRepository {
   async updateStatus(id: string, status: OrderStatus): Promise<OrderEntity | null> {
     try {
       const updateData: any = { status };
-
-      // Auto-set deliveredAt when status is delivered
       if (status === 'delivered') {
         updateData.deliveredAt = new Date();
       }
-
       const updated = await Order.findByIdAndUpdate(
         id,
         { $set: updateData },
         { new: true, runValidators: true }
       ).lean();
-
       return updated ? this.toDomainEntity(updated as unknown as IOrder) : null;
     } catch (error) {
       logger.error('OrderRepository.updateStatus error:', error);
@@ -178,7 +165,6 @@ export class OrderRepository implements IOrderRepository {
         },
         { new: true, runValidators: true }
       ).lean();
-
       return updated ? this.toDomainEntity(updated as unknown as IOrder) : null;
     } catch (error) {
       logger.error('OrderRepository.cancelOrder error:', error);
