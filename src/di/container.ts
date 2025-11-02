@@ -9,6 +9,7 @@ import { ProductRepository } from '../data/repositories/ProductRepository';
 import { CategoryRepository } from '../data/repositories/CategoryRepository';
 import { AddressRepository } from '../data/repositories/AddressRepository';
 import { OrderRepository } from '../data/repositories/OrderRepository';
+import { CartRepository } from '../data/repositories/CartRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -48,6 +49,12 @@ import { GetUserOrdersUseCase } from '../domain/usecases/order/GetUserOrders.use
 import { GetOrderByIdUseCase } from '../domain/usecases/order/GetOrderById.usecase';
 import { CancelOrderUseCase } from '../domain/usecases/order/CancelOrder.usecase';
 import { GetOrderStatisticsUseCase } from '../domain/usecases/order/GetOrderStatistics.usecase';
+// Cart Use Cases
+import { GetCartUseCase } from '../domain/usecases/cart/GetCart.usecase';
+import { AddCartItemUseCase } from '../domain/usecases/cart/AddCartItem.usecase';
+import { UpdateCartItemUseCase } from '../domain/usecases/cart/UpdateCartItem.usecase';
+import { RemoveCartItemUseCase } from '../domain/usecases/cart/RemoveCartItem.usecase';
+import { ClearCartUseCase } from '../domain/usecases/cart/ClearCart.usecase';
 
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
@@ -55,6 +62,7 @@ import { ProductController } from '../presentation/controllers/ProductController
 import { CategoryController } from '../presentation/controllers/CategoryController';
 import { AddressController } from '../presentation/controllers/AddressController';
 import { OrderController } from '../presentation/controllers/OrderController';
+import { CartController } from '../presentation/controllers/CartController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -62,6 +70,7 @@ const productRepository = new ProductRepository();
 const categoryRepository = new CategoryRepository();
 const addressRepository = new AddressRepository();
 const orderRepository = new OrderRepository();
+const cartRepository = new CartRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -102,6 +111,13 @@ const getUserOrdersUseCase = new GetUserOrdersUseCase(orderRepository);
 const getOrderByIdUseCase = new GetOrderByIdUseCase(orderRepository);
 const cancelOrderUseCase = new CancelOrderUseCase(orderRepository);
 const getOrderStatisticsUseCase = new GetOrderStatisticsUseCase(orderRepository);
+
+// Cart use case instances
+const getCartUseCase = new GetCartUseCase(cartRepository);
+const addCartItemUseCase = new AddCartItemUseCase(cartRepository);
+const updateCartItemUseCase = new UpdateCartItemUseCase(cartRepository);
+const removeCartItemUseCase = new RemoveCartItemUseCase(cartRepository);
+const clearCartUseCase = new ClearCartUseCase(cartRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -148,6 +164,14 @@ export const orderController = new OrderController(
   getOrderStatisticsUseCase
 );
 
+export const cartController = new CartController(
+  getCartUseCase,
+  addCartItemUseCase,
+  updateCartItemUseCase,
+  removeCartItemUseCase,
+  clearCartUseCase
+);
+
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
   userRepository,
@@ -155,6 +179,7 @@ export const repositories = {
   categoryRepository,
   addressRepository,
   orderRepository
+  ,cartRepository
 };
 
 export const useCases = {
@@ -192,4 +217,11 @@ export const useCases = {
   getOrderByIdUseCase,
   cancelOrderUseCase,
   getOrderStatisticsUseCase
+  ,
+  // Cart
+  getCartUseCase,
+  addCartItemUseCase,
+  updateCartItemUseCase,
+  removeCartItemUseCase,
+  clearCartUseCase
 };

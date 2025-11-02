@@ -267,6 +267,86 @@ productRoutes.delete('/:id/images', authenticate, authorizeRoles('shop_owner', '
 }));
 
 // GET /api/products - Danh sách sản phẩm với tìm kiếm và lọc
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Lấy danh sách sản phẩm (tìm kiếm, lọc, sắp xếp, phân trang)
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Từ khóa tìm kiếm (text search trên name và description)
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: farm
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: certified
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: isOrganic
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: isFresh
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: inStock
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: province
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minRating
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, name, createdAt, rating, harvestDate]
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           example: 20
+ *     responses:
+ *       200:
+ *         description: Danh sách sản phẩm với pagination
+ *       400:
+ *         description: Tham số không hợp lệ
+ *       500:
+ *         description: Lỗi server
+ */
 productRoutes.get('/', asyncHandler(async (req: Request, res: Response) => {
   await productController.getProducts(req, res);
 }));
