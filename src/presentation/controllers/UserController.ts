@@ -3,6 +3,7 @@ import { GetUserProfileUseCase } from '../../domain/usecases/user/GetUserProfile
 import { UpdateUserProfileUseCase } from '../../domain/usecases/user/UpdateUserProfile.usecase';
 import { ResetPasswordUseCase } from '../../domain/usecases/user/ResetPassword.usecase';
 import { ChangePasswordUseCase } from '../../domain/usecases/user/ChangePassword.usecase';
+import { UpdateUserAvatarUseCase } from '../../domain/usecases/user/UpdateUserAvatar.usecase';
 import { UserMapper } from '../dto/user/User.dto';
 import { logger } from '../../shared/utils/logger';
 
@@ -15,7 +16,8 @@ export class UserController {
     private getUserProfileUseCase: GetUserProfileUseCase,
     private updateUserProfileUseCase: UpdateUserProfileUseCase,
     private resetPasswordUseCase: ResetPasswordUseCase,
-    private changePasswordUseCase: ChangePasswordUseCase
+    private changePasswordUseCase: ChangePasswordUseCase,
+    private updateUserAvatarUseCase: UpdateUserAvatarUseCase
   ) {}
 
   /**
@@ -243,6 +245,75 @@ export class UserController {
       res.status(500).json({
         success: false,
         message: 'Lỗi server khi đổi mật khẩu'
+      });
+    }
+  }
+
+  /**
+   * POST /api/users/me/avatar
+   * Upload user avatar
+   */
+  async uploadAvatar(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+        return;
+      }
+
+      // Debug logging
+      logger.info('Upload avatar request:', {
+        file: req.file,
+        body: req.body,
+        headers: req.headers['content-type']
+      });
+
+      // Check if file was uploaded
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'Vui lòng chọn file ảnh để upload'
+        });
+        return;
+      }
+
+      const result = await this.updateUserAvatarUseCase.execute(userId, req.file);
+
+      logger.info(`Avatar updated for user: ${userId}`);
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: {
+          avatar: result.avatar
+        }
+      });
+    } catch (error: any) {
+      logger.error('Upload avatar error:', error);
+
+      if (error.message === 'Không tìm thấy người dùng') {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      if (error.message.includes('file') || error.message.includes('image')) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi upload ảnh đại diện'
       });
     }
   }

@@ -1,6 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../shared/middleware/errorHandler';
 import { categoryController } from '../di/container';
+import { authenticate } from '../shared/middleware/auth';
+import { authorizeRoles } from '../shared/middleware/authorize';
+import { validate } from '../shared/middleware/validate';
+import upload from '../shared/middleware/upload';
+import { uploadToCloudinary, deleteFromCloudinary } from '../shared/utils/cloudinary';
+import { repositories } from '../di/container';
+import { CategoryMapper } from '../presentation/dto/category/Category.dto';
+import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from '../shared/validation/category.schema';
 
 export const categoryRoutes = Router();
 
@@ -382,4 +390,269 @@ categoryRoutes.get('/:id', asyncHandler(async (req: Request, res: Response) => {
  */
 categoryRoutes.get('/:id/breadcrumb', asyncHandler(async (req: Request, res: Response) => {
   await categoryController.getCategoryBreadcrumb(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories:
+ *   post:
+ *     summary: Tạo danh mục mới (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - slug
+ *             properties:
+ *               name:
+ *                 type: string
+ *               nameEn:
+ *                 type: string
+ *               slug:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Mảng URL của ảnh đã được upload trước đó (nếu không gửi file)
+ *               parentId:
+ *                 type: string
+ *                 nullable: true
+ *               order:
+ *                 type: integer
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Tạo danh mục thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ */
+// Note: categories POST no longer accepts multipart/form-data; clients should send JSON (images: string[] if needed).
+
+categoryRoutes.post('/',
+  authenticate,
+  authorizeRoles('admin'),
+  validate(createCategorySchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    await categoryController.createCategory(req, res);
+  })
+);
+
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   put:
+ *     summary: Cập nhật danh mục (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               nameEn:
+ *                 type: string
+ *               slug:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *                 nullable: true
+ *               order:
+ *                 type: integer
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.put('/:id', authenticate, authorizeRoles('admin'), validate(updateCategorySchema), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.updateCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}/image:
+ *   patch:
+ *     summary: Cập nhật ảnh danh mục (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Ảnh đại diện mới cho danh mục (field name = "image")
+ *     responses:
+ *       200:
+ *         description: Cập nhật ảnh thành công
+ *       400:
+ *         description: File không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ */
+categoryRoutes.patch('/:id/image', authenticate, authorizeRoles('admin'), upload.single('image'), asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const file = req.file as Express.Multer.File | undefined;
+  if (!file) {
+    return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh' });
+  }
+
+  // find existing category
+  const category = await repositories.categoryRepository.findById(id);
+  if (!category) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
+  }
+
+  // upload new image
+  let uploadResult;
+  try {
+    uploadResult = await uploadToCloudinary(file, 'categories');
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Lỗi khi upload ảnh' });
+  }
+
+  // delete old image from Cloudinary if exists
+  try {
+    if ((category as any).imagePublicId) {
+      await deleteFromCloudinary((category as any).imagePublicId);
+    }
+  } catch (err) {
+    // log but don't fail the request
+    // eslint-disable-next-line no-console
+    console.warn('Failed to delete old category image from Cloudinary', err);
+  }
+
+  // update category
+  const updated = await repositories.categoryRepository.update(id, { image: uploadResult.url, imagePublicId: uploadResult.publicId } as any);
+  if (!updated) {
+    return res.status(500).json({ success: false, message: 'Không thể cập nhật ảnh danh mục' });
+  }
+
+  const response = CategoryMapper.toDTO(updated);
+  return res.status(200).json({ success: true, message: 'Cập nhật ảnh danh mục thành công', data: response });
+
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   delete:
+ *     summary: Xóa danh mục - Soft delete (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *       - in: query
+ *         name: force
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Force delete ngay cả khi có sản phẩm
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ *       400:
+ *         description: Không thể xóa (có danh mục con hoặc sản phẩm)
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.delete('/:id', authenticate, authorizeRoles('admin'), validate(deleteCategorySchema), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.deleteCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}/restore:
+ *   post:
+ *     summary: Khôi phục danh mục đã xóa (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID danh mục
+ *     responses:
+ *       200:
+ *         description: Khôi phục thành công
+ *       400:
+ *         description: Danh mục chưa bị xóa hoặc không thể khôi phục
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ *       404:
+ *         description: Không tìm thấy danh mục
+ */
+categoryRoutes.post('/:id/restore', authenticate, authorizeRoles('admin'), asyncHandler(async (req: Request, res: Response) => {
+  await categoryController.restoreCategory(req, res);
 }));

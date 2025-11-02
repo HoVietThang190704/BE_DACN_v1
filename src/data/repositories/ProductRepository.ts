@@ -9,14 +9,8 @@ import { ProductEntity } from '../../domain/entities/Product.entity';
 import { Product as ProductModel, IProduct } from '../../models/Product';
 import { logger } from '../../shared/utils/logger';
 
-/**
- * Product Repository Implementation using Mongoose
- */
 export class ProductRepository implements IProductRepository {
-  
-  /**
-   * Map Mongoose document to Domain Entity
-   */
+
   private toDomainEntity(model: IProduct): ProductEntity {
     return new ProductEntity({
       id: String(model._id),
@@ -44,35 +38,21 @@ export class ProductRepository implements IProductRepository {
     });
   }
 
-  /**
-   * Build Mongoose filter from ProductFilters
-   */
   private buildFilter(filters?: ProductFilters): any {
     const filter: any = {};
-
     if (!filters) return filter;
-
-    // Text search
     if (filters.search) {
       filter.$text = { $search: filters.search };
     }
-
-    // Category
     if (filters.category) {
       filter.category = filters.category;
     }
-
-    // Farm name
     if (filters.farm) {
       filter['farm.name'] = new RegExp(filters.farm, 'i');
     }
-
-    // Certification
     if (filters.certified) {
       filter.certifications = filters.certified;
     }
-
-    // Price range
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       filter.price = {};
       if (filters.minPrice !== undefined) {
@@ -82,41 +62,28 @@ export class ProductRepository implements IProductRepository {
         filter.price.$lte = filters.maxPrice;
       }
     }
-
-    // Boolean filters
     if (filters.isOrganic !== undefined) {
       filter.isOrganic = filters.isOrganic;
     }
-
     if (filters.isFresh !== undefined) {
       filter.isFresh = filters.isFresh;
     }
-
     if (filters.inStock !== undefined) {
       filter.inStock = filters.inStock;
     }
-
-    // Province
     if (filters.province) {
       filter['farm.location.province'] = new RegExp(filters.province, 'i');
     }
-
-    // Minimum rating
     if (filters.minRating !== undefined) {
       filter.rating = { $gte: filters.minRating };
     }
-
     return filter;
   }
 
-  /**
-   * Build Mongoose sort from ProductSorting
-   */
   private buildSort(sorting?: ProductSorting): any {
     if (!sorting) {
-      return { createdAt: -1 }; // Default: newest first
+      return { createdAt: -1 }; 
     }
-
     const order = sorting.order === 'asc' ? 1 : -1;
     return { [sorting.sortBy]: order };
   }
@@ -139,12 +106,9 @@ export class ProductRepository implements IProductRepository {
     try {
       const filter = this.buildFilter(filters);
       const sort = this.buildSort(sorting);
-      
       const page = pagination?.page || 1;
       const limit = pagination?.limit || 20;
       const skip = (page - 1) * limit;
-
-      // Get products and total count in parallel
       const [products, total] = await Promise.all([
         ProductModel.find(filter)
           .sort(sort)
@@ -153,9 +117,7 @@ export class ProductRepository implements IProductRepository {
           .lean(),
         ProductModel.countDocuments(filter)
       ]);
-
       const productEntities = products.map(p => this.toDomainEntity(p as unknown as IProduct));
-
       return {
         products: productEntities,
         total,
@@ -186,7 +148,6 @@ export class ProductRepository implements IProductRepository {
         { $set: data },
         { new: true, runValidators: true }
       ).lean();
-
       return updated ? this.toDomainEntity(updated as unknown as IProduct) : null;
     } catch (error) {
       logger.error('ProductRepository.update error:', error);

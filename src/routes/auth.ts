@@ -36,6 +36,24 @@ export const authRoutes = Router();
  *           type: string
  *           format: date
  *           example: "1990-01-01"
+ *         address:
+ *           type: object
+ *           properties:
+ *             province:
+ *               type: string
+ *               example: "Hà Nội"
+ *             district:
+ *               type: string
+ *               example: "Ba Đình"
+ *             commune:
+ *               type: string
+ *               example: "Phúc Xá"
+ *             street:
+ *               type: string
+ *               example: "Đường ABC"
+ *             detail:
+ *               type: string
+ *               example: "Số nhà 123"
  *     LoginRequest:
  *       type: object
  *       required:
@@ -86,9 +104,9 @@ export const authRoutes = Router();
  *       409:
  *         description: Email đã tồn tại
  */
-authRoutes.post('/register', async (req: Request, res: Response) => {
+authRoutes.post('/register', async (req: Request, res: Response): Promise<any> => {
   try {
-    const { email, password, userName, phone, date_of_birth } = req.body;
+  const { email, password, userName, phone, date_of_birth, address } = req.body;
 
     // Validate required fields
     if (!email || !password) {
@@ -114,6 +132,7 @@ authRoutes.post('/register', async (req: Request, res: Response) => {
       userName,
       phone,
       date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
+      address: address || undefined,
       role: 'customer', // Mặc định là customer
       isVerified: false // Mặc định chưa xác thực
     });
@@ -135,7 +154,8 @@ authRoutes.post('/register', async (req: Request, res: Response) => {
         email: user.email,
         userName: user.userName,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        address: user.address
       },
       token
     });
@@ -182,7 +202,7 @@ authRoutes.post('/register', async (req: Request, res: Response) => {
  *       401:
  *         description: Email hoặc mật khẩu không đúng
  */
-authRoutes.post('/login', async (req: Request, res: Response) => {
+authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email, password } = req.body;
 
@@ -240,6 +260,9 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         userName: user.userName,
         phone: user.phone,
+        address: user.address,
+        facebookId: (user as any).facebookId || (user as any).facebookID,
+        googleId: (user as any).googleId,
         role: user.role,
         isVerified: user.isVerified
       },
@@ -270,7 +293,7 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
  *             required:
  *               - email
  *               - token
- *             properties:
+ *       properties:
  *               email:
  *                 type: string
  *                 format: email
@@ -286,7 +309,7 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
  *       404:
  *         description: Không tìm thấy user
  */
-authRoutes.post('/verify-email', async (req: Request, res: Response) => {
+authRoutes.post('/verify-email', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email, token } = req.body;
 
@@ -366,7 +389,7 @@ authRoutes.post('/verify-email', async (req: Request, res: Response) => {
  *       400:
  *         description: Tài khoản đã được xác thực
  */
-authRoutes.post('/resend-verification', async (req: Request, res: Response) => {
+authRoutes.post('/resend-verification', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email } = req.body;
 

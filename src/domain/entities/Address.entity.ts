@@ -1,7 +1,3 @@
-/**
- * Address Entity - Domain model for delivery addresses
- */
-
 export interface IAddressEntity {
   id: string;
   userId: string;
@@ -12,7 +8,7 @@ export interface IAddressEntity {
   district: string;
   province: string;
   isDefault: boolean;
-  label?: string; // 'home', 'work', 'other'
+  label?: string; 
   note?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -49,24 +45,15 @@ export class AddressEntity implements IAddressEntity {
     this.updatedAt = data.updatedAt;
   }
 
-  /**
-   * Get full address string
-   */
   getFullAddress(): string {
     return `${this.address}, ${this.ward}, ${this.district}, ${this.province}`;
   }
 
-  /**
-   * Validate phone number (Vietnamese format)
-   */
   isValidPhone(): boolean {
     const phoneRegex = /^(\+84|84|0)[1-9][0-9]{8}$/;
     return phoneRegex.test(this.phone);
   }
 
-  /**
-   * Validate address data
-   */
   validate(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -100,18 +87,12 @@ export class AddressEntity implements IAddressEntity {
     };
   }
 
-  /**
-   * Check if address is in campus area (for discount)
-   */
   isInCampusArea(): boolean {
     const campusKeywords = ['đại học', 'campus', 'ký túc xá', 'ktx'];
     const fullAddress = this.getFullAddress().toLowerCase();
     return campusKeywords.some(keyword => fullAddress.includes(keyword));
   }
 
-  /**
-   * Convert to JSON
-   */
   toJSON(): IAddressEntity {
     return {
       id: this.id,

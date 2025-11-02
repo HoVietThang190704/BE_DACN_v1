@@ -16,17 +16,25 @@ import { GetUserProfileUseCase } from '../domain/usecases/user/GetUserProfile.us
 import { UpdateUserProfileUseCase } from '../domain/usecases/user/UpdateUserProfile.usecase';
 import { ResetPasswordUseCase } from '../domain/usecases/user/ResetPassword.usecase';
 import { ChangePasswordUseCase } from '../domain/usecases/user/ChangePassword.usecase';
+import { UpdateUserAvatarUseCase } from '../domain/usecases/user/UpdateUserAvatar.usecase';
 
 // Product Use Cases
 import { GetProductsUseCase } from '../domain/usecases/product/GetProducts.usecase';
 import { GetProductByIdUseCase } from '../domain/usecases/product/GetProductById.usecase';
 import { GetProductTraceabilityUseCase } from '../domain/usecases/product/GetProductTraceability.usecase';
 import { GetCategoriesUseCase } from '../domain/usecases/product/GetCategories.usecase';
+import { CreateProductUseCase } from '../domain/usecases/product/CreateProduct.usecase';
+import { UpdateProductUseCase } from '../domain/usecases/product/UpdateProduct.usecase';
+import { DeleteProductUseCase } from '../domain/usecases/product/DeleteProduct.usecase';
+import { UploadProductImagesUseCase } from '../domain/usecases/product/UploadProductImages.usecase';
 
 // Category Use Cases
 import { GetCategoriesTreeUseCase } from '../domain/usecases/category/GetCategoriesTree.usecase';
 import { GetCategoryByIdUseCase } from '../domain/usecases/category/GetCategoryById.usecase';
 import { GetCategoryBreadcrumbUseCase } from '../domain/usecases/category/GetCategoryBreadcrumb.usecase';
+import { CreateCategoryUseCase } from '../domain/usecases/category/CreateCategory.usecase';
+import { UpdateCategoryUseCase } from '../domain/usecases/category/UpdateCategory.usecase';
+import { DeleteCategoryUseCase } from '../domain/usecases/category/DeleteCategory.usecase';
 
 // Address Use Cases
 import { GetUserAddressesUseCase } from '../domain/usecases/address/GetUserAddresses.usecase';
@@ -61,17 +69,26 @@ const getUserProfileUseCase = new GetUserProfileUseCase(userRepository);
 const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository);
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository);
+const updateUserAvatarUseCase = new UpdateUserAvatarUseCase(userRepository);
 
 // Product Use Cases
 const getProductsUseCase = new GetProductsUseCase(productRepository);
 const getProductByIdUseCase = new GetProductByIdUseCase(productRepository);
 const getProductTraceabilityUseCase = new GetProductTraceabilityUseCase(productRepository);
 const getCategoriesUseCase = new GetCategoriesUseCase(productRepository);
+const createProductUseCase = new CreateProductUseCase(productRepository, categoryRepository);
+const updateProductUseCase = new UpdateProductUseCase(productRepository);
+const deleteProductUseCase = new DeleteProductUseCase(productRepository);
+const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
 
 // Category Use Cases
 const getCategoriesTreeUseCase = new GetCategoriesTreeUseCase(categoryRepository);
 const getCategoryByIdUseCase = new GetCategoryByIdUseCase(categoryRepository);
 const getCategoryBreadcrumbUseCase = new GetCategoryBreadcrumbUseCase(categoryRepository);
+const createCategoryUseCase = new CreateCategoryUseCase(categoryRepository);
+const updateCategoryUseCase = new UpdateCategoryUseCase(categoryRepository);
+const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository, productRepository);
+// const updateCategoryImageUseCase = new UpdateCategoryImageUseCase(categoryRepository);
 
 // Address Use Cases
 const getUserAddressesUseCase = new GetUserAddressesUseCase(addressRepository);
@@ -91,20 +108,29 @@ export const userController = new UserController(
   getUserProfileUseCase,
   updateUserProfileUseCase,
   resetPasswordUseCase,
-  changePasswordUseCase
+  changePasswordUseCase,
+  updateUserAvatarUseCase
 );
 
 export const productController = new ProductController(
   getProductsUseCase,
   getProductByIdUseCase,
   getProductTraceabilityUseCase,
-  getCategoriesUseCase
+  getCategoriesUseCase,
+  createProductUseCase,
+  updateProductUseCase,
+  deleteProductUseCase,
+  uploadProductImagesUseCase
 );
 
 export const categoryController = new CategoryController(
   getCategoriesTreeUseCase,
   getCategoryByIdUseCase,
-  getCategoryBreadcrumbUseCase
+  getCategoryBreadcrumbUseCase,
+  createCategoryUseCase,
+  updateCategoryUseCase,
+  deleteCategoryUseCase
+  
 );
 
 export const addressController = new AddressController(
@@ -137,15 +163,24 @@ export const useCases = {
   updateUserProfileUseCase,
   resetPasswordUseCase,
   changePasswordUseCase,
+  updateUserAvatarUseCase,
   // Product
   getProductsUseCase,
   getProductByIdUseCase,
   getProductTraceabilityUseCase,
   getCategoriesUseCase,
+  createProductUseCase,
+  updateProductUseCase,
+  deleteProductUseCase,
+  uploadProductImagesUseCase,
   // Category
   getCategoriesTreeUseCase,
   getCategoryByIdUseCase,
   getCategoryBreadcrumbUseCase,
+  createCategoryUseCase,
+  updateCategoryUseCase,
+  deleteCategoryUseCase,
+  
   // Address
   getUserAddressesUseCase,
   createAddressUseCase,

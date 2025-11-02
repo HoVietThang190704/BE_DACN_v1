@@ -2,86 +2,29 @@ import { Router } from 'express';
 
 export const orderRoutes = Router();
 
-/**
- * @swagger
- * /api/orders/cart/add:
- *   post:
- *     summary: Thêm sản phẩm vào giỏ hàng
- *     tags: [Orders]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               productId:
- *                 type: string
- *               quantity:
- *                 type: integer
- *     responses:
- *       201:
- *         description: Đã thêm vào giỏ hàng thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 cart:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       productId:
- *                         type: string
- *                       quantity:
- *                         type: integer
- *                 message:
- *                   type: string
- *                   example: Đã thêm vào giỏ hàng thành công!
- */
-orderRoutes.post('/cart/add', (req, res) => {
-  const { productId, quantity } = req.body;
-  res.status(201).json({
-    cart: [
-      { productId, quantity }
-    ],
-    message: 'Đã thêm vào giỏ hàng thành công!'
-  });
-});
-
-// GET /api/orders/quote-shipping
 orderRoutes.get('/quote-shipping', (req, res) => {
   const cartId = req.query.cartId || 'demo';
   const items = req.query.items ? parseInt(req.query.items as string) : 1;
   const destination = req.query.destination || 'campus';
-  
-  // Basic shipping calculation
   let baseFee = 15000;
   let speedMultiplier = 1;
-  
-  // Delivery speed options
   const speed = req.query.speed as string;
   switch (speed) {
-    case 'express': // Giao hỏa tốc (2-4h)
+    case 'express':
       speedMultiplier = 2;
       break;
-    case 'fast': // Giao nhanh (4-8h)  
+    case 'fast': 
       speedMultiplier = 1.5;
       break;
-    case 'standard': // Giao tiêu chuẩn (1-2 ngày)
+    case 'standard':
     default:
       speedMultiplier = 1;
       break;
   }
-  
-  // Campus delivery discount
   if (destination === 'campus') {
-    baseFee *= 0.8; // 20% discount for campus delivery
+    baseFee *= 0.8; 
   }
-  
   const totalFee = Math.round(baseFee * speedMultiplier);
-  
   res.json({
     success: true,
     data: {
