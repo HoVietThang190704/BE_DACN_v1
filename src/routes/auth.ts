@@ -104,7 +104,7 @@ export const authRoutes = Router();
  *       409:
  *         description: Email đã tồn tại
  */
-authRoutes.post('/register', async (req: Request, res: Response) => {
+authRoutes.post('/register', async (req: Request, res: Response): Promise<any> => {
   try {
   const { email, password, userName, phone, date_of_birth, address } = req.body;
 
@@ -202,7 +202,7 @@ authRoutes.post('/register', async (req: Request, res: Response) => {
  *       401:
  *         description: Email hoặc mật khẩu không đúng
  */
-authRoutes.post('/login', async (req: Request, res: Response) => {
+authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email, password } = req.body;
 
@@ -309,7 +309,7 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
  *       404:
  *         description: Không tìm thấy user
  */
-authRoutes.post('/verify-email', async (req: Request, res: Response) => {
+authRoutes.post('/verify-email', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email, token } = req.body;
 
@@ -389,7 +389,7 @@ authRoutes.post('/verify-email', async (req: Request, res: Response) => {
  *       400:
  *         description: Tài khoản đã được xác thực
  */
-authRoutes.post('/resend-verification', async (req: Request, res: Response) => {
+authRoutes.post('/resend-verification', async (req: Request, res: Response): Promise<any> => {
   try {
     const { email } = req.body;
 

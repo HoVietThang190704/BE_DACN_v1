@@ -14,7 +14,8 @@ export class CategoryRepository implements ICategoryRepository {
       slug: model.slug,
       description: model.description,
       icon: model.icon,
-      image: model.image,
+  images: (model as any).images || [],
+  imagesPublicIds: (model as any).imagesPublicIds || [],
       parentId: model.parentId ? String(model.parentId) : null,
       level: model.level,
       order: model.order,
@@ -175,6 +176,7 @@ export class CategoryRepository implements ICategoryRepository {
     try {
       const newCategory = await Category.create({
         ...category,
+        imagesPublicIds: (category as any).imagesPublicIds || [],
         parentId: category.parentId ? new mongoose.Types.ObjectId(category.parentId) : null
       });
       return this.toDomainEntity(newCategory as ICategory);

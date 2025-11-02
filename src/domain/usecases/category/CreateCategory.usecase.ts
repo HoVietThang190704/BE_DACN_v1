@@ -13,7 +13,8 @@ export interface CreateCategoryInput {
   slug: string;
   description?: string;
   icon?: string;
-  image?: string;
+  images?: string[];
+  imagesPublicIds?: string[];
   parentId?: string | null;
   order?: number;
   isActive?: boolean;
@@ -54,7 +55,8 @@ export class CreateCategoryUseCase {
       slug: input.slug.trim().toLowerCase(),
       description: input.description?.trim(),
       icon: input.icon,
-      image: input.image,
+  images: input.images || [],
+  imagesPublicIds: input.imagesPublicIds || [],
       parentId: input.parentId || null,
       level,
       order: input.order ?? 0,

@@ -6,6 +6,8 @@ export interface ICategoryEntity {
   description?: string;
   icon?: string;
   image?: string;
+  images?: string[];
+  imagesPublicIds?: string[];
   parentId?: string | null;
   level: number; 
   order: number; 
@@ -24,6 +26,8 @@ export class CategoryEntity implements ICategoryEntity {
   description?: string;
   icon?: string;
   image?: string;
+  images?: string[];
+  imagesPublicIds?: string[];
   parentId?: string | null;
   level: number;
   order: number;
@@ -41,6 +45,8 @@ export class CategoryEntity implements ICategoryEntity {
     this.description = data.description;
     this.icon = data.icon;
     this.image = data.image;
+  this.images = data.images || [];
+  this.imagesPublicIds = data.imagesPublicIds || [];
     this.parentId = data.parentId;
     this.level = data.level;
     this.order = data.order;
@@ -160,7 +166,9 @@ export class CategoryEntity implements ICategoryEntity {
       slug: this.slug,
       description: this.description,
       icon: this.icon,
-      image: this.image,
+  image: this.image,
+  images: this.images,
+  imagesPublicIds: this.imagesPublicIds,
       parentId: this.parentId,
       level: this.level,
       order: this.order,

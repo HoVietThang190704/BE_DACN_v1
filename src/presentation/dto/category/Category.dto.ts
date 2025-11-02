@@ -11,7 +11,7 @@ export interface CategoryDTO {
   slug: string;
   description?: string;
   icon?: string;
-  image?: string;
+  images?: string[];
   parentId?: string | null;
   level: number;
   order: number;
@@ -46,7 +46,7 @@ export class CategoryMapper {
       slug: entity.slug,
       description: entity.description,
       icon: entity.icon,
-      image: entity.image,
+  images: entity.images,
       parentId: entity.parentId,
       level: entity.level,
       order: entity.order,

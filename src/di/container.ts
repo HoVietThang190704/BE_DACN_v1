@@ -88,6 +88,7 @@ const getCategoryBreadcrumbUseCase = new GetCategoryBreadcrumbUseCase(categoryRe
 const createCategoryUseCase = new CreateCategoryUseCase(categoryRepository);
 const updateCategoryUseCase = new UpdateCategoryUseCase(categoryRepository);
 const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository, productRepository);
+// const updateCategoryImageUseCase = new UpdateCategoryImageUseCase(categoryRepository);
 
 // Address Use Cases
 const getUserAddressesUseCase = new GetUserAddressesUseCase(addressRepository);
@@ -129,6 +130,7 @@ export const categoryController = new CategoryController(
   createCategoryUseCase,
   updateCategoryUseCase,
   deleteCategoryUseCase
+  
 );
 
 export const addressController = new AddressController(
@@ -178,6 +180,7 @@ export const useCases = {
   createCategoryUseCase,
   updateCategoryUseCase,
   deleteCategoryUseCase,
+  
   // Address
   getUserAddressesUseCase,
   createAddressUseCase,

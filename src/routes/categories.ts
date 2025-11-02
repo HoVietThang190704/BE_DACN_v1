@@ -4,6 +4,10 @@ import { categoryController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
 import { authorizeRoles } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
+import upload from '../shared/middleware/upload';
+import { uploadToCloudinary, deleteFromCloudinary } from '../shared/utils/cloudinary';
+import { repositories } from '../di/container';
+import { CategoryMapper } from '../presentation/dto/category/Category.dto';
 import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from '../shared/validation/category.schema';
 
 export const categoryRoutes = Router();
@@ -361,38 +365,26 @@ categoryRoutes.get('/:id/breadcrumb', asyncHandler(async (req: Request, res: Res
  *             properties:
  *               name:
  *                 type: string
- *                 description: Tên danh mục
- *                 example: "Rau củ quả"
  *               nameEn:
  *                 type: string
- *                 description: Tên tiếng Anh
- *                 example: "Vegetables"
  *               slug:
  *                 type: string
- *                 description: URL slug (chữ thường, số, dấu gạch ngang)
- *                 example: "rau-cu-qua"
  *               description:
  *                 type: string
- *                 description: Mô tả danh mục
  *               icon:
  *                 type: string
- *                 description: Icon emoji
- *                 example: "🥬"
- *               image:
- *                 type: string
- *                 description: URL hình ảnh
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Mảng URL của ảnh đã được upload trước đó (nếu không gửi file)
  *               parentId:
  *                 type: string
- *                 description: ID danh mục cha (null = root)
  *                 nullable: true
  *               order:
  *                 type: integer
- *                 description: Thứ tự hiển thị
- *                 default: 0
  *               isActive:
  *                 type: boolean
- *                 description: Trạng thái kích hoạt
- *                 default: true
  *     responses:
  *       201:
  *         description: Tạo danh mục thành công
@@ -403,9 +395,16 @@ categoryRoutes.get('/:id/breadcrumb', asyncHandler(async (req: Request, res: Res
  *       403:
  *         description: Không có quyền
  */
-categoryRoutes.post('/', authenticate, authorizeRoles('admin'), validate(createCategorySchema), asyncHandler(async (req: Request, res: Response) => {
-  await categoryController.createCategory(req, res);
-}));
+// Note: categories POST no longer accepts multipart/form-data; clients should send JSON (images: string[] if needed).
+
+categoryRoutes.post('/',
+  authenticate,
+  authorizeRoles('admin'),
+  validate(createCategorySchema),
+  asyncHandler(async (req: Request, res: Response) => {
+    await categoryController.createCategory(req, res);
+  })
+);
 
 /**
  * @swagger
@@ -462,6 +461,85 @@ categoryRoutes.post('/', authenticate, authorizeRoles('admin'), validate(createC
  */
 categoryRoutes.put('/:id', authenticate, authorizeRoles('admin'), validate(updateCategorySchema), asyncHandler(async (req: Request, res: Response) => {
   await categoryController.updateCategory(req, res);
+}));
+
+/**
+ * @swagger
+ * /api/categories/{id}/image:
+ *   patch:
+ *     summary: Cập nhật ảnh danh mục (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của danh mục
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Ảnh đại diện mới cho danh mục (field name = "image")
+ *     responses:
+ *       200:
+ *         description: Cập nhật ảnh thành công
+ *       400:
+ *         description: File không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không có quyền
+ */
+categoryRoutes.patch('/:id/image', authenticate, authorizeRoles('admin'), upload.single('image'), asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const file = req.file as Express.Multer.File | undefined;
+  if (!file) {
+    return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh' });
+  }
+
+  // find existing category
+  const category = await repositories.categoryRepository.findById(id);
+  if (!category) {
+    return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
+  }
+
+  // upload new image
+  let uploadResult;
+  try {
+    uploadResult = await uploadToCloudinary(file, 'categories');
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Lỗi khi upload ảnh' });
+  }
+
+  // delete old image from Cloudinary if exists
+  try {
+    if ((category as any).imagePublicId) {
+      await deleteFromCloudinary((category as any).imagePublicId);
+    }
+  } catch (err) {
+    // log but don't fail the request
+    // eslint-disable-next-line no-console
+    console.warn('Failed to delete old category image from Cloudinary', err);
+  }
+
+  // update category
+  const updated = await repositories.categoryRepository.update(id, { image: uploadResult.url, imagePublicId: uploadResult.publicId } as any);
+  if (!updated) {
+    return res.status(500).json({ success: false, message: 'Không thể cập nhật ảnh danh mục' });
+  }
+
+  const response = CategoryMapper.toDTO(updated);
+  return res.status(200).json({ success: true, message: 'Cập nhật ảnh danh mục thành công', data: response });
+
 }));
 
 /**

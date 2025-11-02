@@ -13,6 +13,7 @@ export interface ICategory extends Document {
   description?: string;
   icon?: string;
   image?: string;
+  imagePublicId?: string;
   parentId?: mongoose.Types.ObjectId | null;
   level: number;
   order: number;
@@ -54,7 +55,13 @@ const CategorySchema = new Schema<ICategory>(
     },
     image: {
       type: String,
-      trim: true
+      trim: true,
+      default: null
+    },
+    imagePublicId: {
+      type: String,
+      trim: true,
+      default: null
     },
     parentId: {
       type: Schema.Types.ObjectId,
@@ -88,10 +95,10 @@ const CategorySchema = new Schema<ICategory>(
   {
     timestamps: true,
     collection: 'categories',
-    toJSON: { 
+    toJSON: {
       virtuals: true,
       transform: function(_doc, ret) {
-        ret.id = ret._id.toString();
+        (ret as any).id = (ret as any)._id ? (ret as any)._id.toString() : undefined;
         delete (ret as any)._id;
         delete (ret as any).__v;
         return ret;
@@ -108,17 +115,18 @@ CategorySchema.index({ level: 1, order: 1 });
 CategorySchema.index({ isActive: 1, level: 1 });
 
 // Pre-save middleware to set level based on parent
-CategorySchema.pre('save', async function(next) {
-  if (this.isModified('parentId')) {
-    if (this.parentId) {
-      const parent = await mongoose.model('Category').findById(this.parentId);
+CategorySchema.pre('save', async function(this: any, next: any) {
+  const doc = this as any;
+  if (doc.isModified && doc.isModified('parentId')) {
+    if (doc.parentId) {
+      const parent = await mongoose.model('Category').findById(doc.parentId);
       if (parent) {
-        this.level = (parent as ICategory).level + 1;
+        doc.level = (parent as any).level + 1;
       } else {
-        this.level = 0;
+        doc.level = 0;
       }
     } else {
-      this.level = 0;
+      doc.level = 0;
     }
   }
   next();

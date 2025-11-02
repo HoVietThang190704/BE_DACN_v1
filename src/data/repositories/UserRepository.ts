@@ -14,6 +14,7 @@ export class UserRepository implements IUserRepository {
       cloudinaryPublicId: user.cloudinaryPublicId,
       facebookID: user.facebookID,
       googleId: user.googleId,
+      address: (user as any).address,
       role: user.role,
       isVerified: user.isVerified,
       date_of_birth: user.dateOfBirth
@@ -141,6 +142,9 @@ export class UserRepository implements IUserRepository {
       model.cloudinaryPublicId,
       model.facebookID,
       model.googleId,
+      // address
+      (model as any).address,
+      // dateOfBirth
       model.date_of_birth,
       model.createdAt,
       model.updatedAt

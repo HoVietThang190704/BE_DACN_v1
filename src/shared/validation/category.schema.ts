@@ -30,13 +30,19 @@ export const createCategorySchema = z.object({
       .max(10, 'Icon không hợp lệ')
       .optional(),
     
-    image: z.string()
-      .url('URL hình ảnh không hợp lệ')
-      .optional()
-      .or(z.literal('')),
+    // allow images array; elements can be a valid URL or an empty string (Swagger may send empty values)
+    images: z.array(z.union([z.string().url('URL hình ảnh không hợp lệ'), z.literal('')]))
+      .max(5, 'Tối đa 5 ảnh')
+      .optional(),
     
-    parentId: z.string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Parent ID không hợp lệ')
+    // parentId may be a Mongo ObjectId (24 hex chars), null (root), or an empty string (treated as null from some clients)
+    // parentId can be a valid ObjectId, an empty string, null, or a placeholder string 'id' sent by some clients
+    parentId: z.union([
+      z.string().regex(/^[0-9a-fA-F]{24}$/, 'Parent ID không hợp lệ'),
+      z.literal(''),
+      z.null(),
+      z.literal('id')
+    ])
       .optional()
       .nullable(),
     
@@ -89,13 +95,16 @@ export const updateCategorySchema = z.object({
       .max(10, 'Icon không hợp lệ')
       .optional(),
     
-    image: z.string()
-      .url('URL hình ảnh không hợp lệ')
-      .optional()
-      .or(z.literal('')),
+    images: z.array(z.union([z.string().url('URL hình ảnh không hợp lệ'), z.literal('')]))
+      .max(5, 'Tối đa 5 ảnh')
+      .optional(),
     
-    parentId: z.string()
-      .regex(/^[0-9a-fA-F]{24}$/, 'Parent ID không hợp lệ')
+    parentId: z.union([
+      z.string().regex(/^[0-9a-fA-F]{24}$/, 'Parent ID không hợp lệ'),
+      z.literal(''),
+      z.null(),
+      z.literal('id')
+    ])
       .optional()
       .nullable(),
     
