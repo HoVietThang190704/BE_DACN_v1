@@ -15,6 +15,7 @@ import { orderRoutes } from './routes/orders';
 import { userRoutes } from './routes/users';
 import { categoryRoutes } from './routes/categories';
 import cartRoutes from './routes/cart';
+import wishlistRoutes from './routes/wishlist';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
@@ -57,6 +59,7 @@ app.get('/api', (req, res) => {
       products: '/api/products',
       categories: '/api/categories',
       orders: '/api/orders',
+      wishlist: '/api/wishlist',
       users: '/api/users',
       health: '/health'
     },
