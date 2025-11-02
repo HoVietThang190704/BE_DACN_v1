@@ -10,6 +10,7 @@ import { CategoryRepository } from '../data/repositories/CategoryRepository';
 import { AddressRepository } from '../data/repositories/AddressRepository';
 import { OrderRepository } from '../data/repositories/OrderRepository';
 import { CartRepository } from '../data/repositories/CartRepository';
+import { WishlistRepository } from '../data/repositories/WishlistRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -56,6 +57,12 @@ import { UpdateCartItemUseCase } from '../domain/usecases/cart/UpdateCartItem.us
 import { RemoveCartItemUseCase } from '../domain/usecases/cart/RemoveCartItem.usecase';
 import { ClearCartUseCase } from '../domain/usecases/cart/ClearCart.usecase';
 
+// Wishlist Use Cases
+import { GetWishlistUseCase } from '../domain/usecases/wishlist/GetWishlist.usecase';
+import { AddWishlistItemUseCase } from '../domain/usecases/wishlist/AddWishlistItem.usecase';
+import { RemoveWishlistItemUseCase } from '../domain/usecases/wishlist/RemoveWishlistItem.usecase';
+import { ToggleWishlistItemUseCase } from '../domain/usecases/wishlist/ToggleWishlistItem.usecase';
+
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
 import { ProductController } from '../presentation/controllers/ProductController';
@@ -63,6 +70,7 @@ import { CategoryController } from '../presentation/controllers/CategoryControll
 import { AddressController } from '../presentation/controllers/AddressController';
 import { OrderController } from '../presentation/controllers/OrderController';
 import { CartController } from '../presentation/controllers/CartController';
+import { WishlistController } from '../presentation/controllers/WishlistController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -71,6 +79,7 @@ const categoryRepository = new CategoryRepository();
 const addressRepository = new AddressRepository();
 const orderRepository = new OrderRepository();
 const cartRepository = new CartRepository();
+const wishlistRepository = new WishlistRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -118,6 +127,12 @@ const addCartItemUseCase = new AddCartItemUseCase(cartRepository);
 const updateCartItemUseCase = new UpdateCartItemUseCase(cartRepository);
 const removeCartItemUseCase = new RemoveCartItemUseCase(cartRepository);
 const clearCartUseCase = new ClearCartUseCase(cartRepository);
+
+// Wishlist use case instances
+const getWishlistUseCase = new GetWishlistUseCase(wishlistRepository);
+const addWishlistItemUseCase = new AddWishlistItemUseCase(wishlistRepository);
+const removeWishlistItemUseCase = new RemoveWishlistItemUseCase(wishlistRepository);
+const toggleWishlistItemUseCase = new ToggleWishlistItemUseCase(wishlistRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -172,6 +187,13 @@ export const cartController = new CartController(
   clearCartUseCase
 );
 
+export const wishlistController = new WishlistController(
+  getWishlistUseCase,
+  addWishlistItemUseCase,
+  removeWishlistItemUseCase,
+  toggleWishlistItemUseCase
+);
+
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
   userRepository,
@@ -180,6 +202,7 @@ export const repositories = {
   addressRepository,
   orderRepository
   ,cartRepository
+  ,wishlistRepository
 };
 
 export const useCases = {
@@ -224,4 +247,10 @@ export const useCases = {
   updateCartItemUseCase,
   removeCartItemUseCase,
   clearCartUseCase
+  ,
+  // Wishlist
+  getWishlistUseCase,
+  addWishlistItemUseCase,
+  removeWishlistItemUseCase,
+  toggleWishlistItemUseCase
 };
