@@ -131,7 +131,7 @@ export class PostRepository implements IPostRepository {
 
       if (!post) return null;
 
-      return this.toDomainEntity(post as IPost);
+  return this.toDomainEntity(post as unknown as IPost);
     } catch (error) {
       logger.error('Error finding post by ID:', error);
       throw new Error('Lỗi khi tìm bài viết');
@@ -164,7 +164,7 @@ export class PostRepository implements IPostRepository {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        posts: posts.map(post => this.toDomainEntity(post as IPost)),
+  posts: posts.map(post => this.toDomainEntity(post as unknown as IPost)),
         total,
         page,
         limit,
@@ -186,7 +186,7 @@ export class PostRepository implements IPostRepository {
         .populate('userId', 'userName email avatar')
         .lean();
 
-      return this.toDomainEntity(populated as IPost);
+  return this.toDomainEntity(populated as unknown as IPost);
     } catch (error) {
       logger.error('Error creating post:', error);
       throw new Error('Lỗi khi tạo bài viết');
@@ -205,7 +205,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error updating post:', error);
       throw new Error('Lỗi khi cập nhật bài viết');
@@ -282,7 +282,7 @@ export class PostRepository implements IPostRepository {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        posts: posts.map(post => this.toDomainEntity(post as IPost)),
+  posts: posts.map(post => this.toDomainEntity(post as unknown as IPost)),
         total,
         page,
         limit,
@@ -308,7 +308,7 @@ export class PostRepository implements IPostRepository {
       .populate('userId', 'userName email avatar')
       .lean();
 
-      return posts.map(post => this.toDomainEntity(post as IPost));
+  return posts.map(post => this.toDomainEntity(post as unknown as IPost));
     } catch (error) {
       logger.error('Error finding trending posts:', error);
       throw new Error('Lỗi khi tìm bài viết trending');
@@ -364,7 +364,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error adding like:', error);
       throw new Error('Lỗi khi thêm like');
@@ -386,7 +386,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error removing like:', error);
       throw new Error('Lỗi khi xóa like');
@@ -405,7 +405,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error incrementing comments count:', error);
       throw new Error('Lỗi khi tăng comments count');
@@ -424,7 +424,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error decrementing comments count:', error);
       throw new Error('Lỗi khi giảm comments count');
@@ -443,7 +443,7 @@ export class PostRepository implements IPostRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IPost);
+  return this.toDomainEntity(updated as unknown as IPost);
     } catch (error) {
       logger.error('Error incrementing shares count:', error);
       throw new Error('Lỗi khi tăng shares count');
@@ -475,7 +475,7 @@ export class PostRepository implements IPostRepository {
         .populate('sharedBy', 'userName email avatar')
         .lean();
 
-      return this.toDomainEntity(populated as IPost);
+  return this.toDomainEntity(populated as unknown as IPost);
     } catch (error) {
       logger.error('Error sharing post:', error);
       throw new Error('Lỗi khi chia sẻ bài viết');
@@ -507,7 +507,7 @@ export class PostRepository implements IPostRepository {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        posts: posts.map(post => this.toDomainEntity(post as IPost)),
+  posts: posts.map(post => this.toDomainEntity(post as unknown as IPost)),
         total,
         page,
         limit,
@@ -565,7 +565,7 @@ export class PostRepository implements IPostRepository {
         .populate('userId', 'userName email avatar')
         .lean();
 
-      return posts.map(post => this.toDomainEntity(post as IPost));
+  return posts.map(post => this.toDomainEntity(post as unknown as IPost));
     } catch (error) {
       logger.error('Error finding most liked posts:', error);
       throw new Error('Lỗi khi tìm bài viết được thích nhiều nhất');
@@ -587,7 +587,7 @@ export class PostRepository implements IPostRepository {
         .populate('userId', 'userName email avatar')
         .lean();
 
-      return posts.map(post => this.toDomainEntity(post as IPost));
+  return posts.map(post => this.toDomainEntity(post as unknown as IPost));
     } catch (error) {
       logger.error('Error finding most commented posts:', error);
       throw new Error('Lỗi khi tìm bài viết có nhiều bình luận nhất');
