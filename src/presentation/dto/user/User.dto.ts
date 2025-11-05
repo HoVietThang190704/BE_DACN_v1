@@ -15,6 +15,15 @@ export interface UserResponseDto {
   userName?: string;
   phone?: string;
   avatar?: string;
+  address?: {
+    province?: string;
+    district?: string;
+    commune?: string;
+    street?: string;
+    detail?: string;
+  };
+  facebookId?: string;
+  googleId?: string;
   role: string;
   isVerified: boolean;
   dateOfBirth?: Date;
@@ -30,6 +39,9 @@ export class UserMapper {
       userName: user.userName,
       phone: user.phone,
       avatar: user.avatar,
+      address: user.address,
+      facebookId: user.facebookId || user.facebookID,
+      googleId: user.googleId,
       role: user.role,
       isVerified: user.isVerified,
       dateOfBirth: user.dateOfBirth,

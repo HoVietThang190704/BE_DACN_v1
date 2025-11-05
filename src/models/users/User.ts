@@ -10,7 +10,17 @@ export interface IUser extends Document {
   avatar?: string;
   cloudinaryPublicId?: string;
   facebookID?: string;
+  // preferred camelCase id fields for OAuth providers
+  facebookId?: string;
   googleId?: string;
+  // Primary address (optional)
+  address?: {
+    province?: string;
+    district?: string;
+    commune?: string;
+    street?: string;
+    detail?: string;
+  };
   role: 'customer' | 'shop_owner' | 'admin';
   isVerified: boolean;
   date_of_birth?: Date;
@@ -105,6 +115,22 @@ UserSchema.index({ phone: 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ isVerified: 1 });
 UserSchema.index({ createdAt: -1 });
+
+// Address subdocument
+UserSchema.add({
+  address: {
+    province: { type: String },
+    district: { type: String },
+    commune: { type: String },
+    street: { type: String },
+    detail: { type: String }
+  }
+});
+
+// Add explicit facebookId alias (some places expect this naming)
+UserSchema.add({
+  facebookId: { type: String }
+});
 
 // Hash password before save
 UserSchema.pre('save', async function(next) {

@@ -3,6 +3,7 @@ import { userController, addressController, orderController } from '../di/contai
 import { authenticate } from '../shared/middleware/auth';
 import { validate } from '../shared/middleware/validate';
 import { updateProfileSchema } from '../shared/validation/user.schema';
+import { uploadAvatar } from '../shared/middleware/upload';
 
 export const userRoutes = Router();
 
@@ -183,6 +184,87 @@ userRoutes.put(
   authenticate,
   validate(updateProfileSchema),
   (req, res) => userController.updateProfile(req, res)
+);
+
+/**
+ * @swagger
+ * /api/users/me/avatar:
+ *   post:
+ *     summary: Cập nhật ảnh đại diện
+ *     description: Upload ảnh đại diện lên Cloudinary và cập nhật thông tin người dùng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - avatar
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *                 description: File ảnh (jpg, jpeg, png, gif, webp) - tối đa 5MB
+ *     responses:
+ *       200:
+ *         description: Cập nhật ảnh đại diện thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Cập nhật ảnh đại diện thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     avatar:
+ *                       type: string
+ *                       format: uri
+ *                       example: https://res.cloudinary.com/dtk2qgorj/image/upload/v1234567890/fresh-food/avatars/user123.jpg
+ *       400:
+ *         description: Lỗi validation (không có file hoặc file không hợp lệ)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Vui lòng chọn file ảnh để upload
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi server khi upload
+ */
+// POST /api/users/me/avatar - Upload avatar
+userRoutes.post(
+  '/me/avatar',
+  authenticate,
+  (req, res, next) => {
+    uploadAvatar(req, res, (err: any) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Lỗi khi upload file'
+        });
+      }
+      return next();
+    });
+  },
+  (req, res) => userController.uploadAvatar(req, res)
 );
 
 // Legacy endpoints

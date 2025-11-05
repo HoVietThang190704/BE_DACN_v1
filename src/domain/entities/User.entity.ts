@@ -12,6 +12,13 @@ export interface IUserEntity {
   cloudinaryPublicId?: string;
   facebookID?: string;
   googleId?: string;
+  address?: {
+    province?: string;
+    district?: string;
+    commune?: string;
+    street?: string;
+    detail?: string;
+  };
   role: 'customer' | 'shop_owner' | 'admin';
   isVerified: boolean;
   dateOfBirth?: Date;
@@ -32,6 +39,13 @@ export class UserEntity implements IUserEntity {
     public cloudinaryPublicId?: string,
     public facebookID?: string,
     public googleId?: string,
+    public address?: {
+      province?: string;
+      district?: string;
+      commune?: string;
+      street?: string;
+      detail?: string;
+    },
     public dateOfBirth?: Date,
     public createdAt?: Date,
     public updatedAt?: Date
