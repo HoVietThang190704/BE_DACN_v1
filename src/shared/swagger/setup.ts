@@ -299,6 +299,26 @@ const options: swaggerJSDoc.Options = {
         description: 'Quản lý thông tin người dùng'
       },
       {
+        name: 'Posts',
+        description: 'Quản lý bài viết cộng đồng (Social Network Posts)'
+      },
+      {
+        name: 'Comments',
+        description: 'Quản lý bình luận trên bài viết (3 levels nested comments)'
+      },
+      {
+        name: 'Livestreams',
+        description: 'Quản lý livestream bán hàng (Live Shopping Streams)'
+      },
+      {
+        name: 'Agora',
+        description: 'Tạo token Agora RTC cho livestream'
+      },
+      {
+        name: 'Upload',
+        description: 'Upload và quản lý file ảnh/video'
+      },
+      {
         name: 'System',
         description: 'Các API hệ thống và health check'
       }

@@ -36,4 +36,8 @@ export const config = {
   // Rate Limiting
   RATE_LIMIT_WINDOW: 15 * 60 * 1000, // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: 100
+  // Agora
+  ,AGORA_APP_ID: process.env.AGORA_APP_ID || ''
+  ,AGORA_APP_CERT: process.env.AGORA_APP_CERT || ''
+  ,AGORA_TOKEN_EXPIRE_SECONDS: parseInt(process.env.AGORA_TOKEN_EXPIRE_SECONDS || '3600', 10)
 } as const;
