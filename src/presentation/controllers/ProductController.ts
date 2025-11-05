@@ -445,4 +445,38 @@ export class ProductController {
       });
     }
   }
+
+  /**
+   * DELETE /api/products/:id/permanent
+   * Permanently delete a product (Admin only)
+   */
+  async permanentDelete(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      // Execute use case
+      await this.deleteProductUseCase.permanentDelete(id);
+
+      logger.info(`Product permanently deleted: ${id}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Xóa sản phẩm vĩnh viễn thành công'
+      });
+    } catch (error: any) {
+      logger.error('ProductController.permanentDelete error:', error);
+
+      if (error.message === 'Không tìm thấy sản phẩm') {
+        res.status(404).json({ success: false, message: error.message });
+        return;
+      }
+
+      if (error.message.includes('Vui lòng xóa mềm') || error.message.includes('Không thể xóa vĩnh viễn')) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
+      }
+
+      res.status(500).json({ success: false, message: 'Lỗi khi xóa vĩnh viễn sản phẩm' });
+    }
+  }
 }

@@ -1,5 +1,9 @@
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { logger } from '../../../shared/utils/logger';
+import { deleteFromCloudinary } from '../../../shared/utils/cloudinary';
+import { Wishlist } from '../../../models/Wishlist';
+import { Cart } from '../../../models/Cart';
+import mongoose from 'mongoose';
 
 /**
  * Use Case: Delete Product
@@ -83,12 +87,75 @@ export class DeleteProductUseCase {
       throw new Error('Vui lòng xóa mềm sản phẩm trước khi xóa vĩnh viễn');
     }
 
-    // Note: IProductRepository doesn't have hardDelete method yet
-    // For now, we'll just do soft delete
-    // In future, you might want to add this method to repository
-    
+    // 1) Delete product images from Cloudinary (if any)
+    try {
+      if (product.images && Array.isArray(product.images)) {
+        for (const imageUrl of product.images) {
+          try {
+            const publicId = this.extractPublicIdFromUrl(imageUrl);
+            if (publicId) await deleteFromCloudinary(publicId);
+          } catch (err) {
+            logger.error('Error deleting product image from Cloudinary:', err);
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('Error while cleaning up product images:', err);
+    }
+
+    // 2) Remove product references from all wishlists and carts
+    try {
+      const prodObj = new mongoose.Types.ObjectId(productId);
+      await Wishlist.updateMany({}, { $pull: { items: { productId: prodObj } } });
+      await Cart.updateMany({}, { $pull: { items: { productId: prodObj } } });
+    } catch (err) {
+      logger.error('Error cleaning up references in carts/wishlists:', err);
+    }
+
+    // 3) Delete the product document
+    const deleted = await this.productRepository.delete(productId);
+    if (!deleted) {
+      throw new Error('Không thể xóa vĩnh viễn sản phẩm');
+    }
+
     logger.warn(`Product permanently deleted: ${productId} - ${product.name}`);
 
     return true;
+  }
+
+  // Helper to extract Cloudinary public id (same logic used in UploadProductImages.usecase)
+  private extractPublicIdFromUrl(url: string): string | null {
+    try {
+      // Robust extraction for Cloudinary URLs
+      // Examples handled:
+      // https://res.cloudinary.com/<cloud>/image/upload/v123456/fresh-food/abc123.jpg -> fresh-food/abc123
+      // https://res.cloudinary.com/<cloud>/image/upload/fresh-food/abc123.png -> fresh-food/abc123
+      const parsed = new URL(url);
+      let path = parsed.pathname; // e.g. /image/upload/v12345/fresh-food/abc123.jpg
+
+      // Find the part after '/upload/'
+      const uploadIndex = path.indexOf('/upload/');
+      if (uploadIndex >= 0) {
+        path = path.substring(uploadIndex + '/upload/'.length);
+      }
+
+      // Remove leading slash if any
+      if (path.startsWith('/')) path = path.substring(1);
+
+      // Remove version segment like v123456/
+      path = path.replace(/^v\d+\//, '');
+
+      // Remove file extension if present
+      const lastDot = path.lastIndexOf('.');
+      if (lastDot > -1) {
+        path = path.substring(0, lastDot);
+      }
+
+      // Result is the public id (may include folders)
+      return path || null;
+    } catch (error) {
+      logger.error('Error extracting public ID from URL:', error);
+      return null;
+    }
   }
 }

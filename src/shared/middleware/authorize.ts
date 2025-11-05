@@ -1,13 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
-/**
- * Authorization middleware
- * Checks if user has required role(s)
- */
 export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    // Check if user is authenticated
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -16,7 +11,6 @@ export const authorizeRoles = (...roles: string[]) => {
       return;
     }
 
-    // Check if user has required role
     const userRole = req.user.role;
     
     if (!roles.includes(userRole)) {
@@ -33,17 +27,8 @@ export const authorizeRoles = (...roles: string[]) => {
   };
 };
 
-/**
- * Check if user is admin
- */
 export const isAdmin = authorizeRoles('admin');
 
-/**
- * Check if user is shop owner or admin
- */
 export const isShopOwnerOrAdmin = authorizeRoles('shop_owner', 'admin');
 
-/**
- * Check if user is customer, shop owner or admin (any authenticated user)
- */
 export const isAuthenticated = authorizeRoles('customer', 'shop_owner', 'admin');

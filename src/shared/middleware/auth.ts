@@ -3,8 +3,6 @@ import * as jwt from 'jsonwebtoken';
 import { config } from '../../config';
 import { User } from '../../models/users/User';
 import { logger } from '../utils/logger';
-
-// Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
@@ -17,31 +15,21 @@ declare global {
   }
 }
 
-/**
- * Middleware to verify JWT token and attach user info to request
- */
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    
+    const authHeader = req.headers.authorization;   
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
         message: 'Không tìm thấy token xác thực. Vui lòng đăng nhập.'
       });
     }
-
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
     const decoded = jwt.verify(token, config.JWT_SECRET as string) as {
       userId: string;
       email: string;
       role: string;
     };
-
-    // Check if user still exists
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({
@@ -49,16 +37,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         message: 'Người dùng không tồn tại.'
       });
     }
-
-    // Check if user is verified (optional, based on business logic)
     if (!user.isVerified && config.NODE_ENV === 'production') {
       return res.status(403).json({
         success: false,
         message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email.'
       });
     }
-
-    // Attach user info to request
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
