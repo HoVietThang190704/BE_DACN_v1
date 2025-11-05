@@ -2,18 +2,26 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import { createServer } from 'http';
+import os from 'os';
 import { config } from './config';
 import { errorHandler } from './shared/middleware/errorHandler';
 import { logger } from './shared/utils/logger';
 import { database } from './shared/database/connection';
 import { setupSwagger } from './shared/swagger/setup';
-import os from 'os';
+import { SocketService } from './services/socket/SocketService';
+
 // Import routes
 import { authRoutes } from './routes/auth';
 import { productRoutes } from './routes/products';
 import { orderRoutes } from './routes/orders';
 import { userRoutes } from './routes/users';
 import { categoryRoutes } from './routes/categories';
+import { agoraRoutes } from './routes/agora';
+import { livestreamRoutes } from './routes/livestreams';
+import postRoutes from './routes/posts';
+import commentRoutes from './routes/comments';
+import { uploadRoutes } from './routes/upload';
 
 const app = express();
 
@@ -35,12 +43,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Serve static files (uploads)
+app.use('/uploads', express.static('uploads'));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/agora', agoraRoutes);
+app.use('/api/livestreams', livestreamRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
@@ -74,17 +90,9 @@ app.use((req, res) => {
 });
 
 const PORT = config.PORT || 3000;
-const IP = config.NODE_IP || 'localhost';
-// Start server with database connection
-async function startServer() {
-  try {
-    // Connect to MongoDB
-    await database.connect();
-    
-    // TODO: Seed database with sample data
-    // await seedDatabase();
-    
-    function getLocalIp() {
+
+// Helper function to get local IP
+function getLocalIp(): string {
   const interfaces = os.networkInterfaces();
   for (const iface of Object.values(interfaces)) {
     if (!iface) continue;
@@ -96,13 +104,26 @@ async function startServer() {
   }
   return 'localhost';
 }
-const localIp = getLocalIp();
-// Start Express server
-app.listen(PORT,"0.0.0.0", () => {
-  logger.info(`🚀 Fresh Food Platform API đang chạy tại http://${localIp}:${PORT}`);
-  logger.info(`📊 Health check: http://${localIp}:${PORT}/health`);
-  logger.info(`📖 API docs: http://${localIp}:${PORT}/api`);
-  logger.info(`📚 Swagger docs: http://${localIp}:${PORT}/api/docs`);
+
+// Start server with database connection
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await database.connect();
+    
+    const localIp = getLocalIp();
+    
+    // Create HTTP server and initialize Socket.IO service
+    const httpServer = createServer(app);
+    const socketService = new SocketService(httpServer);
+    
+    // Start HTTP server with Socket.IO
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      logger.info(`🚀 Fresh Food Platform API đang chạy tại http://${localIp}:${PORT}`);
+      logger.info(`📊 Health check: http://${localIp}:${PORT}/health`);
+      logger.info(`📖 API docs: http://${localIp}:${PORT}/api`);
+      logger.info(`📚 Swagger docs: http://${localIp}:${PORT}/api/docs`);
+      logger.info(`💬 Socket.IO ready for realtime chat`);
     });
   } catch (error) {
     logger.error('❌ Failed to start server:', error);
