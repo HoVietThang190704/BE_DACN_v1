@@ -129,7 +129,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!comment) return null;
 
-      return this.toDomainEntity(comment as IComment);
+  return this.toDomainEntity(comment as unknown as IComment);
     } catch (error) {
       logger.error('Error finding comment by ID:', error);
       throw new Error('Lỗi khi tìm bình luận');
@@ -162,7 +162,7 @@ export class CommentRepository implements ICommentRepository {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        comments: comments.map(comment => this.toDomainEntity(comment as IComment)),
+        comments: comments.map(comment => this.toDomainEntity(comment as unknown as IComment)),
         total,
         page,
         limit,
@@ -185,7 +185,7 @@ export class CommentRepository implements ICommentRepository {
         .populate('mentionedUserId', 'userName email avatar')
         .lean();
 
-      return this.toDomainEntity(populated as IComment);
+  return this.toDomainEntity(populated as unknown as IComment);
     } catch (error) {
       logger.error('Error creating comment:', error);
       throw new Error('Lỗi khi tạo bình luận');
@@ -205,7 +205,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IComment);
+  return this.toDomainEntity(updated as unknown as IComment);
     } catch (error) {
       logger.error('Error updating comment:', error);
       throw new Error('Lỗi khi cập nhật bình luận');
@@ -272,7 +272,7 @@ export class CommentRepository implements ICommentRepository {
       .populate('userId', 'userName email avatar')
       .lean();
 
-      return comments.map(comment => this.toDomainEntity(comment as IComment));
+  return comments.map(comment => this.toDomainEntity(comment as unknown as IComment));
     } catch (error) {
       logger.error('Error finding thread:', error);
       throw new Error('Lỗi khi tìm thread bình luận');
@@ -332,7 +332,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IComment);
+  return this.toDomainEntity(updated as unknown as IComment);
     } catch (error) {
       logger.error('Error adding like:', error);
       throw new Error('Lỗi khi thêm like');
@@ -354,7 +354,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IComment);
+  return this.toDomainEntity(updated as unknown as IComment);
     } catch (error) {
       logger.error('Error removing like:', error);
       throw new Error('Lỗi khi xóa like');
@@ -373,7 +373,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IComment);
+  return this.toDomainEntity(updated as unknown as IComment);
     } catch (error) {
       logger.error('Error incrementing replies count:', error);
       throw new Error('Lỗi khi tăng replies count');
@@ -392,7 +392,7 @@ export class CommentRepository implements ICommentRepository {
 
       if (!updated) return null;
 
-      return this.toDomainEntity(updated as IComment);
+  return this.toDomainEntity(updated as unknown as IComment);
     } catch (error) {
       logger.error('Error decrementing replies count:', error);
       throw new Error('Lỗi khi giảm replies count');
@@ -434,7 +434,7 @@ export class CommentRepository implements ICommentRepository {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        comments: allComments.map(comment => this.toDomainEntity(comment as IComment)),
+  comments: allComments.map(comment => this.toDomainEntity(comment as unknown as IComment)),
         total,
         page,
         limit,
@@ -463,7 +463,7 @@ export class CommentRepository implements ICommentRepository {
         .populate('userId', 'userName email avatar')
         .lean();
 
-      return comments.map(comment => this.toDomainEntity(comment as IComment));
+  return comments.map(comment => this.toDomainEntity(comment as unknown as IComment));
     } catch (error) {
       logger.error('Error finding recent comments:', error);
       throw new Error('Lỗi khi tìm bình luận gần đây');
@@ -478,7 +478,7 @@ export class CommentRepository implements ICommentRepository {
         .populate('userId', 'userName email avatar')
         .lean();
 
-      return comments.map(comment => this.toDomainEntity(comment as IComment));
+  return comments.map(comment => this.toDomainEntity(comment as unknown as IComment));
     } catch (error) {
       logger.error('Error finding most liked comments:', error);
       throw new Error('Lỗi khi tìm bình luận được thích nhiều nhất');

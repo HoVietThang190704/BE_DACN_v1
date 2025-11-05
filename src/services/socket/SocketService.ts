@@ -111,7 +111,7 @@ export class SocketService {
         timestamp: new Date()
       });
 
-      const messageDoc = newMessage.toObject();
+  const messageDoc: any = newMessage.toObject();
       const chatMessage = {
         id: messageDoc._id.toString(),
         userId: messageDoc.userId,
