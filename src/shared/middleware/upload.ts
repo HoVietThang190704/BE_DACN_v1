@@ -1,18 +1,11 @@
 import multer from 'multer';
 import { Request } from 'express';
 
-/**
- * Multer configuration for file upload
- * Store files in memory as buffer for Cloudinary upload
- */
-
-// File filter - only accept images
 const fileFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Accept images only
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
@@ -20,22 +13,18 @@ const fileFilter = (
   }
 };
 
-// Multer config
 const upload = multer({
-  storage: multer.memoryStorage(), // Store in memory for Cloudinary
+  storage: multer.memoryStorage(), 
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max file size
+    fileSize: 5 * 1024 * 1024 
   }
 });
 
-// Export middleware for single avatar upload
 export const uploadAvatar = upload.single('avatar');
 
-// Export middleware for multiple product images (max 5)
 export const uploadProductImages = upload.array('images', 5);
 
-// Export middleware for multiple images (general, max 10)
 export const uploadMultiple = upload.array('images', 10);
 
 export default upload;

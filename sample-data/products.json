@@ -1,0 +1,624 @@
+[
+  {
+    "name": "Rau muống hữu cơ",
+    "nameEn": "Organic Water Spinach",
+    "category": "vegetable",
+    "price": 15000,
+    "unit": "bó/500g",
+    "description": "Rau muống hữu cơ tươi xanh, không thuốc trừ sâu, giàu chất xơ và vitamin. Được trồng theo tiêu chuẩn VietGAP tại Đà Lạt.",
+    "images": null,
+    "inStock": true,
+    "stockQuantity": 100,
+    "farm": {
+      "name": "Nông trại Xanh Đà Lạt",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đà Lạt",
+        "commune": "Xuân Thọ"
+      },
+      "farmer": "Nguyễn Văn An",
+      "contact": "0901234567"
+    },
+    "certifications": ["VietGAP", "Organic"],
+    "harvestDate": "2025-11-01T00:00:00.000Z",
+    "shelfLife": 3,
+    "nutrition": {
+      "calories": 19,
+      "protein": 2.6,
+      "carbs": 3.1,
+      "fat": 0.2,
+      "fiber": 2.2,
+      "vitamin": ["A", "C", "K", "Folate"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.8,
+    "reviewCount": 156,
+    "tags": ["rau-huu-co", "rau-xanh", "da-lat", "tuoi-sach"]
+  },
+  {
+    "name": "Cà chua bi organic",
+    "nameEn": "Organic Cherry Tomatoes",
+    "category": "vegetable",
+    "price": 45000,
+    "unit": "hộp/250g",
+    "description": "Cà chua bi hữu cơ ngọt tự nhiên, giàu lycopene và vitamin C. Trồng trong nhà kính với công nghệ hiện đại.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/cherry-tomatoes.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 80,
+    "farm": {
+      "name": "Trang trại Eco Farm Đà Lạt",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đà Lạt",
+        "commune": "Trại Mát"
+      },
+      "farmer": "Trần Thị Bình",
+      "contact": "0912345678"
+    },
+    "certifications": ["VietGAP", "Organic", "GlobalGAP"],
+    "harvestDate": "2025-10-31T00:00:00.000Z",
+    "shelfLife": 7,
+    "nutrition": {
+      "calories": 18,
+      "protein": 0.9,
+      "carbs": 3.9,
+      "fat": 0.2,
+      "fiber": 1.2,
+      "vitamin": ["A", "C", "K", "B6"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.9,
+    "reviewCount": 234,
+    "tags": ["ca-chua", "organic", "trai-cay", "vitamin-c"]
+  },
+  {
+    "name": "Xà lách lô lô đỏ",
+    "nameEn": "Red Lettuce",
+    "category": "vegetable",
+    "price": 25000,
+    "unit": "bó/300g",
+    "description": "Xà lách lô lô đỏ giòn ngọt, giàu chất chống oxi hóa. Hoàn hảo cho salad và sandwich.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/red-lettuce.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 60,
+    "farm": {
+      "name": "Green Farm Lâm Đồng",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đơn Dương",
+        "commune": "Thạnh Mỹ"
+      },
+      "farmer": "Lê Văn Cường",
+      "contact": "0923456789"
+    },
+    "certifications": ["VietGAP"],
+    "harvestDate": "2025-11-02T00:00:00.000Z",
+    "shelfLife": 5,
+    "nutrition": {
+      "calories": 15,
+      "protein": 1.4,
+      "carbs": 2.9,
+      "fat": 0.2,
+      "fiber": 1.3,
+      "vitamin": ["A", "K", "C", "Folate"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.6,
+    "reviewCount": 89,
+    "tags": ["xa-lach", "salad", "rau-song", "da-lat"]
+  },
+  {
+    "name": "Dâu tây Đà Lạt",
+    "nameEn": "Dalat Strawberries",
+    "category": "fruit",
+    "price": 120000,
+    "unit": "hộp/500g",
+    "description": "Dâu tây Đà Lạt tươi ngon, ngọt thanh, giàu vitamin C và chất chống oxy hóa. Được hái thủ công mỗi ngày.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/strawberry.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 45,
+    "farm": {
+      "name": "Vườn Dâu Hồng Đà Lạt",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đà Lạt",
+        "commune": "Xuân Trường"
+      },
+      "farmer": "Hoàng Thị Mai",
+      "contact": "0934567890"
+    },
+    "certifications": ["VietGAP"],
+    "harvestDate": "2025-11-03T00:00:00.000Z",
+    "shelfLife": 3,
+    "nutrition": {
+      "calories": 32,
+      "protein": 0.7,
+      "carbs": 7.7,
+      "fat": 0.3,
+      "fiber": 2,
+      "vitamin": ["C", "B9", "Manganese"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 5.0,
+    "reviewCount": 412,
+    "tags": ["dau-tay", "da-lat", "trai-cay", "tuoi-ngon"]
+  },
+  {
+    "name": "Cải thảo hữu cơ",
+    "nameEn": "Organic Napa Cabbage",
+    "category": "vegetable",
+    "price": 30000,
+    "unit": "kg",
+    "description": "Cải thảo hữu cơ tươi ngon, giòn ngọt, giàu vitamin K và C. Lý tưởng cho món lẩu và kim chi.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/napa-cabbage.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 70,
+    "farm": {
+      "name": "Nông trại Organic Valley",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đức Trọng",
+        "commune": "Liên Nghĩa"
+      },
+      "farmer": "Phạm Văn Đức",
+      "contact": "0945678901"
+    },
+    "certifications": ["Organic", "VietGAP"],
+    "harvestDate": "2025-10-30T00:00:00.000Z",
+    "shelfLife": 14,
+    "nutrition": {
+      "calories": 16,
+      "protein": 1.2,
+      "carbs": 3.2,
+      "fat": 0.2,
+      "fiber": 1.2,
+      "vitamin": ["C", "K", "B6", "Folate"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.7,
+    "reviewCount": 145,
+    "tags": ["cai-thao", "huu-co", "lau", "kim-chi"]
+  },
+  {
+    "name": "Thịt heo sạch",
+    "nameEn": "Clean Pork",
+    "category": "meat",
+    "price": 165000,
+    "unit": "kg",
+    "description": "Thịt heo ba chỉ sạch, nuôi theo quy trình VietGAP, không chất tăng trọng. Thịt mềm, thơm ngon.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/pork.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 30,
+    "farm": {
+      "name": "Trại heo Phúc Lộc",
+      "location": {
+        "province": "Đồng Nai",
+        "district": "Trảng Bom",
+        "commune": "Bắc Sơn"
+      },
+      "farmer": "Võ Văn Em",
+      "contact": "0956789012"
+    },
+    "certifications": ["VietGAP", "HACCP"],
+    "harvestDate": "2025-11-02T00:00:00.000Z",
+    "shelfLife": 2,
+    "nutrition": {
+      "calories": 242,
+      "protein": 17.5,
+      "carbs": 0,
+      "fat": 19.2,
+      "fiber": 0,
+      "vitamin": ["B1", "B6", "B12", "Zinc", "Selenium"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.8,
+    "reviewCount": 278,
+    "tags": ["thit-heo", "thit-sach", "ba-chi", "dong-nai"]
+  },
+  {
+    "name": "Tôm sú tươi sống",
+    "nameEn": "Fresh Tiger Prawns",
+    "category": "seafood",
+    "price": 320000,
+    "unit": "kg",
+    "description": "Tôm sú tươi sống nuôi tại Cà Mau, chất lượng cao, thịt chắc ngọt. Đánh bắt sáng giao chiều.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/tiger-prawns.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 25,
+    "farm": {
+      "name": "Trại tôm Bạc Liêu",
+      "location": {
+        "province": "Cà Mau",
+        "district": "U Minh",
+        "commune": "Khánh Hòa"
+      },
+      "farmer": "Nguyễn Văn Hải",
+      "contact": "0967890123"
+    },
+    "certifications": ["GlobalGAP", "HACCP"],
+    "harvestDate": "2025-11-03T00:00:00.000Z",
+    "shelfLife": 1,
+    "nutrition": {
+      "calories": 99,
+      "protein": 24,
+      "carbs": 0.2,
+      "fat": 0.3,
+      "fiber": 0,
+      "vitamin": ["B12", "Selenium", "Zinc", "Iodine"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.9,
+    "reviewCount": 189,
+    "tags": ["tom-su", "hai-san", "tuoi-song", "ca-mau"]
+  },
+  {
+    "name": "Chuối già hữu cơ",
+    "nameEn": "Organic Lady Finger Bananas",
+    "category": "fruit",
+    "price": 28000,
+    "unit": "nải/1kg",
+    "description": "Chuối già hữu cơ thơm ngon, ngọt tự nhiên. Trồng theo phương pháp hữu cơ không hóa chất.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/bananas.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 120,
+    "farm": {
+      "name": "Vườn chuối Bến Tre",
+      "location": {
+        "province": "Bến Tre",
+        "district": "Châu Thành",
+        "commune": "Tân Phú"
+      },
+      "farmer": "Lê Thị Nga",
+      "contact": "0978901234"
+    },
+    "certifications": ["Organic"],
+    "harvestDate": "2025-10-28T00:00:00.000Z",
+    "shelfLife": 7,
+    "nutrition": {
+      "calories": 89,
+      "protein": 1.1,
+      "carbs": 22.8,
+      "fat": 0.3,
+      "fiber": 2.6,
+      "vitamin": ["B6", "C", "Potassium", "Magnesium"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.7,
+    "reviewCount": 203,
+    "tags": ["chuoi", "huu-co", "trai-cay", "ben-tre"]
+  },
+    {
+        "name": "Gạo ST25 hữu cơ",
+        "nameEn": "Organic ST25 Rice",
+        "category": "grain",
+        "price": 150000,
+        "unit": "túi/5kg",
+        "description": "Gạo ST25 hữu cơ được vinh danh gạo ngon nhất thế giới. Hạt dài, thơm, mềm, ngọt tự nhiên.",
+        "images": [
+        "https://res.cloudinary.com/demo/image/upload/st25-rice.jpg"
+        ],
+        "inStock": true,
+        "stockQuantity": 200,
+        "farm": {
+        "name": "Cánh đồng Sóc Trăng",
+        "location": {
+            "province": "Sóc Trăng",
+            "district": "Thạnh Trị",
+            "commune": "Thạnh Thới An"
+        },
+        "farmer": "Hồ Quang Cua",
+        "contact": "0989012345"
+        },
+        "certifications": ["Organic", "VietGAP"],
+        "harvestDate": "2025-10-15T00:00:00.000Z",
+        "shelfLife": 365,
+        "nutrition": {
+        "calories": 130,
+        "protein": 2.7,
+        "carbs": 28.2,
+        "fat": 0.3,
+        "fiber": 0.4,
+        "vitamin": ["B1", "B3", "Folate", "Iron"]
+        },
+        "isOrganic": true,
+        "isFresh": true,
+        "rating": 5.0,
+        "reviewCount": 567,
+        "tags": ["gao", "st25", "huu-co", "soc-trang", "ngon-nhat-the-gioi"]
+    },
+  {
+    "name": "Bí đỏ hữu cơ",
+    "nameEn": "Organic Pumpkin",
+    "category": "vegetable",
+    "price": 18000,
+    "unit": "kg",
+    "description": "Bí đỏ hữu cơ ngọt bùi, giàu beta-carotene. Thích hợp cho trẻ em và người ăn kiêng.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/pumpkin.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 90,
+    "farm": {
+      "name": "Vườn rau Đồng Tháp",
+      "location": {
+        "province": "Đồng Tháp",
+        "district": "Cao Lãnh",
+        "commune": "Mỹ Phú"
+      },
+      "farmer": "Võ Văn Phúc",
+      "contact": "0990123456"
+    },
+    "certifications": ["Organic", "VietGAP"],
+    "harvestDate": "2025-10-20T00:00:00.000Z",
+    "shelfLife": 60,
+    "nutrition": {
+      "calories": 26,
+      "protein": 1,
+      "carbs": 6.5,
+      "fat": 0.1,
+      "fiber": 0.5,
+      "vitamin": ["A", "C", "E", "B2"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.6,
+    "reviewCount": 112,
+    "tags": ["bi-do", "huu-co", "cho-tre-em", "dinh-duong"]
+  },
+  {
+    "name": "Súp lơ xanh",
+    "nameEn": "Broccoli",
+    "category": "vegetable",
+    "price": 55000,
+    "unit": "kg",
+    "description": "Súp lơ xanh tươi Đà Lạt, giàu vitamin C và K, chất chống oxy hóa. Lý tưởng cho salad và luộc.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/broccoli.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 50,
+    "farm": {
+      "name": "Nông trại Green Life",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đà Lạt",
+        "commune": "Xuân Thọ"
+      },
+      "farmer": "Trần Văn Tài",
+      "contact": "0901234560"
+    },
+    "certifications": ["VietGAP"],
+    "harvestDate": "2025-11-01T00:00:00.000Z",
+    "shelfLife": 7,
+    "nutrition": {
+      "calories": 34,
+      "protein": 2.8,
+      "carbs": 6.6,
+      "fat": 0.4,
+      "fiber": 2.6,
+      "vitamin": ["C", "K", "B9", "Calcium"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.8,
+    "reviewCount": 167,
+    "tags": ["sup-lo", "broccoli", "da-lat", "vitamin"]
+  },
+  {
+    "name": "Cá diêu hồng tươi",
+    "nameEn": "Fresh Red Tilapia",
+    "category": "seafood",
+    "price": 95000,
+    "unit": "kg",
+    "description": "Cá diêu hồng nuôi ao tự nhiên, thịt chắc ngọt. Giàu protein, omega-3.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/red-tilapia.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 40,
+    "farm": {
+      "name": "Ao cá An Giang",
+      "location": {
+        "province": "An Giang",
+        "district": "Châu Phú",
+        "commune": "Vĩnh Thạnh Trung"
+      },
+      "farmer": "Nguyễn Văn Sáu",
+      "contact": "0912345601"
+    },
+    "certifications": ["HACCP"],
+    "harvestDate": "2025-11-03T00:00:00.000Z",
+    "shelfLife": 1,
+    "nutrition": {
+      "calories": 128,
+      "protein": 26,
+      "carbs": 0,
+      "fat": 2.7,
+      "fiber": 0,
+      "vitamin": ["B12", "Selenium", "Phosphorus"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.5,
+    "reviewCount": 98,
+    "tags": ["ca-dieu-hong", "ca-tuoi", "hai-san", "an-giang"]
+  },
+  {
+    "name": "Ớt chuông đỏ",
+    "nameEn": "Red Bell Pepper",
+    "category": "vegetable",
+    "price": 70000,
+    "unit": "kg",
+    "description": "Ớt chuông đỏ giòn ngọt, giàu vitamin C. Trồng trong nhà kính công nghệ cao.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/red-bell-pepper.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 35,
+    "farm": {
+      "name": "Nhà kính High-Tech Đà Lạt",
+      "location": {
+        "province": "Lâm Đồng",
+        "district": "Đà Lạt",
+        "commune": "Phú Hội"
+      },
+      "farmer": "Lê Thị Thu",
+      "contact": "0923456702"
+    },
+    "certifications": ["VietGAP", "GlobalGAP"],
+    "harvestDate": "2025-11-02T00:00:00.000Z",
+    "shelfLife": 10,
+    "nutrition": {
+      "calories": 31,
+      "protein": 1,
+      "carbs": 6,
+      "fat": 0.3,
+      "fiber": 2.1,
+      "vitamin": ["C", "A", "B6", "E"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.7,
+    "reviewCount": 134,
+    "tags": ["ot-chuong", "vitamin-c", "da-lat", "salad"]
+  },
+  {
+    "name": "Trứng gà hữu cơ",
+    "nameEn": "Organic Chicken Eggs",
+    "category": "dairy",
+    "price": 65000,
+    "unit": "hộp/10 quả",
+    "description": "Trứng gà hữu cơ từ gà thả vườn, ăn thức ăn tự nhiên. Lòng đỏ vàng đậm, giàu dinh dưỡng.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/organic-eggs.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 150,
+    "farm": {
+      "name": "Trang trại gà Happy Farm",
+      "location": {
+        "province": "Bình Dương",
+        "district": "Dĩ An",
+        "commune": "Đông Hòa"
+      },
+      "farmer": "Phạm Văn Hùng",
+      "contact": "0934567803"
+    },
+    "certifications": ["Organic", "VietGAP"],
+    "harvestDate": "2025-11-03T00:00:00.000Z",
+    "shelfLife": 21,
+    "nutrition": {
+      "calories": 155,
+      "protein": 13,
+      "carbs": 1.1,
+      "fat": 11,
+      "fiber": 0,
+      "vitamin": ["A", "D", "B12", "B2", "Choline"]
+    },
+    "isOrganic": true,
+    "isFresh": true,
+    "rating": 4.9,
+    "reviewCount": 421,
+    "tags": ["trung-ga", "huu-co", "dinh-duong", "ga-tha-vuon"]
+  },
+  {
+    "name": "Táo Fuji nhập khẩu",
+    "nameEn": "Imported Fuji Apples",
+    "category": "fruit",
+    "price": 89000,
+    "unit": "kg",
+    "description": "Táo Fuji Nhật Bản, giòn ngọt, nhiều nước. Giàu chất xơ và vitamin C.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/fuji-apples.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 60,
+    "farm": {
+      "name": "Nhà vườn Aomori",
+      "location": {
+        "province": "Aomori",
+        "district": "Hirosaki",
+        "commune": "Kuroishi"
+      },
+      "farmer": "Tanaka Hiroshi",
+      "contact": "+81-90-1234-5678"
+    },
+    "certifications": ["GlobalGAP", "ISO22000"],
+    "harvestDate": "2025-10-20T00:00:00.000Z",
+    "shelfLife": 30,
+    "nutrition": {
+      "calories": 52,
+      "protein": 0.3,
+      "carbs": 14,
+      "fat": 0.2,
+      "fiber": 2.4,
+      "vitamin": ["C", "K", "B6", "Potassium"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.9,
+    "reviewCount": 389,
+    "tags": ["tao", "fuji", "nhat-ban", "nhap-khau"]
+  },
+  {
+    "name": "Rau mầm hỗn hợp",
+    "nameEn": "Mixed Microgreens",
+    "category": "herb",
+    "price": 40000,
+    "unit": "hộp/100g",
+    "description": "Rau mầm hỗn hợp gồm cải xoăn, cải đỏ, củ cải. Giàu dinh dưỡng gấp 40 lần rau trưởng thành.",
+    "images": [
+      "https://res.cloudinary.com/demo/image/upload/microgreens.jpg"
+    ],
+    "inStock": true,
+    "stockQuantity": 75,
+    "farm": {
+      "name": "Urban Farm TP.HCM",
+      "location": {
+        "province": "TP. Hồ Chí Minh",
+        "district": "Quận 2",
+        "commune": "Thảo Điền"
+      },
+      "farmer": "Nguyễn Minh Tuấn",
+      "contact": "0945678904"
+    },
+    "certifications": ["VietGAP"],
+    "harvestDate": "2025-11-03T00:00:00.000Z",
+    "shelfLife": 5,
+    "nutrition": {
+      "calories": 29,
+      "protein": 2.6,
+      "carbs": 4.4,
+      "fat": 0.5,
+      "fiber": 1.8,
+      "vitamin": ["A", "C", "E", "K"]
+    },
+    "isOrganic": false,
+    "isFresh": true,
+    "rating": 4.8,
+    "reviewCount": 156,
+    "tags": ["rau-mam", "dinh-duong", "salad", "sai-gon"]
+  }
+]

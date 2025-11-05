@@ -26,7 +26,11 @@ export class DeleteCategoryUseCase {
 
     // Check if already deleted
     if (!category.isActive) {
-      throw new Error('Danh mục đã bị xóa trước đó');
+      // If caller didn't ask to force delete, stop and inform client
+      if (!options?.force) {
+        throw new Error('Danh mục đã bị xóa trước đó');
+      }
+      // otherwise proceed to hard delete (force)
     }
 
     // Check if has active children
@@ -40,8 +44,9 @@ export class DeleteCategoryUseCase {
       throw new Error(`Không thể xóa danh mục có ${category.productCount} sản phẩm. Vui lòng di chuyển hoặc xóa các sản phẩm trước.`);
     }
 
-    // Perform soft delete (set isActive = false)
-    const deleted = await this.categoryRepository.delete(categoryId);
+  // Perform hard delete (remove document from DB)
+  // NOTE: this will permanently remove the category. Be sure this is intended.
+  const deleted = await this.categoryRepository.hardDelete(categoryId);
 
     if (!deleted) {
       throw new Error('Không thể xóa danh mục');
@@ -50,10 +55,6 @@ export class DeleteCategoryUseCase {
     // If force delete and has products, update products to remove category
     if (options?.force && category.productCount > 0) {
       logger.warn(`Force deleting category ${categoryId} with ${category.productCount} products`);
-      // In a real implementation, you might want to:
-      // 1. Move products to a "uncategorized" category
-      // 2. Or remove the category from products
-      // This depends on your business logic
     }
 
     logger.info(`Category deleted: ${categoryId} - ${category.name}`);
@@ -61,10 +62,6 @@ export class DeleteCategoryUseCase {
     return true;
   }
 
-  /**
-   * Permanently delete category (hard delete) - Admin only
-   * This is dangerous and should be used with extreme caution
-   */
   async permanentDelete(categoryId: string): Promise<boolean> {
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {
@@ -82,9 +79,6 @@ export class DeleteCategoryUseCase {
       throw new Error('Không thể xóa vĩnh viễn danh mục có sản phẩm');
     }
 
-    // Perform hard delete
-    // Note: This would require adding a hardDelete method to repository
-    // For now, we'll just do soft delete
     const deleted = await this.categoryRepository.delete(categoryId);
 
     logger.warn(`Category permanently deleted: ${categoryId} - ${category.name}`);
@@ -92,9 +86,6 @@ export class DeleteCategoryUseCase {
     return deleted;
   }
 
-  /**
-   * Restore a soft-deleted category
-   */
   async restore(categoryId: string): Promise<boolean> {
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {

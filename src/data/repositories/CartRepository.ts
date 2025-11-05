@@ -53,15 +53,10 @@ export class CartRepository implements ICartRepository {
       await session.withTransaction(async () => {
         const userObjId = new mongoose.Types.ObjectId(userId);
         const productObjId = new mongoose.Types.ObjectId(item.productId);
-
-        // Read current cart within session
         const cart = await Cart.findOne({ userId: userObjId }).session(session);
-
         const attrsStr = item.attrs ? JSON.stringify(item.attrs) : null;
         const unitVal = item.unit ?? null;
-
         if (cart && Array.isArray(cart.items) && cart.items.length > 0) {
-          // Try find existing matching item (by productId, unit and attrs)
           const existing = cart.items.find((it: any) => {
             const itAttrs = it.attrs ? JSON.stringify(it.attrs) : null;
             const itUnit = it.unit ?? null;

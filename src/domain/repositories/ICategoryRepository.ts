@@ -57,6 +57,11 @@ export interface ICategoryRepository {
   delete(id: string): Promise<boolean>;
 
   /**
+   * Hard delete category (remove document from DB)
+   */
+  hardDelete(id: string): Promise<boolean>;
+
+  /**
    * Check if category exists
    */
   exists(id: string): Promise<boolean>;

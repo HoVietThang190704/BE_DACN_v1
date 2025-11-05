@@ -191,6 +191,33 @@ productRoutes.delete('/:id', authenticate, authorizeRoles('shop_owner', 'admin')
 
 /**
  * @swagger
+ * /api/products/{id}/permanent:
+ *   delete:
+ *     summary: Xóa sản phẩm vĩnh viễn (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Xóa vĩnh viễn thành công
+ *       400:
+ *         description: Sản phẩm chưa được xóa mềm hoặc không thể xóa
+ *       404:
+ *         description: Không tìm thấy sản phẩm
+ */
+productRoutes.delete('/:id/permanent', authenticate, authorizeRoles('admin'), asyncHandler(async (req: Request, res: Response) => {
+  await productController.permanentDelete(req, res);
+}));
+
+/**
+ * @swagger
  * /api/products/{id}/images:
  *   post:
  *     summary: Upload ảnh sản phẩm (Shop owner/Admin)

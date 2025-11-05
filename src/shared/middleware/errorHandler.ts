@@ -22,7 +22,6 @@ export const errorHandler = (
     stack: error.stack
   });
 
-  // Don't leak error details in production
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   res.status(statusCode).json({

@@ -221,6 +221,16 @@ export class CategoryRepository implements ICategoryRepository {
     }
   }
 
+  async hardDelete(id: string): Promise<boolean> {
+    try {
+      const result = await Category.findByIdAndDelete(id);
+      return result !== null;
+    } catch (error) {
+      logger.error('CategoryRepository.hardDelete error:', error);
+      throw new Error('Lỗi khi xóa vĩnh viễn danh mục');
+    }
+  }
+
   async exists(id: string): Promise<boolean> {
     try {
       const count = await Category.countDocuments({ _id: id });
