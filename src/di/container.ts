@@ -7,10 +7,13 @@
 import { UserRepository } from '../data/repositories/UserRepository';
 import { ProductRepository } from '../data/repositories/ProductRepository';
 import { CategoryRepository } from '../data/repositories/CategoryRepository';
+import { ShopRepository } from '../data/repositories/ShopRepository';
 import { AddressRepository } from '../data/repositories/AddressRepository';
 import { OrderRepository } from '../data/repositories/OrderRepository';
 import { CartRepository } from '../data/repositories/CartRepository';
 import { WishlistRepository } from '../data/repositories/WishlistRepository';
+import { TicketRepository } from '../data/repositories/TicketRepository';
+import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -37,6 +40,14 @@ import { GetCategoryBreadcrumbUseCase } from '../domain/usecases/category/GetCat
 import { CreateCategoryUseCase } from '../domain/usecases/category/CreateCategory.usecase';
 import { UpdateCategoryUseCase } from '../domain/usecases/category/UpdateCategory.usecase';
 import { DeleteCategoryUseCase } from '../domain/usecases/category/DeleteCategory.usecase';
+// Shop Use Cases
+import { CreateShopUseCase } from '../domain/usecases/shop/CreateShop.usecase';
+import { UpdateShopUseCase } from '../domain/usecases/shop/UpdateShop.usecase';
+import { DeleteShopUseCase } from '../domain/usecases/shop/DeleteShop.usecase';
+import { GetShopByIdUseCase } from '../domain/usecases/shop/GetShopById.usecase';
+import { FindPendingShopsUseCase } from '../domain/usecases/shop/FindPendingShops.usecase';
+import { ApproveShopUseCase } from '../domain/usecases/shop/ApproveShop.usecase';
+import { RejectShopUseCase } from '../domain/usecases/shop/RejectShop.usecase';
 
 // Address Use Cases
 import { GetUserAddressesUseCase } from '../domain/usecases/address/GetUserAddresses.usecase';
@@ -63,23 +74,35 @@ import { AddWishlistItemUseCase } from '../domain/usecases/wishlist/AddWishlistI
 import { RemoveWishlistItemUseCase } from '../domain/usecases/wishlist/RemoveWishlistItem.usecase';
 import { ToggleWishlistItemUseCase } from '../domain/usecases/wishlist/ToggleWishlistItem.usecase';
 
+// Ticket Use Cases
+import { CreateTicketUseCase } from '../domain/usecases/ticket/CreateTicket.usecase';
+import { GetTicketsUseCase } from '../domain/usecases/ticket/GetTickets.usecase';
+import { GetTicketByIdUseCase } from '../domain/usecases/ticket/GetTicketById.usecase';
+import { AssignTicketUseCase } from '../domain/usecases/ticket/AssignTicket.usecase';
+import { UpdateTicketStatusUseCase } from '../domain/usecases/ticket/UpdateTicketStatus.usecase';
+
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
 import { ProductController } from '../presentation/controllers/ProductController';
 import { CategoryController } from '../presentation/controllers/CategoryController';
+import { ShopController } from '../presentation/controllers/ShopController';
 import { AddressController } from '../presentation/controllers/AddressController';
 import { OrderController } from '../presentation/controllers/OrderController';
 import { CartController } from '../presentation/controllers/CartController';
 import { WishlistController } from '../presentation/controllers/WishlistController';
+import { TicketController } from '../presentation/controllers/TicketController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
 const productRepository = new ProductRepository();
 const categoryRepository = new CategoryRepository();
+const shopRepository = new ShopRepository();
 const addressRepository = new AddressRepository();
 const orderRepository = new OrderRepository();
 const cartRepository = new CartRepository();
 const wishlistRepository = new WishlistRepository();
+const ticketRepository = new TicketRepository();
+const ticketCommentRepository = new TicketCommentRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -108,6 +131,15 @@ const updateCategoryUseCase = new UpdateCategoryUseCase(categoryRepository);
 const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository, productRepository);
 // const updateCategoryImageUseCase = new UpdateCategoryImageUseCase(categoryRepository);
 
+// Shop use case instances
+const createShopUseCase = new CreateShopUseCase(shopRepository, userRepository);
+const updateShopUseCase = new UpdateShopUseCase(shopRepository);
+const deleteShopUseCase = new DeleteShopUseCase(shopRepository);
+const getShopByIdUseCase = new GetShopByIdUseCase(shopRepository);
+const findPendingShopsUseCase = new FindPendingShopsUseCase(shopRepository);
+const approveShopUseCase = new ApproveShopUseCase(shopRepository, userRepository);
+const rejectShopUseCase = new RejectShopUseCase(shopRepository);
+
 // Address Use Cases
 const getUserAddressesUseCase = new GetUserAddressesUseCase(addressRepository);
 const createAddressUseCase = new CreateAddressUseCase(addressRepository);
@@ -133,6 +165,13 @@ const getWishlistUseCase = new GetWishlistUseCase(wishlistRepository);
 const addWishlistItemUseCase = new AddWishlistItemUseCase(wishlistRepository);
 const removeWishlistItemUseCase = new RemoveWishlistItemUseCase(wishlistRepository);
 const toggleWishlistItemUseCase = new ToggleWishlistItemUseCase(wishlistRepository);
+
+// Ticket use-cases
+const createTicketUseCase = new CreateTicketUseCase(ticketRepository);
+const getTicketsUseCase = new GetTicketsUseCase(ticketRepository);
+const getTicketByIdUseCase = new GetTicketByIdUseCase(ticketRepository);
+const assignTicketUseCase = new AssignTicketUseCase(ticketRepository);
+const updateTicketStatusUseCase = new UpdateTicketStatusUseCase(ticketRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -162,6 +201,16 @@ export const categoryController = new CategoryController(
   updateCategoryUseCase,
   deleteCategoryUseCase
   
+);
+
+export const shopController = new ShopController(
+  createShopUseCase,
+  updateShopUseCase,
+  deleteShopUseCase,
+  getShopByIdUseCase
+  ,findPendingShopsUseCase
+  ,approveShopUseCase
+  ,rejectShopUseCase
 );
 
 export const addressController = new AddressController(
@@ -194,15 +243,27 @@ export const wishlistController = new WishlistController(
   toggleWishlistItemUseCase
 );
 
+export const ticketController = new TicketController(
+  createTicketUseCase,
+  getTicketsUseCase,
+  getTicketByIdUseCase,
+  ticketCommentRepository,
+  ticketRepository,
+  assignTicketUseCase,
+  updateTicketStatusUseCase
+);
+
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
   userRepository,
   productRepository,
   categoryRepository,
+  shopRepository,
   addressRepository,
   orderRepository
   ,cartRepository
   ,wishlistRepository
+  ,ticketRepository
 };
 
 export const useCases = {
@@ -253,4 +314,13 @@ export const useCases = {
   addWishlistItemUseCase,
   removeWishlistItemUseCase,
   toggleWishlistItemUseCase
+};
+
+// expose ticket use-cases
+export const ticketUseCases = {
+  createTicketUseCase,
+  getTicketsUseCase,
+  getTicketByIdUseCase,
+  assignTicketUseCase,
+  updateTicketStatusUseCase
 };

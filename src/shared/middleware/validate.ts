@@ -34,12 +34,21 @@ export const validate = (schema: ZodTypeAny) => (req: Request, res: Response, ne
   } catch (e) {
   }
 
-  const parsed = schema.safeParse(toValidate);
+  // Try validating two ways to support schemas that describe { body, params, query }
+  // or schemas that describe the request body directly.
+  let parsed = schema.safeParse(toValidate);
+  let data: any;
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Validation error', errors: parsed.error.issues });
+    // try body-only schema
+    const parsedBodyOnly = schema.safeParse(req.body);
+    if (!parsedBodyOnly.success) {
+      // return original issues (prefer full-structure parsing issues)
+      return res.status(400).json({ message: 'Validation error', errors: parsed.error.issues });
+    }
+    data = { body: parsedBodyOnly.data };
+  } else {
+    data = parsed.data;
   }
-
-  const data: any = parsed.data;
   if (data && data.body !== undefined) req.body = data.body;
   if (data && data.params !== undefined) req.params = data.params;
   if (data && data.query !== undefined) {
