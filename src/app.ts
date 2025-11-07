@@ -24,6 +24,7 @@ import { livestreamRoutes } from './routes/livestreams';
 import postRoutes from './routes/posts';
 import commentRoutes from './routes/comments';
 import { uploadRoutes } from './routes/upload';
+import { shopRoutes } from './routes/shops';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/livestreams', livestreamRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/shops', shopRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
