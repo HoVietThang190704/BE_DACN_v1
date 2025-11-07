@@ -12,6 +12,8 @@ import { AddressRepository } from '../data/repositories/AddressRepository';
 import { OrderRepository } from '../data/repositories/OrderRepository';
 import { CartRepository } from '../data/repositories/CartRepository';
 import { WishlistRepository } from '../data/repositories/WishlistRepository';
+import { TicketRepository } from '../data/repositories/TicketRepository';
+import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -72,6 +74,13 @@ import { AddWishlistItemUseCase } from '../domain/usecases/wishlist/AddWishlistI
 import { RemoveWishlistItemUseCase } from '../domain/usecases/wishlist/RemoveWishlistItem.usecase';
 import { ToggleWishlistItemUseCase } from '../domain/usecases/wishlist/ToggleWishlistItem.usecase';
 
+// Ticket Use Cases
+import { CreateTicketUseCase } from '../domain/usecases/ticket/CreateTicket.usecase';
+import { GetTicketsUseCase } from '../domain/usecases/ticket/GetTickets.usecase';
+import { GetTicketByIdUseCase } from '../domain/usecases/ticket/GetTicketById.usecase';
+import { AssignTicketUseCase } from '../domain/usecases/ticket/AssignTicket.usecase';
+import { UpdateTicketStatusUseCase } from '../domain/usecases/ticket/UpdateTicketStatus.usecase';
+
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
 import { ProductController } from '../presentation/controllers/ProductController';
@@ -81,6 +90,7 @@ import { AddressController } from '../presentation/controllers/AddressController
 import { OrderController } from '../presentation/controllers/OrderController';
 import { CartController } from '../presentation/controllers/CartController';
 import { WishlistController } from '../presentation/controllers/WishlistController';
+import { TicketController } from '../presentation/controllers/TicketController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -91,6 +101,8 @@ const addressRepository = new AddressRepository();
 const orderRepository = new OrderRepository();
 const cartRepository = new CartRepository();
 const wishlistRepository = new WishlistRepository();
+const ticketRepository = new TicketRepository();
+const ticketCommentRepository = new TicketCommentRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -153,6 +165,13 @@ const getWishlistUseCase = new GetWishlistUseCase(wishlistRepository);
 const addWishlistItemUseCase = new AddWishlistItemUseCase(wishlistRepository);
 const removeWishlistItemUseCase = new RemoveWishlistItemUseCase(wishlistRepository);
 const toggleWishlistItemUseCase = new ToggleWishlistItemUseCase(wishlistRepository);
+
+// Ticket use-cases
+const createTicketUseCase = new CreateTicketUseCase(ticketRepository);
+const getTicketsUseCase = new GetTicketsUseCase(ticketRepository);
+const getTicketByIdUseCase = new GetTicketByIdUseCase(ticketRepository);
+const assignTicketUseCase = new AssignTicketUseCase(ticketRepository);
+const updateTicketStatusUseCase = new UpdateTicketStatusUseCase(ticketRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -224,6 +243,16 @@ export const wishlistController = new WishlistController(
   toggleWishlistItemUseCase
 );
 
+export const ticketController = new TicketController(
+  createTicketUseCase,
+  getTicketsUseCase,
+  getTicketByIdUseCase,
+  ticketCommentRepository,
+  ticketRepository,
+  assignTicketUseCase,
+  updateTicketStatusUseCase
+);
+
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
   userRepository,
@@ -234,6 +263,7 @@ export const repositories = {
   orderRepository
   ,cartRepository
   ,wishlistRepository
+  ,ticketRepository
 };
 
 export const useCases = {
@@ -284,4 +314,13 @@ export const useCases = {
   addWishlistItemUseCase,
   removeWishlistItemUseCase,
   toggleWishlistItemUseCase
+};
+
+// expose ticket use-cases
+export const ticketUseCases = {
+  createTicketUseCase,
+  getTicketsUseCase,
+  getTicketByIdUseCase,
+  assignTicketUseCase,
+  updateTicketStatusUseCase
 };

@@ -113,6 +113,19 @@ const options: swaggerJSDoc.Options = {
             }
           }
         },
+        TicketComment: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            ticketId: { type: 'string' },
+            authorId: { type: 'string' },
+            message: { type: 'string' },
+            attachments: { type: 'array', items: { type: 'object', properties: { url: { type: 'string' }, filename: { type: 'string' } } } },
+            isInternal: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
         Order: {
           type: 'object',
           properties: {
@@ -273,6 +286,36 @@ const options: swaggerJSDoc.Options = {
               type: 'string',
               example: 'Đặt nhầm sản phẩm'
             }
+          }
+        }
+      ,
+        TicketCreate: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', example: 'Sản phẩm giao thiếu' },
+            description: { type: 'string', example: 'Thiếu 2 gói rau trong đơn hàng ORD123' },
+            type: { type: 'string', enum: ['support','bug','feature','question','refund','other'] },
+            priority: { type: 'string', enum: ['low','medium','high','urgent'] },
+            relatedOrderId: { type: 'string' },
+            relatedShopId: { type: 'string' },
+            attachments: { type: 'array', items: { type: 'object', properties: { url: { type: 'string' }, filename: { type: 'string' } } } },
+            isPublic: { type: 'boolean' }
+          }
+        },
+        Ticket: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            type: { type: 'string' },
+            priority: { type: 'string' },
+            status: { type: 'string' },
+            createdBy: { type: 'string' },
+            assignedTo: { type: 'string', nullable: true },
+            commentsCount: { type: 'number' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         }
       }
