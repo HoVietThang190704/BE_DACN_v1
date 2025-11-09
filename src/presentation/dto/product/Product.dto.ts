@@ -1,4 +1,4 @@
-import { ProductEntity, FarmInfo, NutritionInfo } from '../../../domain/entities/Product.entity';
+import { ProductEntity, ProductCategoryInfo, ProductOwnerInfo } from '../../../domain/entities/Product.entity';
 
 /**
  * Product Response DTO
@@ -7,20 +7,14 @@ export interface ProductResponseDTO {
   id: string;
   name: string;
   nameEn?: string;
-  category: string;
+  category: ProductCategoryInfo;
+  owner: ProductOwnerInfo;
   price: number;
   unit: string;
   description: string;
   images: string[];
   inStock: boolean;
   stockQuantity: number;
-  farm: FarmInfo;
-  certifications: string[];
-  harvestDate: string; // ISO date string
-  shelfLife: number;
-  nutrition?: NutritionInfo;
-  isOrganic: boolean;
-  isFresh: boolean;
   rating: number;
   reviewCount: number;
   tags: string[];
@@ -29,9 +23,9 @@ export interface ProductResponseDTO {
   
   // Computed fields
   isAvailable?: boolean;
-  remainingShelfLife?: number;
-  freshnessPercentage?: number;
-  fullLocation?: string;
+  isHighRated?: boolean;
+  isPopular?: boolean;
+  hasValidPrice?: boolean;
 }
 
 /**
@@ -46,27 +40,6 @@ export interface PaginatedProductsResponseDTO {
 }
 
 /**
- * Product Traceability Response DTO
- */
-export interface ProductTraceabilityResponseDTO {
-  productId: string;
-  productName: string;
-  category: string;
-  farm: FarmInfo;
-  certifications: string[];
-  harvestDate: string;
-  shelfLife: number;
-  daysSinceHarvest: number;
-  remainingShelfLife: number;
-  freshnessPercentage: number;
-  isOrganic: boolean;
-  isFresh: boolean;
-  isAvailable: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
  * Mapper: Domain Entity -> DTO
  */
 export class ProductMapper {
@@ -78,20 +51,24 @@ export class ProductMapper {
       id: product.id,
       name: product.name,
       nameEn: product.nameEn,
-      category: product.category,
+      category: {
+        id: product.category?.id || '',
+        name: product.category?.name,
+        slug: product.category?.slug
+      },
+      owner: {
+        id: product.owner?.id || '',
+        email: product.owner?.email,
+        userName: product.owner?.userName,
+        role: product.owner?.role,
+        avatar: product.owner?.avatar
+      },
       price: product.price,
       unit: product.unit,
       description: product.description,
       images: product.images,
       inStock: product.inStock,
       stockQuantity: product.stockQuantity,
-      farm: product.farm,
-      certifications: product.certifications,
-      harvestDate: product.harvestDate.toISOString(),
-      shelfLife: product.shelfLife,
-      nutrition: product.nutrition,
-      isOrganic: product.isOrganic,
-      isFresh: product.isFresh,
       rating: product.rating,
       reviewCount: product.reviewCount,
       tags: product.tags,
@@ -102,9 +79,9 @@ export class ProductMapper {
     // Add computed fields if requested
     if (includeComputed) {
       dto.isAvailable = product.isAvailable();
-      dto.remainingShelfLife = product.getRemainingShelfLife();
-      dto.freshnessPercentage = product.getFreshnessPercentage();
-      dto.fullLocation = product.getFullLocation();
+      dto.isHighRated = product.isHighRated();
+      dto.isPopular = product.isPopular();
+      dto.hasValidPrice = product.hasValidPrice();
     }
 
     return dto;
@@ -134,29 +111,6 @@ export class ProductMapper {
       page,
       limit,
       totalPages
-    };
-  }
-
-  /**
-   * Map traceability data to DTO
-   */
-  static toTraceabilityDTO(traceability: any): ProductTraceabilityResponseDTO {
-    return {
-      productId: traceability.productId,
-      productName: traceability.productName,
-      category: traceability.category,
-      farm: traceability.farm,
-      certifications: traceability.certifications,
-      harvestDate: traceability.harvestDate.toISOString(),
-      shelfLife: traceability.shelfLife,
-      daysSinceHarvest: traceability.daysSinceHarvest,
-      remainingShelfLife: traceability.remainingShelfLife,
-      freshnessPercentage: traceability.freshnessPercentage,
-      isOrganic: traceability.isOrganic,
-      isFresh: traceability.isFresh,
-      isAvailable: traceability.isAvailable,
-      createdAt: traceability.createdAt.toISOString(),
-      updatedAt: traceability.updatedAt.toISOString()
     };
   }
 }

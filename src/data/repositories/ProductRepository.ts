@@ -1,35 +1,57 @@
-import { 
-  IProductRepository, 
-  ProductFilters, 
-  ProductSorting, 
+import {
+  IProductRepository,
+  ProductFilters,
+  ProductSorting,
   ProductPagination,
-  PaginatedProducts 
+  PaginatedProducts
 } from '../../domain/repositories/IProductRepository';
-import { ProductEntity } from '../../domain/entities/Product.entity';
+import { ProductEntity, ProductCategoryInfo, ProductOwnerInfo } from '../../domain/entities/Product.entity';
 import { Product as ProductModel, IProduct } from '../../models/Product';
+import { Category } from '../../models/Category';
+import { User } from '../../models/users/User';
+import mongoose from 'mongoose';
 import { logger } from '../../shared/utils/logger';
 
 export class ProductRepository implements IProductRepository {
 
   private toDomainEntity(model: IProduct): ProductEntity {
+    const rawCategory: any = (model as any).category;
+    const rawOwner: any = (model as any).owner;
+
+    const category: ProductCategoryInfo = rawCategory && typeof rawCategory === 'object' && rawCategory._id
+      ? {
+          id: String(rawCategory._id),
+          name: rawCategory.name,
+          slug: rawCategory.slug
+        }
+      : {
+          id: rawCategory ? String(rawCategory) : ''
+        };
+
+    const owner: ProductOwnerInfo = rawOwner && typeof rawOwner === 'object' && rawOwner._id
+      ? {
+          id: String(rawOwner._id),
+          email: rawOwner.email,
+          userName: rawOwner.userName,
+          role: rawOwner.role,
+          avatar: rawOwner.avatar
+        }
+      : {
+          id: rawOwner ? String(rawOwner) : ''
+        };
+
     return new ProductEntity({
       id: String(model._id),
       name: model.name,
       nameEn: model.nameEn,
-      category: model.category,
+      category,
+      owner,
       price: model.price,
       unit: model.unit,
       description: model.description,
       images: model.images,
       inStock: model.inStock,
       stockQuantity: model.stockQuantity,
-      farm: model.farm,
-      certifications: model.certifications,
-      harvestDate: model.harvestDate,
-      shelfLife: model.shelfLife,
-      nutrition: model.nutrition,
-      isOrganic: model.isOrganic,
-      isFresh: model.isFresh,
       rating: model.rating,
       reviewCount: model.reviewCount,
       tags: model.tags,
@@ -45,13 +67,12 @@ export class ProductRepository implements IProductRepository {
       filter.$text = { $search: filters.search };
     }
     if (filters.category) {
-      filter.category = filters.category;
-    }
-    if (filters.farm) {
-      filter['farm.name'] = new RegExp(filters.farm, 'i');
-    }
-    if (filters.certified) {
-      filter.certifications = filters.certified;
+      const cat = filters.category;
+      if (mongoose.Types.ObjectId.isValid(cat)) {
+        filter.category = new mongoose.Types.ObjectId(cat);
+      } else {
+        filter.__categorySlug = cat; // temporary marker for later resolution in findAll
+      }
     }
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       filter.price = {};
@@ -62,20 +83,21 @@ export class ProductRepository implements IProductRepository {
         filter.price.$lte = filters.maxPrice;
       }
     }
-    if (filters.isOrganic !== undefined) {
-      filter.isOrganic = filters.isOrganic;
-    }
-    if (filters.isFresh !== undefined) {
-      filter.isFresh = filters.isFresh;
-    }
     if (filters.inStock !== undefined) {
       filter.inStock = filters.inStock;
     }
-    if (filters.province) {
-      filter['farm.location.province'] = new RegExp(filters.province, 'i');
-    }
     if (filters.minRating !== undefined) {
       filter.rating = { $gte: filters.minRating };
+    }
+    if (filters.owner) {
+      if (mongoose.Types.ObjectId.isValid(filters.owner)) {
+        filter.owner = new mongoose.Types.ObjectId(filters.owner);
+      } else {
+        filter.__ownerEmail = filters.owner;
+      }
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      filter.tags = { $in: filters.tags.map(tag => tag.toLowerCase()) };
     }
     return filter;
   }
@@ -90,7 +112,10 @@ export class ProductRepository implements IProductRepository {
 
   async findById(id: string): Promise<ProductEntity | null> {
     try {
-      const product = await ProductModel.findById(id).lean();
+      const product = await ProductModel.findById(id)
+        .populate('owner', 'email userName role avatar')
+        .populate('category', 'name slug')
+        .lean();
       return product ? this.toDomainEntity(product as unknown as IProduct) : null;
     } catch (error) {
       logger.error('ProductRepository.findById error:', error);
@@ -104,7 +129,31 @@ export class ProductRepository implements IProductRepository {
     pagination?: ProductPagination
   ): Promise<PaginatedProducts> {
     try {
-      const filter = this.buildFilter(filters);
+      let filter = await this.buildFilter(filters);
+      // If slug marker present, try to resolve to id
+      if (filter.__categorySlug) {
+        try {
+          const found = await Category.findOne({ slug: filter.__categorySlug }).lean();
+          if (found) {
+            filter.category = new mongoose.Types.ObjectId(found._id);
+          }
+        } catch (e) {
+          // leave filter as-is
+        }
+        delete filter.__categorySlug;
+      }
+      if (filter.__ownerEmail) {
+        try {
+          const owners = await User.find(
+            { email: new RegExp(filter.__ownerEmail, 'i') },
+            { _id: 1 }
+          ).lean();
+          filter.owner = owners.length > 0 ? { $in: owners.map(o => o._id) } : { $in: [] };
+        } catch (e) {
+          logger.warn('ProductRepository.findAll owner email filter error:', e);
+        }
+        delete filter.__ownerEmail;
+      }
       const sort = this.buildSort(sorting);
       const page = pagination?.page || 1;
       const limit = pagination?.limit || 20;
@@ -114,6 +163,8 @@ export class ProductRepository implements IProductRepository {
           .sort(sort)
           .skip(skip)
           .limit(limit)
+          .populate('owner', 'email userName role avatar')
+          .populate('category', 'name slug')
           .lean(),
         ProductModel.countDocuments(filter)
       ]);
@@ -133,21 +184,100 @@ export class ProductRepository implements IProductRepository {
 
   async create(product: Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProductEntity> {
     try {
-      const newProduct = await ProductModel.create(product);
-      return this.toDomainEntity(newProduct as IProduct);
+      const categoryId = product.category?.id || '';
+      let categoryValue: mongoose.Types.ObjectId | undefined;
+      if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
+        categoryValue = new mongoose.Types.ObjectId(categoryId);
+      } else if (categoryId) {
+        const resolved = await Category.findOne({ $or: [{ slug: categoryId }, { name: categoryId }, { nameEn: categoryId }] }).lean();
+        if (resolved?._id) {
+          categoryValue = new mongoose.Types.ObjectId(resolved._id);
+        }
+      }
+      if (!categoryValue) {
+        throw new Error('Danh mục không hợp lệ');
+      }
+
+      const ownerId = product.owner?.id;
+      if (!ownerId || !mongoose.Types.ObjectId.isValid(ownerId)) {
+        throw new Error('Người đăng không hợp lệ');
+      }
+
+      const stockQuantity = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+      const normalizedTags = Array.isArray(product.tags)
+        ? product.tags.map(tag => tag.trim().toLowerCase()).filter(Boolean)
+        : [];
+
+      const createData = {
+        name: product.name.trim(),
+        nameEn: product.nameEn?.trim() || undefined,
+        category: categoryValue,
+        owner: new mongoose.Types.ObjectId(ownerId),
+        price: product.price,
+        unit: product.unit.trim(),
+        description: product.description.trim(),
+        images: Array.isArray(product.images) ? product.images : [],
+        inStock: product.inStock ?? stockQuantity > 0,
+        stockQuantity,
+        tags: normalizedTags,
+        rating: product.rating ?? 0,
+        reviewCount: product.reviewCount ?? 0
+      };
+
+      const newProduct = await ProductModel.create(createData);
+      const populated = await ProductModel.findById(newProduct._id)
+        .populate('owner', 'email userName role avatar')
+        .populate('category', 'name slug')
+        .lean();
+
+      return this.toDomainEntity((populated || newProduct) as unknown as IProduct);
     } catch (error) {
-      logger.error('ProductRepository.create error:', error);
-      throw new Error('Lỗi khi tạo sản phẩm');
+      // Log full error for debugging (preserve original message if available)
+      const msg = error && (error as any).message ? (error as any).message : String(error);
+      logger.error('ProductRepository.create error:', msg);
+      const errMsg = msg || 'Lỗi khi tạo sản phẩm';
+      throw new Error(errMsg);
     }
   }
 
   async update(id: string, data: Partial<ProductEntity>): Promise<ProductEntity | null> {
     try {
+      const updateData: any = {};
+
+      if (data.name !== undefined) updateData.name = data.name.trim();
+  if (data.nameEn !== undefined) updateData.nameEn = data.nameEn?.trim() || undefined;
+      if (data.price !== undefined) updateData.price = data.price;
+      if (data.unit !== undefined) updateData.unit = data.unit.trim();
+      if (data.description !== undefined) updateData.description = data.description.trim();
+      if (data.images !== undefined) updateData.images = Array.isArray(data.images) ? data.images : [];
+      if (data.inStock !== undefined) updateData.inStock = data.inStock;
+      if (data.stockQuantity !== undefined) updateData.stockQuantity = data.stockQuantity;
+      if (data.tags !== undefined) {
+        updateData.tags = Array.isArray(data.tags)
+          ? data.tags.map(tag => tag.trim().toLowerCase()).filter(Boolean)
+          : [];
+      }
+
+      if (data.category?.id) {
+        if (mongoose.Types.ObjectId.isValid(data.category.id)) {
+          updateData.category = new mongoose.Types.ObjectId(data.category.id);
+        } else {
+          const resolved = await Category.findOne({ $or: [{ slug: data.category.id }, { name: data.category.id }, { nameEn: data.category.id }] }).lean();
+          if (resolved?._id) {
+            updateData.category = new mongoose.Types.ObjectId(resolved._id);
+          }
+        }
+      }
+      // Do not allow changing owner via repository update
+
       const updated = await ProductModel.findByIdAndUpdate(
         id,
-        { $set: data },
+        { $set: updateData },
         { new: true, runValidators: true }
-      ).lean();
+      )
+        .populate('owner', 'email userName role avatar')
+        .populate('category', 'name slug')
+        .lean();
       return updated ? this.toDomainEntity(updated as unknown as IProduct) : null;
     } catch (error) {
       logger.error('ProductRepository.update error:', error);
@@ -167,7 +297,7 @@ export class ProductRepository implements IProductRepository {
 
   async count(filters?: ProductFilters): Promise<number> {
     try {
-      const filter = this.buildFilter(filters);
+      const filter = await this.buildFilter(filters);
       return await ProductModel.countDocuments(filter);
     } catch (error) {
       logger.error('ProductRepository.count error:', error);
@@ -189,26 +319,6 @@ export class ProductRepository implements IProductRepository {
     return this.findAll({ category }, undefined, pagination);
   }
 
-  async findByFarm(farmName: string, pagination?: ProductPagination): Promise<PaginatedProducts> {
-    return this.findAll({ farm: farmName }, undefined, pagination);
-  }
-
-  async findOrganic(pagination?: ProductPagination): Promise<PaginatedProducts> {
-    return this.findAll({ isOrganic: true }, undefined, pagination);
-  }
-
-  async findFresh(pagination?: ProductPagination): Promise<PaginatedProducts> {
-    return this.findAll({ isFresh: true }, undefined, pagination);
-  }
-
-  async findByCertification(certification: string, pagination?: ProductPagination): Promise<PaginatedProducts> {
-    return this.findAll({ certified: certification }, undefined, pagination);
-  }
-
-  async findByProvince(province: string, pagination?: ProductPagination): Promise<PaginatedProducts> {
-    return this.findAll({ province }, undefined, pagination);
-  }
-
   async getCategories(): Promise<string[]> {
     try {
       const categories = await ProductModel.distinct('category');
@@ -216,26 +326,6 @@ export class ProductRepository implements IProductRepository {
     } catch (error) {
       logger.error('ProductRepository.getCategories error:', error);
       throw new Error('Lỗi khi lấy danh sách danh mục');
-    }
-  }
-
-  async getProvinces(): Promise<string[]> {
-    try {
-      const provinces = await ProductModel.distinct('farm.location.province');
-      return provinces as string[];
-    } catch (error) {
-      logger.error('ProductRepository.getProvinces error:', error);
-      throw new Error('Lỗi khi lấy danh sách tỉnh thành');
-    }
-  }
-
-  async getCertifications(): Promise<string[]> {
-    try {
-      const certifications = await ProductModel.distinct('certifications');
-      return certifications;
-    } catch (error) {
-      logger.error('ProductRepository.getCertifications error:', error);
-      throw new Error('Lỗi khi lấy danh sách chứng nhận');
     }
   }
 
@@ -347,4 +437,25 @@ export class ProductRepository implements IProductRepository {
       throw new Error('Lỗi khi thêm tồn kho');
     }
   }
+
+  async updateRatingSummary(id: string, summary: { rating: number; reviewCount: number }): Promise<ProductEntity | null> {
+    try {
+      const updated = await ProductModel.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            rating: summary.rating,
+            reviewCount: summary.reviewCount
+          }
+        },
+        { new: true }
+      ).lean();
+
+      return updated ? this.toDomainEntity(updated as unknown as IProduct) : null;
+    } catch (error) {
+      logger.error('ProductRepository.updateRatingSummary error:', error);
+      throw new Error('Lỗi khi cập nhật thống kê đánh giá');
+    }
+  }
 }
+

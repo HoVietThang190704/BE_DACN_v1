@@ -55,6 +55,11 @@ export interface IOrderRepository {
   updateStatus(id: string, status: OrderStatus): Promise<OrderEntity | null>;
 
   /**
+   * Update payment status
+   */
+  updatePaymentStatus(id: string, paymentStatus: string): Promise<OrderEntity | null>;
+
+  /**
    * Cancel order
    */
   cancelOrder(id: string, userId: string, reason: string): Promise<OrderEntity | null>;

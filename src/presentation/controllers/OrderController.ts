@@ -3,9 +3,11 @@ import { GetUserOrdersUseCase } from '../../domain/usecases/order/GetUserOrders.
 import { GetOrderByIdUseCase } from '../../domain/usecases/order/GetOrderById.usecase';
 import { CancelOrderUseCase } from '../../domain/usecases/order/CancelOrder.usecase';
 import { GetOrderStatisticsUseCase } from '../../domain/usecases/order/GetOrderStatistics.usecase';
+import { UpdatePaymentStatusUseCase } from '../../domain/usecases/order/UpdatePaymentStatusUseCase';
 import { OrderMapper } from '../dto/order/Order.dto';
 import { OrderFilters, OrderPagination } from '../../domain/repositories/IOrderRepository';
 import { logger } from '../../shared/utils/logger';
+import { PaymentMethod } from '../../domain/entities/Order.entity';
 
 /**
  * Order Controller - Handle order-related HTTP requests
@@ -15,7 +17,9 @@ export class OrderController {
     private getUserOrdersUseCase: GetUserOrdersUseCase,
     private getOrderByIdUseCase: GetOrderByIdUseCase,
     private cancelOrderUseCase: CancelOrderUseCase,
-    private getOrderStatisticsUseCase: GetOrderStatisticsUseCase
+    private getOrderStatisticsUseCase: GetOrderStatisticsUseCase,
+    private createOrderUseCase: CreateOrderUseCase,
+    private updatePaymentStatusUseCase: UpdatePaymentStatusUseCase
   ) {}
 
   /**
@@ -63,6 +67,75 @@ export class OrderController {
         message: 'Lỗi khi lấy danh sách đơn hàng',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  };
+
+  /**
+   * POST /api/users/me/orders
+   * Create new order
+   */
+  createOrder = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập' });
+        return;
+      }
+
+      const {
+        cartItemIds,
+        paymentMethod,
+        note,
+        voucherCode,
+        shippingAddressId,
+        shippingAddress,
+        saveShippingAddress,
+      } = req.body ?? {};
+
+      if (!shippingAddressId && !shippingAddress) {
+        res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ giao hàng' });
+        return;
+      }
+
+      if (shippingAddress) {
+        const requiredFields = ['recipientName', 'phone', 'address', 'ward', 'district', 'province'];
+        const missing = requiredFields.filter((field) => !shippingAddress[field]);
+        if (missing.length > 0) {
+          res.status(400).json({ message: `Thiếu thông tin địa chỉ: ${missing.join(', ')}` });
+          return;
+        }
+      }
+
+      const paymentMethodList: PaymentMethod[] = ['cod', 'momo', 'zalopay', 'vnpay', 'card'];
+      if (paymentMethod && !paymentMethodList.includes(paymentMethod)) {
+        res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ' });
+        return;
+      }
+
+      const order = await this.createOrderUseCase.execute({
+        userId,
+        cartItemIds: Array.isArray(cartItemIds) ? cartItemIds : undefined,
+        paymentMethod,
+        note,
+        voucherCode,
+        shippingAddressId,
+        shippingAddress,
+        saveShippingAddress,
+      });
+
+      res.status(201).json({
+        message: 'Tạo đơn hàng thành công',
+        data: OrderMapper.toDTO(order),
+      });
+    } catch (error) {
+      logger.error('Create order error:', error);
+
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+        return;
+      }
+
+      res.status(500).json({ message: 'Lỗi khi tạo đơn hàng' });
     }
   };
 
@@ -173,6 +246,46 @@ export class OrderController {
       logger.error('Get order statistics error:', error);
       res.status(500).json({ 
         message: 'Lỗi khi lấy thống kê đơn hàng',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
+
+  /**
+   * PUT /api/users/me/orders/:id/payment-status
+   * Update order payment status
+   */
+  updatePaymentStatus = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập' });
+        return;
+      }
+
+      const orderId = req.params.id;
+      const { paymentStatus } = req.body;
+
+      if (!paymentStatus || !['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
+        res.status(400).json({ message: 'Trạng thái thanh toán không hợp lệ' });
+        return;
+      }
+
+      // For demo purposes, we'll just update the payment status
+      // In a real implementation, this would integrate with payment gateway
+      const updatedOrder = await this.updatePaymentStatusUseCase.execute({
+        orderId,
+        paymentStatus
+      });
+
+      res.status(200).json({
+        message: 'Cập nhật trạng thái thanh toán thành công',
+        data: OrderMapper.toDTO(updatedOrder)
+      });
+    } catch (error) {
+      logger.error('Update payment status error:', error);
+      res.status(500).json({ 
+        message: 'Lỗi khi cập nhật trạng thái thanh toán',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

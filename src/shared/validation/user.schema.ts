@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Schema for updating user profile
 export const updateProfileSchema = z.object({
+  body: z.object({
     userName: z.string()
         .min(1, "Tên người dùng không được để trống")
         .max(50, "Tên người dùng không được vượt quá 50 ký tự")
@@ -15,9 +16,19 @@ export const updateProfileSchema = z.object({
         .optional(),
     avatar: z.string()
         .url("URL avatar không hợp lệ")
+        .or(z.null())
         .optional(),
-}).refine((data) => Object.keys(data).length > 0, { 
-    message: "Cần ít nhất một trường để cập nhật" 
+    address: z.object({
+      province: z.string().optional(),
+      district: z.string().optional(),
+      commune: z.string().optional(),
+      street: z.string().optional(),
+      detail: z.string().optional(),
+    }).optional()
+        .or(z.null()),
+  }).refine((data) => Object.keys(data).length > 0, { 
+      message: "Cần ít nhất một trường để cập nhật" 
+  })
 });
 
 export type UpdateProfileDTO = z.infer<typeof updateProfileSchema>;

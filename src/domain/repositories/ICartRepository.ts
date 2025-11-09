@@ -24,5 +24,6 @@ export interface ICartRepository {
   addItem(userId: string, item: AddCartItemDTO): Promise<CartEntity>;
   updateItem(userId: string, itemId: string, payload: UpdateCartItemDTO): Promise<CartEntity | null>;
   removeItem(userId: string, itemId: string): Promise<CartEntity | null>;
+  removeItems(userId: string, itemIds: string[]): Promise<CartEntity | null>;
   clearCart(userId: string): Promise<boolean>;
 }

@@ -1,5 +1,5 @@
 import { IProductRepository } from '../../repositories/IProductRepository';
-import { ProductEntity, FarmInfo } from '../../entities/Product.entity';
+import { ProductEntity } from '../../entities/Product.entity';
 
 /**
  * Traceability Information for Product
@@ -7,27 +7,12 @@ import { ProductEntity, FarmInfo } from '../../entities/Product.entity';
 export interface ProductTraceability {
   productId: string;
   productName: string;
-  category: string;
-  
-  // Farm information
-  farm: FarmInfo;
-  
-  // Quality certifications
-  certifications: string[];
-  
-  // Freshness info
-  harvestDate: Date;
-  shelfLife: number;
-  daysSinceHarvest: number;
-  remainingShelfLife: number;
-  freshnessPercentage: number;
-  
-  // Product status
-  isOrganic: boolean;
-  isFresh: boolean;
+  category: ProductEntity['category'];
+  owner: ProductEntity['owner'];
+  tags: string[];
+  rating: number;
+  reviewCount: number;
   isAvailable: boolean;
-  
-  // Additional metadata
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,21 +42,11 @@ export class GetProductTraceabilityUseCase {
       productId: product.id,
       productName: product.name,
       category: product.category,
-      
-      farm: product.farm,
-      
-      certifications: product.certifications,
-      
-      harvestDate: product.harvestDate,
-      shelfLife: product.shelfLife,
-      daysSinceHarvest: product.getDaysSinceHarvest(),
-      remainingShelfLife: product.getRemainingShelfLife(),
-      freshnessPercentage: product.getFreshnessPercentage(),
-      
-      isOrganic: product.isCertifiedOrganic(),
-      isFresh: product.isFreshEnough(),
+      owner: product.owner,
+      tags: product.tags,
+      rating: product.rating,
+      reviewCount: product.reviewCount,
       isAvailable: product.isAvailable(),
-      
       createdAt: product.createdAt,
       updatedAt: product.updatedAt
     };

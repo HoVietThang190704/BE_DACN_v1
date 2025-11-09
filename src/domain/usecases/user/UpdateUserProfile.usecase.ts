@@ -6,7 +6,14 @@ export interface UpdateProfileInput {
   userName?: string;
   phone?: string;
   dateOfBirth?: Date;
-  avatar?: string;
+  avatar?: string | null;
+  address?: {
+    province?: string;
+    district?: string;
+    commune?: string;
+    street?: string;
+    detail?: string;
+  } | null;
 }
 
 /**
@@ -68,7 +75,8 @@ export class UpdateUserProfileUseCase {
     if (input.userName !== undefined) updateData.userName = input.userName;
     if (input.phone !== undefined) updateData.phone = input.phone;
     if (input.dateOfBirth !== undefined) updateData.dateOfBirth = input.dateOfBirth;
-    if (input.avatar !== undefined) updateData.avatar = input.avatar;
+    if (input.avatar !== undefined) updateData.avatar = input.avatar as any;
+    if (input.address !== undefined) (updateData as any).address = input.address;
 
     // 7. Update user
     const updatedUser = await this.userRepository.update(input.userId, updateData);

@@ -53,8 +53,8 @@ export class CategoryMapper {
       isActive: entity.isActive,
       productCount: entity.productCount,
       children: entity.children?.map(c => this.toDTO(new CategoryEntity(c))),
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString()
+      createdAt: entity.createdAt ? entity.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: entity.updatedAt ? entity.updatedAt.toISOString() : new Date().toISOString()
     };
   }
 
