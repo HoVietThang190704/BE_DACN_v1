@@ -28,9 +28,6 @@ export const productRoutes = Router();
  *               - unit
  *               - description
  *               - stockQuantity
- *               - farm
- *               - harvestDate
- *               - shelfLife
  *             properties:
  *               name:
  *                 type: string
@@ -54,47 +51,12 @@ export const productRoutes = Router();
  *               stockQuantity:
  *                 type: number
  *                 example: 100
- *               farm:
- *                 type: object
- *                 properties:
- *                   name:
- *                     type: string
- *                     example: "Nông trại Xanh"
- *                   location:
- *                     type: object
- *                     properties:
- *                       province:
- *                         type: string
- *                         example: "Đà Lạt"
- *                       district:
- *                         type: string
- *                         example: "Lâm Đồng"
- *                       commune:
- *                         type: string
- *                         example: "Xuân Thọ"
- *                   farmer:
- *                     type: string
- *                     example: "Nguyễn Văn A"
- *                   contact:
- *                     type: string
- *                     example: "0901234567"
- *               harvestDate:
- *                 type: string
- *                 format: date
- *                 example: "2025-10-27"
- *               shelfLife:
- *                 type: number
- *                 example: 7
- *               certifications:
+ *               images:
  *                 type: array
  *                 items:
  *                   type: string
- *                   enum: [VietGAP, GlobalGAP, Organic, HACCP, ISO22000]
- *                 example: ["VietGAP", "Organic"]
- *               isOrganic:
- *                 type: boolean
- *                 example: true
- *               isFresh:
+ *                 example: ["https://example.com/image-1.jpg"]
+ *               inStock:
  *                 type: boolean
  *                 example: true
  *               tags:
@@ -142,16 +104,24 @@ productRoutes.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), asy
  *                 type: string
  *               price:
  *                 type: number
+ *               unit:
+ *                 type: string
  *               description:
  *                 type: string
  *               stockQuantity:
  *                 type: number
- *               isOrganic:
- *                 type: boolean
- *               isFresh:
- *                 type: boolean
  *               inStock:
  *                 type: boolean
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               category:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Cập nhật thành công
@@ -311,11 +281,7 @@ productRoutes.delete('/:id/images', authenticate, authorizeRoles('shop_owner', '
  *         schema:
  *           type: string
  *       - in: query
- *         name: farm
- *         schema:
- *           type: string
- *       - in: query
- *         name: certified
+ *         name: owner
  *         schema:
  *           type: string
  *       - in: query
@@ -327,30 +293,23 @@ productRoutes.delete('/:id/images', authenticate, authorizeRoles('shop_owner', '
  *         schema:
  *           type: number
  *       - in: query
- *         name: isOrganic
- *         schema:
- *           type: boolean
- *       - in: query
- *         name: isFresh
- *         schema:
- *           type: boolean
- *       - in: query
  *         name: inStock
  *         schema:
  *           type: boolean
- *       - in: query
- *         name: province
- *         schema:
- *           type: string
  *       - in: query
  *         name: minRating
  *         schema:
  *           type: number
  *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Danh sách tag, phân tách bằng dấu phẩy
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [price, name, createdAt, rating, harvestDate]
+ *           enum: [price, name, createdAt, rating]
  *       - in: query
  *         name: order
  *         schema:

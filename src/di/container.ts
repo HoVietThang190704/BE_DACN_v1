@@ -14,6 +14,7 @@ import { CartRepository } from '../data/repositories/CartRepository';
 import { WishlistRepository } from '../data/repositories/WishlistRepository';
 import { TicketRepository } from '../data/repositories/TicketRepository';
 import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
+import { VoucherRepository } from '../data/repositories/VoucherRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -26,7 +27,6 @@ import { UpdateUserAvatarUseCase } from '../domain/usecases/user/UpdateUserAvata
 // Product Use Cases
 import { GetProductsUseCase } from '../domain/usecases/product/GetProducts.usecase';
 import { GetProductByIdUseCase } from '../domain/usecases/product/GetProductById.usecase';
-import { GetProductTraceabilityUseCase } from '../domain/usecases/product/GetProductTraceability.usecase';
 import { GetCategoriesUseCase } from '../domain/usecases/product/GetCategories.usecase';
 import { CreateProductUseCase } from '../domain/usecases/product/CreateProduct.usecase';
 import { UpdateProductUseCase } from '../domain/usecases/product/UpdateProduct.usecase';
@@ -61,6 +61,10 @@ import { GetUserOrdersUseCase } from '../domain/usecases/order/GetUserOrders.use
 import { GetOrderByIdUseCase } from '../domain/usecases/order/GetOrderById.usecase';
 import { CancelOrderUseCase } from '../domain/usecases/order/CancelOrder.usecase';
 import { GetOrderStatisticsUseCase } from '../domain/usecases/order/GetOrderStatistics.usecase';
+import { CreateOrderUseCase } from '../domain/usecases/order/CreateOrder.usecase';
+import { ValidateVoucherUseCase } from '../domain/usecases/voucher/ValidateVoucher.usecase';
+import { ListUserVouchersUseCase } from '../domain/usecases/voucher/ListUserVouchers.usecase';
+import { UpdatePaymentStatusUseCase } from '../domain/usecases/order/UpdatePaymentStatusUseCase';
 // Cart Use Cases
 import { GetCartUseCase } from '../domain/usecases/cart/GetCart.usecase';
 import { AddCartItemUseCase } from '../domain/usecases/cart/AddCartItem.usecase';
@@ -91,6 +95,7 @@ import { OrderController } from '../presentation/controllers/OrderController';
 import { CartController } from '../presentation/controllers/CartController';
 import { WishlistController } from '../presentation/controllers/WishlistController';
 import { TicketController } from '../presentation/controllers/TicketController';
+import { VoucherController } from '../presentation/controllers/VoucherController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -103,6 +108,7 @@ const cartRepository = new CartRepository();
 const wishlistRepository = new WishlistRepository();
 const ticketRepository = new TicketRepository();
 const ticketCommentRepository = new TicketCommentRepository();
+const voucherRepository = new VoucherRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -115,7 +121,6 @@ const updateUserAvatarUseCase = new UpdateUserAvatarUseCase(userRepository);
 // Product Use Cases
 const getProductsUseCase = new GetProductsUseCase(productRepository);
 const getProductByIdUseCase = new GetProductByIdUseCase(productRepository);
-const getProductTraceabilityUseCase = new GetProductTraceabilityUseCase(productRepository);
 const getCategoriesUseCase = new GetCategoriesUseCase(productRepository);
 const createProductUseCase = new CreateProductUseCase(productRepository, categoryRepository);
 const updateProductUseCase = new UpdateProductUseCase(productRepository);
@@ -152,12 +157,23 @@ const getUserOrdersUseCase = new GetUserOrdersUseCase(orderRepository);
 const getOrderByIdUseCase = new GetOrderByIdUseCase(orderRepository);
 const cancelOrderUseCase = new CancelOrderUseCase(orderRepository);
 const getOrderStatisticsUseCase = new GetOrderStatisticsUseCase(orderRepository);
+const validateVoucherUseCase = new ValidateVoucherUseCase(voucherRepository);
+const createOrderUseCase = new CreateOrderUseCase(
+  orderRepository,
+  cartRepository,
+  productRepository,
+  addressRepository,
+  voucherRepository,
+  validateVoucherUseCase
+);
+const updatePaymentStatusUseCase = new UpdatePaymentStatusUseCase(orderRepository);
+const listUserVouchersUseCase = new ListUserVouchersUseCase(voucherRepository);
 
 // Cart use case instances
-const getCartUseCase = new GetCartUseCase(cartRepository);
-const addCartItemUseCase = new AddCartItemUseCase(cartRepository);
-const updateCartItemUseCase = new UpdateCartItemUseCase(cartRepository);
-const removeCartItemUseCase = new RemoveCartItemUseCase(cartRepository);
+const getCartUseCase = new GetCartUseCase(cartRepository, productRepository);
+const addCartItemUseCase = new AddCartItemUseCase(cartRepository, productRepository);
+const updateCartItemUseCase = new UpdateCartItemUseCase(cartRepository, productRepository);
+const removeCartItemUseCase = new RemoveCartItemUseCase(cartRepository, productRepository);
 const clearCartUseCase = new ClearCartUseCase(cartRepository);
 
 // Wishlist use case instances
@@ -185,7 +201,6 @@ export const userController = new UserController(
 export const productController = new ProductController(
   getProductsUseCase,
   getProductByIdUseCase,
-  getProductTraceabilityUseCase,
   getCategoriesUseCase,
   createProductUseCase,
   updateProductUseCase,
@@ -225,7 +240,9 @@ export const orderController = new OrderController(
   getUserOrdersUseCase,
   getOrderByIdUseCase,
   cancelOrderUseCase,
-  getOrderStatisticsUseCase
+  getOrderStatisticsUseCase,
+  createOrderUseCase
+  , updatePaymentStatusUseCase
 );
 
 export const cartController = new CartController(
@@ -252,6 +269,10 @@ export const ticketController = new TicketController(
   assignTicketUseCase,
   updateTicketStatusUseCase
 );
+export const voucherController = new VoucherController(
+  listUserVouchersUseCase,
+  validateVoucherUseCase
+);
 
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
@@ -264,6 +285,7 @@ export const repositories = {
   ,cartRepository
   ,wishlistRepository
   ,ticketRepository
+  ,voucherRepository
 };
 
 export const useCases = {
@@ -276,7 +298,6 @@ export const useCases = {
   // Product
   getProductsUseCase,
   getProductByIdUseCase,
-  getProductTraceabilityUseCase,
   getCategoriesUseCase,
   createProductUseCase,
   updateProductUseCase,
@@ -300,15 +321,17 @@ export const useCases = {
   getUserOrdersUseCase,
   getOrderByIdUseCase,
   cancelOrderUseCase,
-  getOrderStatisticsUseCase
-  ,
+  getOrderStatisticsUseCase,
+  createOrderUseCase,
+  // Voucher
+  validateVoucherUseCase,
+  listUserVouchersUseCase,
   // Cart
   getCartUseCase,
   addCartItemUseCase,
   updateCartItemUseCase,
   removeCartItemUseCase,
-  clearCartUseCase
-  ,
+  clearCartUseCase,
   // Wishlist
   getWishlistUseCase,
   addWishlistItemUseCase,

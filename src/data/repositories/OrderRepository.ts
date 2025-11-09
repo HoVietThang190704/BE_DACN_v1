@@ -135,21 +135,17 @@ export class OrderRepository implements IOrderRepository {
     }
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<OrderEntity | null> {
+  async updatePaymentStatus(id: string, paymentStatus: string): Promise<OrderEntity | null> {
     try {
-      const updateData: any = { status };
-      if (status === 'delivered') {
-        updateData.deliveredAt = new Date();
-      }
       const updated = await Order.findByIdAndUpdate(
         id,
-        { $set: updateData },
+        { $set: { paymentStatus } },
         { new: true, runValidators: true }
       ).lean();
       return updated ? this.toDomainEntity(updated as unknown as IOrder) : null;
     } catch (error) {
-      logger.error('OrderRepository.updateStatus error:', error);
-      throw new Error('Lỗi khi cập nhật trạng thái đơn hàng');
+      logger.error('OrderRepository.updatePaymentStatus error:', error);
+      throw new Error('Lỗi khi cập nhật trạng thái thanh toán');
     }
   }
 
@@ -236,6 +232,24 @@ export class OrderRepository implements IOrderRepository {
     } catch (error) {
       logger.error('OrderRepository.getOrderStatistics error:', error);
       throw new Error('Lỗi khi lấy thống kê đơn hàng');
+    }
+  }
+
+  async updateStatus(id: string, status: OrderStatus): Promise<OrderEntity | null> {
+    try {
+      const update: any = { status };
+      if (status === 'delivered') {
+        update.deliveredAt = new Date();
+      }
+      const updated = await Order.findByIdAndUpdate(
+        id,
+        { $set: update },
+        { new: true, runValidators: true }
+      ).lean();
+      return updated ? this.toDomainEntity(updated as unknown as IOrder) : null;
+    } catch (error) {
+      logger.error('OrderRepository.updateStatus error:', error);
+      throw new Error('Lỗi khi cập nhật trạng thái đơn hàng');
     }
   }
 }

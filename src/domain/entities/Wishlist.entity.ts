@@ -1,8 +1,25 @@
+export interface WishlistProductEntity {
+  id: string;
+  name?: string;
+  price?: number;
+  image?: string;
+  images?: string[];
+  unit?: string;
+  stock?: number;
+  stockQuantity?: number;
+  inStock?: boolean;
+  rating?: number;
+  reviewCount?: number;
+  originalPrice?: number;
+  discount?: number;
+}
+
 export interface WishlistItemEntity {
   id: string;
   productId: string;
   addedAt?: Date;
   note?: string;
+  product?: WishlistProductEntity;
 }
 
 export interface IWishlistEntity {

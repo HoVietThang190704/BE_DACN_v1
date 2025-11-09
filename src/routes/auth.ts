@@ -98,7 +98,22 @@ export const authRoutes = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Đăng ký thành công"
+ *                 user:
+ *                   type: object
+ *                 accessToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 refreshToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       400:
  *         description: Dữ liệu không hợp lệ
  *       409:
@@ -139,10 +154,11 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT tokens
     const payload = { userId: user._id, email: user.email, role: user.role };
     const secret = config.JWT_SECRET as string;
-    const token = jwt.sign(payload, secret, { expiresIn: '24h' });
+    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' }); // Short-lived access token
+    const refreshToken = jwt.sign(payload, secret, { expiresIn: '7d' }); // Long-lived refresh token
 
     logger.info(`New user registered: ${email}`);
 
@@ -157,7 +173,8 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
         role: user.role,
         address: user.address
       },
-      token
+      accessToken,
+      refreshToken
     });
 
   } catch (error: any) {
@@ -196,7 +213,22 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Đăng nhập thành công"
+ *                 user:
+ *                   type: object
+ *                 accessToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 refreshToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       400:
  *         description: Thiếu thông tin đăng nhập
  *       401:
@@ -245,10 +277,11 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
       });
     }
 
-    // Generate JWT token
+    // Generate JWT tokens
     const payload = { userId: user._id, email: user.email, role: user.role };
     const secret = config.JWT_SECRET as string;
-    const token = jwt.sign(payload, secret, { expiresIn: '24h' });
+    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' }); // Short-lived access token
+    const refreshToken = jwt.sign(payload, secret, { expiresIn: '7d' }); // Long-lived refresh token
 
     logger.info(`User logged in: ${email}`);
 
@@ -266,7 +299,8 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
         role: user.role,
         isVerified: user.isVerified
       },
-      token
+      accessToken,
+      refreshToken
     });
 
   } catch (error) {
@@ -432,6 +466,99 @@ authRoutes.post('/resend-verification', async (req: Request, res: Response): Pro
     res.status(500).json({
       success: false,
       message: 'Lỗi server khi gửi lại email xác thực'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh token
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Token refreshed successfully"
+ *                 accessToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       401:
+ *         description: Invalid refresh token
+ *       500:
+ *         description: Server error
+ */
+authRoutes.post('/refresh', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token là bắt buộc'
+      });
+    }
+
+    // Verify refresh token
+    const secret = config.JWT_SECRET as string;
+    const decoded = jwt.verify(refreshToken, secret) as { userId: string; email: string; role: string };
+
+    // Find user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token không hợp lệ'
+      });
+    }
+
+    // Generate new access token
+    const payload = { userId: user._id, email: user.email, role: user.role };
+    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' });
+
+    logger.info(`Token refreshed for user: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      accessToken
+    });
+
+  } catch (error: any) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token không hợp lệ hoặc đã hết hạn'
+      });
+    }
+
+    logger.error('Refresh token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi refresh token'
     });
   }
 });

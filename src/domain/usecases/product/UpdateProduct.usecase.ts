@@ -1,4 +1,4 @@
-import { ProductEntity, ProductCategory, Certification, FarmInfo, NutritionInfo } from '../../entities/Product.entity';
+import { ProductEntity } from '../../entities/Product.entity';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { logger } from '../../../shared/utils/logger';
 
@@ -10,28 +10,14 @@ import { logger } from '../../../shared/utils/logger';
 export interface UpdateProductInput {
   name?: string;
   nameEn?: string;
-  category?: ProductCategory;
+  category?: string;
   price?: number;
   unit?: string;
   description?: string;
   stockQuantity?: number;
-  
-  // Farm info
-  farm?: Partial<FarmInfo>;
-  
-  // Quality
-  certifications?: Certification[];
-  harvestDate?: Date;
-  shelfLife?: number;
-  
-  // Nutritional
-  nutrition?: NutritionInfo;
-  
-  // Flags
-  isOrganic?: boolean;
-  isFresh?: boolean;
   tags?: string[];
   inStock?: boolean;
+  images?: string[];
 }
 
 export class UpdateProductUseCase {
@@ -52,10 +38,15 @@ export class UpdateProductUseCase {
 
     if (input.name !== undefined) updateData.name = input.name.trim();
     if (input.nameEn !== undefined) updateData.nameEn = input.nameEn.trim();
-    if (input.category !== undefined) updateData.category = input.category;
+    if (input.category !== undefined) {
+      updateData.category = {
+        id: input.category
+      } as ProductEntity['category'];
+    }
     if (input.price !== undefined) updateData.price = input.price;
     if (input.unit !== undefined) updateData.unit = input.unit.trim();
     if (input.description !== undefined) updateData.description = input.description.trim();
+    if (input.images !== undefined) updateData.images = input.images;
     
     // Stock management
     if (input.stockQuantity !== undefined) {
@@ -63,30 +54,9 @@ export class UpdateProductUseCase {
       updateData.inStock = input.stockQuantity > 0;
     }
     if (input.inStock !== undefined) updateData.inStock = input.inStock;
-
-    // Farm info - merge with existing
-    if (input.farm) {
-      updateData.farm = {
-        ...existingProduct.farm,
-        ...input.farm
-      } as FarmInfo;
+    if (input.tags !== undefined) {
+      updateData.tags = input.tags.map(tag => tag.trim().toLowerCase()).filter(Boolean);
     }
-
-    if (input.certifications !== undefined) updateData.certifications = input.certifications;
-    
-    // Harvest date validation
-    if (input.harvestDate !== undefined) {
-      if (input.harvestDate > new Date()) {
-        throw new Error('Ngày thu hoạch không thể trong tương lai');
-      }
-      updateData.harvestDate = input.harvestDate;
-    }
-    
-    if (input.shelfLife !== undefined) updateData.shelfLife = input.shelfLife;
-    if (input.nutrition !== undefined) updateData.nutrition = input.nutrition;
-    if (input.isOrganic !== undefined) updateData.isOrganic = input.isOrganic;
-    if (input.isFresh !== undefined) updateData.isFresh = input.isFresh;
-    if (input.tags !== undefined) updateData.tags = input.tags;
 
     // Update product
     const updatedProduct = await this.productRepository.update(productId, updateData);
@@ -103,7 +73,6 @@ export class UpdateProductUseCase {
   private validateInput(input: UpdateProductInput): void {
     const errors: string[] = [];
 
-    // Name validation
     if (input.name !== undefined) {
       if (input.name.trim().length === 0) {
         errors.push('Tên sản phẩm không được để trống');
@@ -113,7 +82,6 @@ export class UpdateProductUseCase {
       }
     }
 
-    // Price validation
     if (input.price !== undefined) {
       if (input.price <= 0) {
         errors.push('Giá sản phẩm phải lớn hơn 0');
@@ -123,12 +91,10 @@ export class UpdateProductUseCase {
       }
     }
 
-    // Unit validation
     if (input.unit !== undefined && input.unit.trim().length === 0) {
       errors.push('Đơn vị tính không được để trống');
     }
 
-    // Description validation
     if (input.description !== undefined) {
       if (input.description.trim().length === 0) {
         errors.push('Mô tả sản phẩm không được để trống');
@@ -138,19 +104,12 @@ export class UpdateProductUseCase {
       }
     }
 
-    // Stock validation
     if (input.stockQuantity !== undefined && input.stockQuantity < 0) {
       errors.push('Số lượng tồn kho không thể âm');
     }
 
-    // Shelf life validation
-    if (input.shelfLife !== undefined) {
-      if (input.shelfLife <= 0) {
-        errors.push('Hạn sử dụng phải lớn hơn 0');
-      }
-      if (input.shelfLife > 365) {
-        errors.push('Hạn sử dụng không được vượt quá 365 ngày');
-      }
+    if (input.category !== undefined && input.category.trim().length === 0) {
+      errors.push('Danh mục không hợp lệ');
     }
 
     if (errors.length > 0) {

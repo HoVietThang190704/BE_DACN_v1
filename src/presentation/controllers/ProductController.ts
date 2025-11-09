@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { GetProductsUseCase } from '../../domain/usecases/product/GetProducts.usecase';
 import { GetProductByIdUseCase } from '../../domain/usecases/product/GetProductById.usecase';
-import { GetProductTraceabilityUseCase } from '../../domain/usecases/product/GetProductTraceability.usecase';
 import { GetCategoriesUseCase } from '../../domain/usecases/product/GetCategories.usecase';
 import { CreateProductUseCase } from '../../domain/usecases/product/CreateProduct.usecase';
 import { UpdateProductUseCase } from '../../domain/usecases/product/UpdateProduct.usecase';
@@ -19,7 +18,6 @@ export class ProductController {
   constructor(
     private getProductsUseCase: GetProductsUseCase,
     private getProductByIdUseCase: GetProductByIdUseCase,
-    private getProductTraceabilityUseCase: GetProductTraceabilityUseCase,
     private getCategoriesUseCase: GetCategoriesUseCase,
     private createProductUseCase: CreateProductUseCase,
     private updateProductUseCase: UpdateProductUseCase,
@@ -33,18 +31,15 @@ export class ProductController {
    */
   async getProducts(req: Request, res: Response): Promise<void> {
     try {
-      const { 
+      const {
         q,           // search query
         category,
-        farm,
-        certified,
         minPrice,
         maxPrice,
-        isOrganic,
-        isFresh,
         inStock,
-        province,
         minRating,
+        owner,
+        tags,
         sortBy,
         order,
         page = 1,
@@ -55,15 +50,17 @@ export class ProductController {
       const filters: ProductFilters = {};
       if (q) filters.search = q as string;
       if (category) filters.category = category as string;
-      if (farm) filters.farm = farm as string;
-      if (certified) filters.certified = certified as string;
       if (minPrice) filters.minPrice = parseFloat(minPrice as string);
       if (maxPrice) filters.maxPrice = parseFloat(maxPrice as string);
-      if (isOrganic !== undefined) filters.isOrganic = isOrganic === 'true';
-      if (isFresh !== undefined) filters.isFresh = isFresh === 'true';
       if (inStock !== undefined) filters.inStock = inStock === 'true';
-      if (province) filters.province = province as string;
       if (minRating) filters.minRating = parseFloat(minRating as string);
+      if (owner) filters.owner = owner as string;
+      if (tags) {
+        filters.tags = String(tags)
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean);
+      }
 
       // Build sorting
       const sorting: ProductSorting = {
@@ -154,14 +151,9 @@ export class ProductController {
       const { id } = req.params;
 
       // Execute use case
-      const traceability = await this.getProductTraceabilityUseCase.execute(id);
-
-      // Map to DTO
-      const response = ProductMapper.toTraceabilityDTO(traceability);
-
-      res.status(200).json({
-        success: true,
-        data: response
+      res.status(410).json({
+        success: false,
+        message: 'Tính năng truy xuất nguồn gốc hiện không khả dụng'
       });
     } catch (error: any) {
       logger.error('ProductController.getProductTraceability error:', error);
@@ -211,8 +203,18 @@ export class ProductController {
     try {
       const productData = req.body;
 
-      // Execute use case
-      const product = await this.createProductUseCase.execute(productData);
+      if (!req.user) {
+        res.status(401).json({ success: false, message: 'Vui lòng đăng nhập' });
+        return;
+      }
+
+      const ownerContext = {
+        id: req.user.userId,
+        email: req.user.email,
+        role: req.user.role as 'shop_owner' | 'admin' | 'customer'
+      };
+
+      const product = await this.createProductUseCase.execute(productData, ownerContext);
 
       // Map to DTO
       const response = ProductMapper.toDTO(product, true);
@@ -227,21 +229,19 @@ export class ProductController {
     } catch (error: any) {
       logger.error('ProductController.createProduct error:', error);
 
-      if (error.message.includes('không được để trống') ||
-          error.message.includes('phải') ||
-          error.message.includes('không hợp lệ') ||
-          error.message.includes('hết hạn')) {
-        res.status(400).json({
-          success: false,
-          message: error.message
-        });
+      // If it's a Mongoose validation error or contains validation info, return 400 with details
+      if (error && (error.name === 'ValidationError' || /validation failed/i.test(error.message || '') || /Path `/.test(error.message || ''))) {
+        res.status(400).json({ success: false, message: error.message });
         return;
       }
 
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi khi tạo sản phẩm'
-      });
+      // If message contains common client-side keywords (Vietnamese checks), map to 400
+      if (error && error.message && (error.message.includes('không được để trống') || error.message.includes('phải') || error.message.includes('không hợp lệ') || error.message.includes('hết hạn'))) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
+      }
+
+      res.status(500).json({ success: false, message: error.message || 'Lỗi khi tạo sản phẩm' });
     }
   }
 

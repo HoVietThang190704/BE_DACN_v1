@@ -1,4 +1,4 @@
-import { ProductEntity, ProductCategory, Certification, FarmInfo, NutritionInfo } from '../../entities/Product.entity';
+import { ProductEntity } from '../../entities/Product.entity';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
@@ -11,28 +11,20 @@ import { logger } from '../../../shared/utils/logger';
 export interface CreateProductInput {
   name: string;
   nameEn?: string;
-  category: ProductCategory;
+  category: string;
   price: number;
   unit: string;
   description: string;
   images?: string[];
   stockQuantity: number;
-  
-  // Farm info
-  farm: FarmInfo;
-  
-  // Quality
-  certifications?: Certification[];
-  harvestDate: Date;
-  shelfLife: number;
-  
-  // Nutritional
-  nutrition?: NutritionInfo;
-  
-  // Flags
-  isOrganic?: boolean;
-  isFresh?: boolean;
   tags?: string[];
+}
+
+export interface ProductOwnerContext {
+  id: string;
+  email: string;
+  role: 'shop_owner' | 'admin' | 'customer';
+  userName?: string;
 }
 
 export class CreateProductUseCase {
@@ -41,70 +33,68 @@ export class CreateProductUseCase {
     private categoryRepository: ICategoryRepository
   ) {}
 
-  async execute(input: CreateProductInput): Promise<ProductEntity> {
-    // If harvestDate is passed as a string (from JSON body), coerce to Date
-    if (typeof (input as any).harvestDate === 'string') {
-      (input as any).harvestDate = new Date((input as any).harvestDate);
+  async execute(input: CreateProductInput, owner: ProductOwnerContext): Promise<ProductEntity> {
+    logger.info('CreateProductUseCase.execute category:', input.category);
+    this.validateInput(input, owner);
+
+    const resolvedCategoryId = await this.resolveCategoryId(input.category);
+    if (!resolvedCategoryId) {
+      throw new Error('Danh mục không hợp lệ');
     }
 
-    // Validate input
-    this.validateInput(input);
+    const normalizedTags = (input.tags || [])
+      .map(tag => tag.trim().toLowerCase())
+      .filter(Boolean);
 
-    // Validate harvest date (not in future)
-    if (input.harvestDate > new Date()) {
-      throw new Error('Ngày thu hoạch không thể trong tương lai');
-    }
+    const stockQuantity = Math.max(0, input.stockQuantity);
 
-    // Calculate days since harvest
-    const daysSinceHarvest = Math.ceil(
-      (new Date().getTime() - input.harvestDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // Check if product is still fresh
-    if (daysSinceHarvest > input.shelfLife) {
-      throw new Error('Sản phẩm đã hết hạn sử dụng');
-    }
-
-    // Create product data
     const productData: Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'> = {
       name: input.name.trim(),
       nameEn: input.nameEn?.trim(),
-      category: input.category,
+      category: {
+        id: resolvedCategoryId
+      },
+      owner: {
+        id: owner.id,
+        email: owner.email,
+        role: owner.role,
+        userName: owner.userName
+      },
       price: input.price,
       unit: input.unit.trim(),
       description: input.description.trim(),
       images: input.images || [],
-      inStock: input.stockQuantity > 0,
-      stockQuantity: input.stockQuantity,
-      farm: input.farm,
-      certifications: input.certifications || [],
-      harvestDate: input.harvestDate,
-      shelfLife: input.shelfLife,
-      nutrition: input.nutrition,
-      isOrganic: input.isOrganic ?? false,
-      isFresh: input.isFresh ?? true,
+      inStock: stockQuantity > 0,
+      stockQuantity,
+      tags: normalizedTags,
       rating: 0,
-      reviewCount: 0,
-      tags: input.tags || []
-    } as any;
+      reviewCount: 0
+    } as unknown as Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'>;
 
-    // Create product
     const product = await this.productRepository.create(productData);
-
-    // Update category product count
-    // Note: This assumes category field in product contains category ID
-    // Adjust based on your actual implementation
-    // await this.categoryRepository.incrementProductCount(product.category);
 
     logger.info(`Product created: ${product.id} - ${product.name}`);
 
     return product;
   }
 
-  private validateInput(input: CreateProductInput): void {
+  private async resolveCategoryId(category: string): Promise<string | null> {
+    if (!category) return null;
+
+    // direct lookup by id
+    const byId = await this.categoryRepository.findById(category);
+    if (byId) {
+      return byId.id;
+    }
+
+    const all = await this.categoryRepository.findAll();
+    const found = all.find(c => c.slug === category || c.name === category || c.nameEn === category);
+    return found ? found.id : null;
+  }
+
+  private validateInput(input: CreateProductInput, owner: ProductOwnerContext): void {
     const errors: string[] = [];
 
-    // Name validation
     if (!input.name || input.name.trim().length === 0) {
       errors.push('Tên sản phẩm không được để trống');
     }
@@ -112,7 +102,6 @@ export class CreateProductUseCase {
       errors.push('Tên sản phẩm không được vượt quá 200 ký tự');
     }
 
-    // Price validation
     if (!input.price || input.price <= 0) {
       errors.push('Giá sản phẩm phải lớn hơn 0');
     }
@@ -120,12 +109,10 @@ export class CreateProductUseCase {
       errors.push('Giá sản phẩm không hợp lệ');
     }
 
-    // Unit validation
     if (!input.unit || input.unit.trim().length === 0) {
       errors.push('Đơn vị tính không được để trống');
     }
 
-    // Description validation
     if (!input.description || input.description.trim().length === 0) {
       errors.push('Mô tả sản phẩm không được để trống');
     }
@@ -133,44 +120,20 @@ export class CreateProductUseCase {
       errors.push('Mô tả sản phẩm phải có ít nhất 20 ký tự');
     }
 
-    // Stock validation
     if (input.stockQuantity < 0) {
       errors.push('Số lượng tồn kho không thể âm');
     }
 
-    // Farm validation
-    if (!input.farm || !input.farm.name) {
-      errors.push('Tên nông trại không được để trống');
-    }
-    if (!input.farm || !input.farm.farmer) {
-      errors.push('Tên nông dân không được để trống');
-    }
-    if (!input.farm || !input.farm.location || !input.farm.location.province) {
-      errors.push('Tỉnh/Thành của nông trại không được để trống');
-    }
-    // Mongoose schema requires district and commune inside farm.location
-    if (!input.farm || !input.farm.location || !input.farm.location.district) {
-      errors.push('Quận/Huyện của nông trại không được để trống');
-    }
-    if (!input.farm || !input.farm.location || !input.farm.location.commune) {
-      errors.push('Xã/Phường của nông trại không được để trống');
-    }
-    // Contact is required in schema
-    if (!input.farm || !input.farm.contact) {
-      errors.push('Liên hệ nông trại không được để trống');
+    if (!input.category) {
+      errors.push('Danh mục không được để trống');
     }
 
-    // Harvest date validation
-    if (!input.harvestDate) {
-      errors.push('Ngày thu hoạch không được để trống');
+    if (!owner || !owner.id) {
+      errors.push('Người đăng không hợp lệ');
     }
 
-    // Shelf life validation
-    if (!input.shelfLife || input.shelfLife <= 0) {
-      errors.push('Hạn sử dụng phải lớn hơn 0');
-    }
-    if (input.shelfLife && input.shelfLife > 365) {
-      errors.push('Hạn sử dụng không được vượt quá 365 ngày');
+    if (owner.role !== 'shop_owner' && owner.role !== 'admin') {
+      errors.push('Bạn không có quyền đăng sản phẩm');
     }
 
     if (errors.length > 0) {

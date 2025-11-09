@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { userController, addressController, orderController } from '../di/container';
+import { userController, addressController, orderController, voucherController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
 import { validate } from '../shared/middleware/validate';
 import { updateProfileSchema } from '../shared/validation/user.schema';
@@ -534,6 +534,10 @@ userRoutes.get('/me/orders/statistics', authenticate, (req, res) => {
   orderController.getOrderStatistics(req, res);
 });
 
+userRoutes.post('/me/orders', authenticate, (req, res) => {
+  orderController.createOrder(req, res);
+});
+
 /**
  * @swagger
  * /api/users/me/orders:
@@ -710,4 +714,67 @@ userRoutes.get('/me/orders/:id', authenticate, (req, res) => {
  */
 userRoutes.post('/me/orders/:id/cancel', authenticate, (req, res) => {
   orderController.cancelOrder(req, res);
+});
+
+/**
+ * @swagger
+ * /api/users/me/orders/{id}/payment-status:
+ *   put:
+ *     summary: Cập nhật trạng thái thanh toán
+ *     description: Cập nhật trạng thái thanh toán của đơn hàng
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của đơn hàng
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentStatus
+ *             properties:
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [pending, paid, failed, refunded]
+ *                 example: paid
+ *                 description: Trạng thái thanh toán mới
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thanh toán thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Cập nhật trạng thái thanh toán thành công
+ *                 data:
+ *                   $ref: '#/components/schemas/Order'
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy đơn hàng hoặc không có quyền truy cập
+ */
+userRoutes.put('/me/orders/:id/payment-status', authenticate, (req, res) => {
+  orderController.updatePaymentStatus(req, res);
+});
+
+// Voucher routes
+userRoutes.get('/me/vouchers', authenticate, (req, res) => {
+  voucherController.listUserVouchers(req, res);
+});
+
+userRoutes.post('/me/vouchers/apply', authenticate, (req, res) => {
+  voucherController.applyVoucher(req, res);
 });

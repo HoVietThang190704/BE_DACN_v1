@@ -224,7 +224,7 @@ OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 
 // Generate order number before save
-OrderSchema.pre('save', async function(next) {
+OrderSchema.pre('validate', async function(next) {
   if (this.isNew && !this.orderNumber) {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
@@ -232,10 +232,11 @@ OrderSchema.pre('save', async function(next) {
     const day = date.getDate().toString().padStart(2, '0');
     
     // Count orders today
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-    
-    const count = await mongoose.model('Order').countDocuments({
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+    const OrderModel = mongoose.model('Order');
+    const count = await OrderModel.countDocuments({
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
     

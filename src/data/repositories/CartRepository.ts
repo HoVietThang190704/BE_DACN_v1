@@ -167,6 +167,33 @@ export class CartRepository implements ICartRepository {
     }
   }
 
+  async removeItems(userId: string, itemIds: string[]): Promise<CartEntity | null> {
+    if (!Array.isArray(itemIds) || itemIds.length === 0) {
+      return this.findByUserId(userId);
+    }
+
+    try {
+      const objectIds = itemIds
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      if (objectIds.length === 0) {
+        return this.findByUserId(userId);
+      }
+
+      const updated = await Cart.findOneAndUpdate(
+        { userId: new mongoose.Types.ObjectId(userId) },
+        { $pull: { items: { _id: { $in: objectIds } } } },
+        { new: true }
+      ).lean();
+
+      return updated ? this.toDomainEntity(updated as any) : null;
+    } catch (error) {
+      logger.error('CartRepository.removeItems error:', error);
+      throw new Error('Lỗi khi xóa các sản phẩm khỏi giỏ hàng');
+    }
+  }
+
   async clearCart(userId: string): Promise<boolean> {
     try {
       await Cart.findOneAndUpdate(

@@ -48,6 +48,7 @@ export class UserRepository implements IUserRepository {
     if (data.dateOfBirth !== undefined) updateData.date_of_birth = data.dateOfBirth;
     if (data.isVerified !== undefined) updateData.isVerified = data.isVerified;
     if (data.role !== undefined) updateData.role = data.role;
+    if ((data as any).address !== undefined) updateData.address = (data as any).address;
 
     const user = await UserModel.findByIdAndUpdate(
       id,
@@ -153,12 +154,11 @@ export class UserRepository implements IUserRepository {
 
   async updatePassword(id: string, hashedPassword: string): Promise<boolean> {
     try {
-      const user = await UserModel.findById(id);
-      if (!user) return false;
-
-      user.password = hashedPassword;
-      await user.save();
-      return true;
+      const result = await UserModel.updateOne(
+        { _id: id },
+        { $set: { password: hashedPassword } }
+      );
+      return result.modifiedCount > 0;
     } catch (error) {
       logger.error('UserRepository.updatePassword error:', error);
       return false;
