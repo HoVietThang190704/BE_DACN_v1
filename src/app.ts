@@ -10,6 +10,8 @@ import { logger } from './shared/utils/logger';
 import { database } from './shared/database/connection';
 import { setupSwagger } from './shared/swagger/setup';
 import { SocketService } from './services/socket/SocketService';
+import { setIO } from './services/socket/socketManager';
+import notificationRoutes from './routes/notifications';
 
 // Import routes
 import { authRoutes } from './routes/auth';
@@ -65,6 +67,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
@@ -125,6 +128,8 @@ async function startServer() {
     // Create HTTP server and initialize Socket.IO service
     const httpServer = createServer(app);
     const socketService = new SocketService(httpServer);
+  // expose io for other modules
+    setIO(socketService.getIO());
     
     // Start HTTP server with Socket.IO
     httpServer.listen(PORT, "0.0.0.0", () => {
