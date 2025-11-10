@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { createServer } from 'https';
 import os from 'os';
+import fs from 'fs';
+import { createServer as createHttpServer, Server as HttpServer } from 'http';
+import { createServer as createHttpsServer, Server as HttpsServer, ServerOptions as HttpsServerOptions } from 'https';
 import { config } from './config';
 import { errorHandler } from './shared/middleware/errorHandler';
 import { logger } from './shared/utils/logger';
@@ -39,14 +41,25 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
+// Basic health check - always responds (for Render port detection)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     service: 'dacn-fresh-food-platform',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    environment: config.NODE_ENV
+    environment: config.NODE_ENV,
+    port: config.PORT
+  });
+});
+
+// Database health check
+app.get('/health/db', (req, res) => {
+  const dbReady = database.isConnectionReady();
+  res.status(dbReady ? 200 : 503).json({
+    status: dbReady ? 'OK' : 'DB_NOT_READY',
+    database: dbReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -119,28 +132,56 @@ function getLocalIp(): string {
   return 'localhost';
 }
 
-// Start server with database connection
+// Start server - bind port FIRST, then connect DB in background
 async function startServer() {
+  const localIp = getLocalIp();
+  let protocol: 'http' | 'https' = 'http';
+  let server: HttpServer | HttpsServer;
+
   try {
-    // Connect to MongoDB
-    await database.connect();
-    
-    const localIp = getLocalIp();
-    
-    // Create HTTP server and initialize Socket.IO service
-    const httpsServer = createServer(app);
-    const socketService = new SocketService(httpsServer);
-  // expose io for other modules
+    // Create HTTP/HTTPS server
+    if (config.SSL_KEY_PATH && config.SSL_CERT_PATH) {
+      try {
+        const sslOptions: HttpsServerOptions = {
+          key: fs.readFileSync(config.SSL_KEY_PATH),
+          cert: fs.readFileSync(config.SSL_CERT_PATH)
+        };
+
+        if (config.SSL_CA_PATH) {
+          sslOptions.ca = fs.readFileSync(config.SSL_CA_PATH);
+        }
+
+        server = createHttpsServer(sslOptions, app);
+        protocol = 'https';
+      } catch (error) {
+        logger.error('⚠️  Không thể tải SSL certificate. Chuyển sang HTTP.', error);
+        server = createHttpServer(app);
+      }
+    } else {
+      server = createHttpServer(app);
+    }
+
+    // Initialize Socket.IO
+    const socketService = new SocketService(server);
     setIO(socketService.getIO());
-    
-    // Start HTTP server with Socket.IO
-    httpsServer.listen(PORT, "0.0.0.0", () => {
-      logger.info(`🚀 Fresh Food Platform API đang chạy tại https://${localIp}:${PORT}`);
-      logger.info(`📊 Health check: https://${localIp}:${PORT}/health`);
-      logger.info(`📖 API docs: https://${localIp}:${PORT}/api`);
-      logger.info(`📚 Swagger docs: https://${localIp}:${PORT}/api/docs`);
+
+    // CRITICAL: Start listening IMMEDIATELY so Render detects the port
+    server.listen(PORT, '0.0.0.0', () => {
+      logger.info(`🚀 Fresh Food Platform API đang chạy tại ${protocol}://${localIp}:${PORT}`);
+      logger.info(`📊 Health check: ${protocol}://${localIp}:${PORT}/health`);
+      logger.info(`📖 API docs: ${protocol}://${localIp}:${PORT}/api`);
+      logger.info(`📚 Swagger docs: ${protocol}://${localIp}:${PORT}/api/docs`);
       logger.info(`💬 Socket.IO ready for realtime chat`);
     });
+
+    // Connect to MongoDB in background (non-blocking)
+    database.connect().then(() => {
+      logger.info('✅ MongoDB connected successfully');
+    }).catch((error) => {
+      logger.error('❌ MongoDB connection failed:', error);
+      logger.warn('⚠️  Server is running but database features will not work');
+    });
+
   } catch (error) {
     logger.error('❌ Failed to start server:', error);
     process.exit(1);

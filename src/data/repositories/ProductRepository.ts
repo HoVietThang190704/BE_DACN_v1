@@ -321,8 +321,8 @@ export class ProductRepository implements IProductRepository {
 
   async getCategories(): Promise<string[]> {
     try {
-      const categories = await ProductModel.distinct('category');
-      return categories;
+      const categories = await ProductModel.distinct('category') as Array<string | mongoose.Types.ObjectId>;
+      return categories.map(c => String(c));
     } catch (error) {
       logger.error('ProductRepository.getCategories error:', error);
       throw new Error('Lỗi khi lấy danh sách danh mục');

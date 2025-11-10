@@ -1,5 +1,6 @@
 import { Server as SocketIOServer } from 'socket.io';
-import { Server as HTTPSServer } from 'https';
+import { Server as HttpServer } from 'http';
+import { Server as HttpsServer } from 'https';
 import { logger } from '../../shared/utils/logger';
 import { LivestreamMessage } from '../../models/LivestreamMessage';
 
@@ -7,8 +8,8 @@ export class SocketService {
   private io: SocketIOServer;
   private livestreamRooms: Map<string, Set<string>>;
   
-  constructor(httpsServer: HTTPSServer) {
-    this.io = new SocketIOServer(httpsServer, {
+  constructor(server: HttpServer | HttpsServer) {
+    this.io = new SocketIOServer(server, {
       cors: {
         origin: true,
         credentials: true,
