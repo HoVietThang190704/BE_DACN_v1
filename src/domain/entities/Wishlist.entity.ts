@@ -12,6 +12,11 @@ export interface WishlistProductEntity {
   reviewCount?: number;
   originalPrice?: number;
   discount?: number;
+  owner?: {
+    id: string;
+    userName?: string;
+    email?: string;
+  };
 }
 
 export interface WishlistItemEntity {
