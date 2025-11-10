@@ -18,12 +18,8 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: `https://localhost:${config.PORT}`,
-        description: 'Development server'
-      },
-      {
-        url: 'https://your-app.onrender.com',
-        description: 'Production server'
+        url: '/',
+        description: 'Current server (auto-detected)'
       }
     ],
     components: {
