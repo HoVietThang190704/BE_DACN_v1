@@ -60,8 +60,15 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Ensure preflight requests are handled
-app.options('*', cors(corsOptions));
+// Ensure preflight requests are handled without registering a '*' route
+// (some router/path-to-regexp versions error when registering '*' directly)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    // run CORS middleware for this preflight request
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
 
 // Small debug logging for origin detection (keep quiet in production)
 app.use((req, res, next) => {
