@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { createServer } from 'http';
+import { createServer } from 'https';
 import os from 'os';
 import { config } from './config';
 import { errorHandler } from './shared/middleware/errorHandler';
@@ -128,17 +128,17 @@ async function startServer() {
     const localIp = getLocalIp();
     
     // Create HTTP server and initialize Socket.IO service
-    const httpServer = createServer(app);
-    const socketService = new SocketService(httpServer);
+    const httpsServer = createServer(app);
+    const socketService = new SocketService(httpsServer);
   // expose io for other modules
     setIO(socketService.getIO());
     
     // Start HTTP server with Socket.IO
-    httpServer.listen(PORT, "0.0.0.0", () => {
-      logger.info(`🚀 Fresh Food Platform API đang chạy tại http://${localIp}:${PORT}`);
-      logger.info(`📊 Health check: http://${localIp}:${PORT}/health`);
-      logger.info(`📖 API docs: http://${localIp}:${PORT}/api`);
-      logger.info(`📚 Swagger docs: http://${localIp}:${PORT}/api/docs`);
+    httpsServer.listen(PORT, "0.0.0.0", () => {
+      logger.info(`🚀 Fresh Food Platform API đang chạy tại https://${localIp}:${PORT}`);
+      logger.info(`📊 Health check: https://${localIp}:${PORT}/health`);
+      logger.info(`📖 API docs: https://${localIp}:${PORT}/api`);
+      logger.info(`📚 Swagger docs: https://${localIp}:${PORT}/api/docs`);
       logger.info(`💬 Socket.IO ready for realtime chat`);
     });
   } catch (error) {
