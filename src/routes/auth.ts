@@ -156,9 +156,10 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     // Generate JWT tokens
     const payload = { userId: user._id, email: user.email, role: user.role };
-    const secret = config.JWT_SECRET as string;
-    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' }); // Short-lived access token
-    const refreshToken = jwt.sign(payload, secret, { expiresIn: '7d' }); // Long-lived refresh token
+  const secret = config.JWT_SECRET as string;
+  // cast to library types to satisfy TypeScript overloads
+  const accessToken = jwt.sign(payload, secret as jwt.Secret, { expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }); // Use config value
+  const refreshToken = jwt.sign(payload, secret as jwt.Secret, { expiresIn: config.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }); // Use config value
 
     logger.info(`New user registered: ${email}`);
 
@@ -279,9 +280,10 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
 
     // Generate JWT tokens
     const payload = { userId: user._id, email: user.email, role: user.role };
-    const secret = config.JWT_SECRET as string;
-    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' }); // Short-lived access token
-    const refreshToken = jwt.sign(payload, secret, { expiresIn: '7d' }); // Long-lived refresh token
+  const secret = config.JWT_SECRET as string;
+  // cast to library types to satisfy TypeScript overloads
+  const accessToken = jwt.sign(payload, secret as jwt.Secret, { expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }); // Use config value
+  const refreshToken = jwt.sign(payload, secret as jwt.Secret, { expiresIn: config.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }); // Use config value
 
     logger.info(`User logged in: ${email}`);
 
@@ -537,7 +539,8 @@ authRoutes.post('/refresh', async (req: Request, res: Response): Promise<any> =>
 
     // Generate new access token
     const payload = { userId: user._id, email: user.email, role: user.role };
-    const accessToken = jwt.sign(payload, secret, { expiresIn: '15m' });
+  // cast to library types to satisfy TypeScript overloads
+  const accessToken = jwt.sign(payload, secret as jwt.Secret, { expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
 
     logger.info(`Token refreshed for user: ${user.email}`);
 

@@ -58,7 +58,12 @@ export class WishlistRepository implements IWishlistRepository {
       rating: raw.rating,
       reviewCount: raw.reviewCount,
       originalPrice: raw.originalPrice,
-      discount: raw.discount
+      discount: raw.discount,
+      owner: raw.owner ? {
+        id: this.normalizeId(raw.owner._id || raw.owner.id || raw.owner),
+        userName: raw.owner.userName,
+        email: raw.owner.email
+      } : undefined
     };
   }
 
@@ -99,7 +104,11 @@ export class WishlistRepository implements IWishlistRepository {
       const wishlistDoc = await Wishlist.findOne({ userId: userObj })
         .populate({
           path: 'items.productId',
-          select: 'name price images image unit stockQuantity stock inStock rating reviewCount originalPrice discount'
+          select: 'name price images image unit stockQuantity stock inStock rating reviewCount originalPrice discount owner',
+          populate: {
+            path: 'owner',
+            select: 'userName email'
+          }
         })
         .lean();
 
@@ -125,7 +134,8 @@ export class WishlistRepository implements IWishlistRepository {
       if (missingIds.length > 0) {
         // fetch product docs in one go
         const products = await Product.find({ _id: { $in: missingIds } })
-          .select('name price images image unit stockQuantity stock inStock rating reviewCount originalPrice discount')
+          .select('name price images image unit stockQuantity stock inStock rating reviewCount originalPrice discount owner')
+          .populate('owner', 'userName email')
           .lean();
 
         const productMap = new Map<string, any>();
