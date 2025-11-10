@@ -18,7 +18,7 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${config.PORT}`,
+        url: `https://localhost:${config.PORT}`,
         description: 'Development server'
       },
       {
@@ -29,7 +29,7 @@ const options: swaggerJSDoc.Options = {
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
+          type: 'https',
           scheme: 'bearer',
           bearerFormat: 'JWT',
           description: 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
