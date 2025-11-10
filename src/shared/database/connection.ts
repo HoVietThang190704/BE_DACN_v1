@@ -44,15 +44,15 @@ export class DatabaseConnection {
 
     } catch (error) {
       logger.error('❌ MongoDB connection error:', error);
-      
-      // Don't exit process in development, continue without DB
-      if (config.NODE_ENV === 'development') {
-        logger.warn('⚠️ Continuing without MongoDB in development mode');
-        logger.warn('🔧 API will work with mock data');
-        return;
+      this.isConnected = false;
+      if (config.NODE_ENV === 'production') {
+        logger.error('⚠️  Production: Failed to connect to MongoDB. Check MONGODB_URI env var.');
+        logger.error('⚠️  Server will continue but database operations will fail.');
+        throw error; 
+      } else {
+        logger.warn('⚠️ Development: Continuing without MongoDB');
+        logger.warn('🔧 API will work with mock data where possible');
       }
-      
-      process.exit(1);
     }
   }
 

@@ -41,6 +41,10 @@ NODE_ENV=development
 MONGODB_URI=your-mongodb-connection-string
 JWT_SECRET=your-super-secure-jwt-secret
 PORT=3000
+# Optional: enable HTTPS by providing certificate file paths
+SSL_KEY_PATH=/absolute/path/to/private.key
+SSL_CERT_PATH=/absolute/path/to/certificate.crt
+SSL_CA_PATH=/absolute/path/to/ca-bundle.crt
 ```
 
 ### 4. Start Development Server

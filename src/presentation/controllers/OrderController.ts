@@ -4,6 +4,7 @@ import { GetOrderByIdUseCase } from '../../domain/usecases/order/GetOrderById.us
 import { CancelOrderUseCase } from '../../domain/usecases/order/CancelOrder.usecase';
 import { GetOrderStatisticsUseCase } from '../../domain/usecases/order/GetOrderStatistics.usecase';
 import { UpdatePaymentStatusUseCase } from '../../domain/usecases/order/UpdatePaymentStatusUseCase';
+import { CreateOrderUseCase } from '../../domain/usecases/order/CreateOrder.usecase';
 import { OrderMapper } from '../dto/order/Order.dto';
 import { OrderFilters, OrderPagination } from '../../domain/repositories/IOrderRepository';
 import { logger } from '../../shared/utils/logger';

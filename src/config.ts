@@ -10,12 +10,20 @@ export const config = {
   NODE_IP: process.env.IP || 'localhost',
   // Database - MongoDB
   MONGODB_URI: process.env.MONGODB_URI || (() => {
-    throw new Error('MONGODB_URI environment variable is required. Please check your .env file.');
+    console.error('❌ MONGODB_URI environment variable is required!');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('MONGODB_URI is required in production');
+    }
+    return 'mongodb://localhost:27017/dacn_fallback';
   })(),
   
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || (() => {
-    throw new Error('JWT_SECRET environment variable is required. Please check your .env file.');
+    console.error('❌ JWT_SECRET environment variable is required!');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is required in production');
+    }
+    return 'dev-secret-key-change-in-production';
   })(),
   JWT_EXPIRES_IN: (process.env.JWT_EXPIRES_IN || '24h') as string,
   JWT_REFRESH_EXPIRES_IN: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as string,
@@ -36,9 +44,14 @@ export const config = {
   
   // Rate Limiting
   RATE_LIMIT_WINDOW: 15 * 60 * 1000, // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: 100
+  RATE_LIMIT_MAX_REQUESTS: 100,
   // Agora
-  ,AGORA_APP_ID: process.env.AGORA_APP_ID || ''
-  ,AGORA_APP_CERT: process.env.AGORA_APP_CERT || ''
-  ,AGORA_TOKEN_EXPIRE_SECONDS: parseInt(process.env.AGORA_TOKEN_EXPIRE_SECONDS || '3600', 10)
+  AGORA_APP_ID: process.env.AGORA_APP_ID || '',
+  AGORA_APP_CERT: process.env.AGORA_APP_CERT || '',
+  AGORA_TOKEN_EXPIRE_SECONDS: parseInt(process.env.AGORA_TOKEN_EXPIRE_SECONDS || '3600', 10),
+
+  // HTTPS (optional)
+  SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
+  SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',
+  SSL_CA_PATH: process.env.SSL_CA_PATH || ''
 } as const;
