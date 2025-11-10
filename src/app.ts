@@ -36,7 +36,41 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+
+// CORS: use a dynamic origin allowlist driven by environment variable
+// If ALLOWED_ORIGINS is empty, default to allowing same-origin and server-to-server calls.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const corsOptions = {
+  origin: (origin: any, callback: any) => {
+    // No origin means server-to-server or curl/postman — allow it
+    if (!origin) return callback(null, true);
+
+    // If no explicit allowed origins configured, allow the requesting origin
+    if (allowedOrigins.length === 0) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('CORS policy: This origin is not allowed'), false);
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+};
+
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled
+app.options('*', cors(corsOptions));
+
+// Small debug logging for origin detection (keep quiet in production)
+app.use((req, res, next) => {
+  if (config.NODE_ENV !== 'production') {
+    logger.info(`CORS check - origin: ${req.headers.origin || 'none'} method: ${req.method} path: ${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
