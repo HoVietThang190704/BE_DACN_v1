@@ -15,6 +15,7 @@ import { WishlistRepository } from '../data/repositories/WishlistRepository';
 import { TicketRepository } from '../data/repositories/TicketRepository';
 import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
 import { VoucherRepository } from '../data/repositories/VoucherRepository';
+import { PostRepository } from '../data/repositories/PostRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -96,6 +97,10 @@ import { CartController } from '../presentation/controllers/CartController';
 import { WishlistController } from '../presentation/controllers/WishlistController';
 import { TicketController } from '../presentation/controllers/TicketController';
 import { VoucherController } from '../presentation/controllers/VoucherController';
+import { SearchController } from '../presentation/controllers/SearchController';
+import { SearchProductsUseCase } from '../domain/usecases/search/SearchProducts.usecase';
+import { SearchUsersUseCase } from '../domain/usecases/search/SearchUsers.usecase';
+import { GlobalSearchUseCase } from '../domain/usecases/search/GlobalSearch.usecase';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -109,6 +114,7 @@ const wishlistRepository = new WishlistRepository();
 const ticketRepository = new TicketRepository();
 const ticketCommentRepository = new TicketCommentRepository();
 const voucherRepository = new VoucherRepository();
+const postRepository = new PostRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -126,6 +132,11 @@ const createProductUseCase = new CreateProductUseCase(productRepository, categor
 const updateProductUseCase = new UpdateProductUseCase(productRepository);
 const deleteProductUseCase = new DeleteProductUseCase(productRepository);
 const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
+const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository);
+
+// Search Use Cases
+const searchUsersUseCase = new SearchUsersUseCase(userRepository);
+const globalSearchUseCase = new GlobalSearchUseCase(searchProductsUseCase, searchUsersUseCase, postRepository);
 
 // Category Use Cases
 const getCategoriesTreeUseCase = new GetCategoriesTreeUseCase(categoryRepository);
@@ -273,6 +284,7 @@ export const voucherController = new VoucherController(
   listUserVouchersUseCase,
   validateVoucherUseCase
 );
+export const searchController = new SearchController(globalSearchUseCase);
 
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
@@ -286,6 +298,7 @@ export const repositories = {
   ,wishlistRepository
   ,ticketRepository
   ,voucherRepository
+  ,postRepository
 };
 
 export const useCases = {
@@ -303,6 +316,10 @@ export const useCases = {
   updateProductUseCase,
   deleteProductUseCase,
   uploadProductImagesUseCase,
+  searchProductsUseCase,
+  // Search
+  searchUsersUseCase,
+  globalSearchUseCase,
   // Category
   getCategoriesTreeUseCase,
   getCategoryByIdUseCase,

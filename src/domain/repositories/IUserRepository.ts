@@ -53,6 +53,7 @@ export interface IUserRepository {
   count(filters?: {
     role?: string;
     isVerified?: boolean;
+    searchTerm?: string;
   }): Promise<number>;
 
   /**

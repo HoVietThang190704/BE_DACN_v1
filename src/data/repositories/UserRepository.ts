@@ -106,6 +106,7 @@ export class UserRepository implements IUserRepository {
   async count(filters?: {
     role?: string;
     isVerified?: boolean;
+    searchTerm?: string;
   }): Promise<number> {
     const query: any = {};
 
@@ -115,6 +116,14 @@ export class UserRepository implements IUserRepository {
 
     if (filters?.isVerified !== undefined) {
       query.isVerified = filters.isVerified;
+    }
+
+    if (filters?.searchTerm) {
+      query.$or = [
+        { email: { $regex: filters.searchTerm, $options: 'i' } },
+        { userName: { $regex: filters.searchTerm, $options: 'i' } },
+        { phone: { $regex: filters.searchTerm, $options: 'i' } }
+      ];
     }
 
     return UserModel.countDocuments(query);
