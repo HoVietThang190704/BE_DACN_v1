@@ -85,4 +85,9 @@ export interface ICategoryRepository {
    * Decrement product count
    */
   decrementProductCount(categoryId: string): Promise<void>;
+
+  /**
+   * Search categories by keyword (name, slug, description)
+   */
+  searchByName(term: string, limit?: number): Promise<CategoryEntity[]>;
 }

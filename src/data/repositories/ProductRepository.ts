@@ -74,6 +74,15 @@ export class ProductRepository implements IProductRepository {
         filter.__categorySlug = cat; // temporary marker for later resolution in findAll
       }
     }
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      const validCategoryIds = filters.categoryIds
+        .filter(id => mongoose.Types.ObjectId.isValid(id))
+        .map(id => new mongoose.Types.ObjectId(id));
+
+      if (validCategoryIds.length > 0) {
+        filter.__categoryIn = validCategoryIds;
+      }
+    }
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       filter.price = {};
       if (filters.minPrice !== undefined) {
@@ -141,6 +150,38 @@ export class ProductRepository implements IProductRepository {
           // leave filter as-is
         }
         delete filter.__categorySlug;
+      }
+      if (filter.__categoryIn) {
+        const categoryList: mongoose.Types.ObjectId[] = filter.__categoryIn;
+        delete filter.__categoryIn;
+
+        if (filter.category) {
+          if (filter.category instanceof mongoose.Types.ObjectId) {
+            categoryList.push(filter.category);
+          } else if (typeof filter.category === 'object' && filter.category.$in) {
+            const normalized = (filter.category.$in as Array<mongoose.Types.ObjectId | string | undefined>)
+              .filter(Boolean)
+              .map(id => new mongoose.Types.ObjectId(String(id)));
+            categoryList.push(...normalized);
+          }
+        }
+
+        const uniqueCategoryIds = Array.from(new Map(
+          categoryList.map(objId => [objId.toHexString(), objId])
+        ).values());
+
+        if (uniqueCategoryIds.length > 0) {
+          filter.category = { $in: uniqueCategoryIds };
+        }
+      }
+      if (filters?.categoryIds && filters.categoryIds.length > 0 && !filter.category) {
+        const fallbackCategoryIds = filters.categoryIds
+          .filter(id => mongoose.Types.ObjectId.isValid(id))
+          .map(id => new mongoose.Types.ObjectId(id));
+
+        if (fallbackCategoryIds.length > 0) {
+          filter.category = { $in: fallbackCategoryIds };
+        }
       }
       if (filter.__ownerEmail) {
         try {
@@ -298,6 +339,64 @@ export class ProductRepository implements IProductRepository {
   async count(filters?: ProductFilters): Promise<number> {
     try {
       const filter = await this.buildFilter(filters);
+      if (filter.__categorySlug) {
+        try {
+          const found = await Category.findOne({ slug: filter.__categorySlug }).lean();
+          if (found) {
+            filter.category = new mongoose.Types.ObjectId(found._id);
+          }
+        } catch (e) {
+          // ignore
+        }
+        delete filter.__categorySlug;
+      }
+
+      if (filter.__categoryIn) {
+        const categoryList: mongoose.Types.ObjectId[] = filter.__categoryIn;
+        delete filter.__categoryIn;
+
+        if (filter.category) {
+          if (filter.category instanceof mongoose.Types.ObjectId) {
+            categoryList.push(filter.category);
+          } else if (typeof filter.category === 'object' && filter.category.$in) {
+            const normalized = (filter.category.$in as Array<mongoose.Types.ObjectId | string | undefined>)
+              .filter(Boolean)
+              .map(id => new mongoose.Types.ObjectId(String(id)));
+            categoryList.push(...normalized);
+          }
+        }
+
+        const uniqueCategoryIds = Array.from(new Map(
+          categoryList.map(objId => [objId.toHexString(), objId])
+        ).values());
+
+        if (uniqueCategoryIds.length > 0) {
+          filter.category = { $in: uniqueCategoryIds };
+        }
+      }
+
+      if (filters?.categoryIds && filters.categoryIds.length > 0 && !filter.category) {
+        const fallbackCategoryIds = filters.categoryIds
+          .filter(id => mongoose.Types.ObjectId.isValid(id))
+          .map(id => new mongoose.Types.ObjectId(id));
+
+        if (fallbackCategoryIds.length > 0) {
+          filter.category = { $in: fallbackCategoryIds };
+        }
+      }
+
+      if (filter.__ownerEmail) {
+        try {
+          const owners = await User.find(
+            { email: new RegExp(filter.__ownerEmail, 'i') },
+            { _id: 1 }
+          ).lean();
+          filter.owner = owners.length > 0 ? { $in: owners.map(o => o._id) } : { $in: [] };
+        } catch (e) {
+          logger.warn('ProductRepository.count owner email filter error:', e);
+        }
+        delete filter.__ownerEmail;
+      }
       return await ProductModel.countDocuments(filter);
     } catch (error) {
       logger.error('ProductRepository.count error:', error);
