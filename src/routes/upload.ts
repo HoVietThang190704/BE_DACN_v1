@@ -13,14 +13,28 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB max file size
   },
   fileFilter: (req, file, cb) => {
-    // Only allow image files
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Only allow image files. Prefer checking mimetype startsWith('image/'),
+    // but keep extension fallback for odd clients.
+    try {
+      const allowedTypes = /jpeg|jpg|png|gif|webp/;
+      const orig = String(file.originalname || '');
+      const ext = path.extname(orig).toLowerCase();
+      const mimetype = String(file.mimetype || '');
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
+      // Debug log to help diagnose unexpected uploads
+      console.debug('[upload] fileFilter:', { originalname: orig, mimetype, ext });
+
+      const isImageMime = mimetype.startsWith('image/');
+      const isAllowedExt = allowedTypes.test(ext);
+
+      if (isImageMime || isAllowedExt) {
+        return cb(null, true);
+      }
+
+      cb(new Error('Only image files are allowed!'));
+    } catch (err) {
+      // If anything surprising happens, reject the file and log
+      console.error('[upload] fileFilter error', err);
       cb(new Error('Only image files are allowed!'));
     }
   }
