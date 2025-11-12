@@ -1,4 +1,4 @@
-import { OrderEntity, OrderStatus, PaymentMethod, PaymentStatus } from '../../../domain/entities/Order.entity';
+import { OrderEntity, OrderStatus, PaymentMethod, PaymentStatus, OrderStatusChangedBy } from '../../../domain/entities/Order.entity';
 
 /**
  * Order DTO
@@ -7,6 +7,7 @@ export interface OrderDTO {
   id: string;
   orderNumber: string;
   userId: string;
+  managerId?: string;
   
   // Items
   items: {
@@ -33,6 +34,7 @@ export interface OrderDTO {
   isInProgress: boolean;
   isCompleted: boolean;
   canBeCancelled: boolean;
+  trackingNumber?: string | null;
   
   // Shipping
   shippingAddress: {
@@ -55,6 +57,12 @@ export interface OrderDTO {
   // Notes
   note?: string;
   cancelReason?: string;
+  statusHistory?: {
+    status: OrderStatus;
+    changedAt: Date;
+    changedBy: OrderStatusChangedBy;
+    note?: string;
+  }[];
 }
 
 /**
@@ -66,6 +74,7 @@ export class OrderMapper {
       id: order.id,
       orderNumber: order.orderNumber,
       userId: order.userId,
+  managerId: order.managerId,
       
       items: order.items.map(item => ({
         productId: item.productId,
@@ -89,6 +98,7 @@ export class OrderMapper {
       isInProgress: order.isInProgress(),
       isCompleted: order.isCompleted(),
       canBeCancelled: order.canBeCancelled(),
+      trackingNumber: order.trackingNumber,
       
       shippingAddress: {
         ...order.shippingAddress
@@ -101,7 +111,13 @@ export class OrderMapper {
       daysUntilDelivery: order.getDaysUntilDelivery(),
       
       note: order.note,
-      cancelReason: order.cancelReason
+      cancelReason: order.cancelReason,
+      statusHistory: order.statusHistory?.map(entry => ({
+        status: entry.status,
+        changedAt: entry.changedAt,
+        changedBy: entry.changedBy,
+        note: entry.note
+      }))
     };
   }
 

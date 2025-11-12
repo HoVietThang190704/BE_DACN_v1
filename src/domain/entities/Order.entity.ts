@@ -30,9 +30,19 @@ export interface ShippingAddress {
   fullAddress: string;
 }
 
+export type OrderStatusChangedBy = 'user' | 'manager' | 'system';
+
+export interface OrderStatusHistoryEntry {
+  status: OrderStatus;
+  changedAt: Date;
+  changedBy: OrderStatusChangedBy;
+  note?: string;
+}
+
 export interface IOrderEntity {
   id: string;
   userId: string;
+  managerId?: string;
   orderNumber: string;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
@@ -54,6 +64,7 @@ export interface IOrderEntity {
   trackingNumber?: string;
   estimatedDelivery?: Date;
   deliveredAt?: Date;
+  statusHistory?: OrderStatusHistoryEntry[];
   
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +73,7 @@ export interface IOrderEntity {
 export class OrderEntity implements IOrderEntity {
   id: string;
   userId: string;
+  managerId?: string;
   orderNumber: string;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
@@ -77,12 +89,14 @@ export class OrderEntity implements IOrderEntity {
   trackingNumber?: string;
   estimatedDelivery?: Date;
   deliveredAt?: Date;
+  statusHistory?: OrderStatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 
   constructor(data: IOrderEntity) {
     this.id = data.id;
     this.userId = data.userId;
+    this.managerId = data.managerId;
     this.orderNumber = data.orderNumber;
     this.items = data.items;
     this.shippingAddress = data.shippingAddress;
@@ -98,6 +112,7 @@ export class OrderEntity implements IOrderEntity {
     this.trackingNumber = data.trackingNumber;
     this.estimatedDelivery = data.estimatedDelivery;
     this.deliveredAt = data.deliveredAt;
+    this.statusHistory = data.statusHistory;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -231,6 +246,7 @@ export class OrderEntity implements IOrderEntity {
     return {
       id: this.id,
       userId: this.userId,
+      managerId: this.managerId,
       orderNumber: this.orderNumber,
       items: this.items,
       shippingAddress: this.shippingAddress,
@@ -246,6 +262,7 @@ export class OrderEntity implements IOrderEntity {
       trackingNumber: this.trackingNumber,
       estimatedDelivery: this.estimatedDelivery,
       deliveredAt: this.deliveredAt,
+      statusHistory: this.statusHistory,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
