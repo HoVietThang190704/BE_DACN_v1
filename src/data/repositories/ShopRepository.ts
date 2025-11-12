@@ -1,9 +1,10 @@
 import { Shop } from '../../models/Shop';
 import { ShopEntity } from '../../domain/entities/Shop.entity';
+import { IShopRepository } from '../../domain/repositories/IShopRepository';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
 
-export class ShopRepository {
+export class ShopRepository implements IShopRepository {
   private toDomain(model: any): ShopEntity {
     return new ShopEntity({
       id: String(model._id),
@@ -50,6 +51,28 @@ export class ShopRepository {
     } catch (error) {
       logger.error('ShopRepository.findById error:', error);
       throw new Error('Lỗi khi tìm shop');
+    }
+  }
+
+  async findByOwnerId(ownerId: string): Promise<ShopEntity | null> {
+    try {
+      const isObjectId = mongoose.Types.ObjectId.isValid(ownerId);
+
+      const orFilters: any[] = [];
+      if (isObjectId) {
+        const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+        orFilters.push({ owner_id: ownerObjectId });
+        orFilters.push({ ownerId: ownerObjectId });
+      }
+
+      orFilters.push({ owner_id: ownerId });
+      orFilters.push({ ownerId: ownerId });
+
+      const doc = await Shop.findOne({ $or: orFilters }).lean();
+      return doc ? this.toDomain(doc) : null;
+    } catch (error) {
+      logger.error('ShopRepository.findByOwnerId error:', error);
+      throw new Error('Lỗi khi tìm shop theo chủ sở hữu');
     }
   }
 

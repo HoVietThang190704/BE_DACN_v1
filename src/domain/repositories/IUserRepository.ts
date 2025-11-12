@@ -26,6 +26,8 @@ export interface IUserRepository {
    */
   findByPhone(phone: string): Promise<UserEntity | null>;
 
+  findManyByIds(ids: string[]): Promise<UserEntity[]>;
+
   /**
    * Update user information
    */

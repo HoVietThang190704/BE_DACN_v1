@@ -16,6 +16,13 @@ export type OrderStatus =
 export type PaymentMethod = 'cod' | 'momo' | 'zalopay' | 'vnpay' | 'card';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
+export interface OrderStatusHistoryEntry {
+  status: OrderStatus;
+  changedAt: Date;
+  changedBy: 'user' | 'manager' | 'system';
+  note?: string;
+}
+
 export interface OrderItem {
   productId: mongoose.Types.ObjectId;
   productName: string;
@@ -38,6 +45,7 @@ export interface ShippingAddress {
 export interface IOrder extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  managerId?: mongoose.Types.ObjectId;
   orderNumber: string;
   items: OrderItem[];
   shippingAddress: ShippingAddress;
@@ -53,6 +61,7 @@ export interface IOrder extends Document {
   trackingNumber?: string;
   estimatedDelivery?: Date;
   deliveredAt?: Date;
+  statusHistory?: OrderStatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,6 +133,11 @@ const OrderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID là bắt buộc'],
+      index: true
+    },
+    managerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       index: true
     },
     orderNumber: {
@@ -198,6 +212,35 @@ const OrderSchema = new Schema<IOrder>(
     },
     deliveredAt: {
       type: Date
+    },
+    statusHistory: {
+      type: [
+        new Schema<OrderStatusHistoryEntry>(
+          {
+            status: {
+              type: String,
+              enum: ['pending', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled', 'refunded'],
+              required: true
+            },
+            changedAt: {
+              type: Date,
+              required: true,
+              default: () => new Date()
+            },
+            changedBy: {
+              type: String,
+              enum: ['user', 'manager', 'system'],
+              required: true
+            },
+            note: {
+              type: String,
+              maxlength: [500, 'Ghi chú trạng thái không được vượt quá 500 ký tự']
+            }
+          },
+          { _id: false }
+        )
+      ],
+      default: []
     }
   },
   {
@@ -209,6 +252,9 @@ const OrderSchema = new Schema<IOrder>(
         ret.id = ret._id.toString();
         delete (ret as any)._id;
         delete (ret as any).__v;
+        if (ret.managerId) {
+          (ret as any).managerId = ret.managerId.toString();
+        }
         return ret;
       }
     },
@@ -219,6 +265,8 @@ const OrderSchema = new Schema<IOrder>(
 // Indexes for performance
 OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ userId: 1, status: 1 });
+OrderSchema.index({ managerId: 1, createdAt: -1 });
+OrderSchema.index({ managerId: 1, status: 1 });
 OrderSchema.index({ orderNumber: 1 }, { unique: true });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });

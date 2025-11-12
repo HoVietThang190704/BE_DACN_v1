@@ -1,4 +1,4 @@
-import { OrderEntity, OrderStatus } from '../entities/Order.entity';
+import { OrderEntity, OrderStatus, OrderStatusChangedBy } from '../entities/Order.entity';
 
 /**
  * Order Repository Interface
@@ -9,6 +9,8 @@ export interface OrderFilters {
   paymentStatus?: string;
   fromDate?: Date;
   toDate?: Date;
+  search?: string;
+  orderNumber?: string;
 }
 
 export interface OrderPagination {
@@ -22,6 +24,17 @@ export interface PaginatedOrders {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface OrderStatusUpdateOptions {
+  trackingNumber?: string | null;
+  estimatedDelivery?: Date | null;
+  note?: string | null;
+  deliveredAt?: Date | null;
+  history?: {
+    changedBy: OrderStatusChangedBy;
+    note?: string;
+  };
 }
 
 export interface IOrderRepository {
@@ -52,7 +65,7 @@ export interface IOrderRepository {
   /**
    * Update order status
    */
-  updateStatus(id: string, status: OrderStatus): Promise<OrderEntity | null>;
+  updateStatus(id: string, status: OrderStatus, options?: OrderStatusUpdateOptions): Promise<OrderEntity | null>;
 
   /**
    * Update payment status
@@ -73,6 +86,20 @@ export interface IOrderRepository {
    * Check if order belongs to user
    */
   belongsToUser(id: string, userId: string): Promise<boolean>;
+
+  /**
+   * Get orders managed by a specific user with filters and pagination
+   */
+  findManagedByUser(
+    managerId: string,
+    filters?: OrderFilters,
+    pagination?: OrderPagination
+  ): Promise<PaginatedOrders>;
+
+  /**
+   * Check if order is managed by user
+   */
+  isManagedByUser(id: string, managerId: string): Promise<boolean>;
 
   /**
    * Get order statistics for user
