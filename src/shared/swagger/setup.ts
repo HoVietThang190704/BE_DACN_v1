@@ -25,10 +25,11 @@ const options: swaggerJSDoc.Options = {
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'https',
+          // correct OpenAPI 3.0 scheme for HTTP Bearer tokens
+          type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
+          description: 'JWT Authorization header using the Bearer scheme. Enter ONLY the token value (the UI will add "Bearer ").'
         }
       },
       schemas: {
@@ -363,6 +364,8 @@ const options: swaggerJSDoc.Options = {
       }
     ]
   },
+  // apply bearerAuth globally by default in UI (endpoints may still override)
+  security: [ { bearerAuth: [] } ],
   apis: [
     './src/routes/*.ts',
     './src/models/*.ts'

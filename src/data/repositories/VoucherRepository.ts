@@ -1,131 +1,47 @@
-import { IVoucherRepository, VoucherFilter } from '../../domain/repositories/IVoucherRepository';
-import { VoucherEntity } from '../../domain/entities/Voucher.entity';
-import { Voucher, IVoucher } from '../../models/Voucher';
+import { Voucher } from '../../models/Voucher';
 import mongoose from 'mongoose';
 import { logger } from '../../shared/utils/logger';
 
-export class VoucherRepository implements IVoucherRepository {
-  private toDomainEntity(model: IVoucher): VoucherEntity {
-    return new VoucherEntity({
-      id: String(model._id),
-      code: model.code,
-      description: model.description,
-      discountType: model.discountType,
-      discountValue: model.discountValue,
-      minOrderValue: model.minOrderValue,
-      maxDiscountValue: model.maxDiscountValue,
-      startDate: model.startDate,
-      endDate: model.endDate,
-      usageLimit: model.usageLimit,
-      usageCount: model.usageCount,
-      perUserLimit: model.perUserLimit,
-      usageByUsers: (model.usageByUsers || []).map((record) => ({
-        userId: String(record.userId),
-        usageCount: record.usageCount,
-        lastUsedAt: record.lastUsedAt,
-      })),
-      isActive: model.isActive,
-      createdAt: model.createdAt,
-      updatedAt: model.updatedAt,
-    });
-  }
-
-  async findByCode(code: string): Promise<VoucherEntity | null> {
+export class VoucherRepository {
+  async create(data: any) {
     try {
-      const voucher = await Voucher.findOne({ code: code.toUpperCase() }).lean();
-      return voucher ? this.toDomainEntity(voucher as unknown as IVoucher) : null;
-    } catch (error) {
-      logger.error('VoucherRepository.findByCode error:', error);
-      throw new Error('Lỗi khi tìm mã giảm giá');
+      const v = await Voucher.create(data);
+      return v;
+    } catch (err) {
+      logger.error('VoucherRepository.create error', err);
+      throw err;
     }
   }
 
-  async findAvailableForUser(userId: string, filter?: VoucherFilter): Promise<VoucherEntity[]> {
-    try {
-      const conditions: any = {};
-
-      if (filter?.onlyActive !== false) {
-        conditions.isActive = true;
-
-        const now = new Date();
-        conditions.$and = [
-          {
-            $or: [
-              { startDate: { $exists: false } },
-              { startDate: { $lte: now } },
-            ],
-          },
-          {
-            $or: [
-              { endDate: { $exists: false } },
-              { endDate: { $gte: now } },
-            ],
-          },
-        ];
-      }
-
-      if (filter?.minSubtotal !== undefined) {
-        conditions.$or = [
-          { minOrderValue: { $exists: false } },
-          { minOrderValue: { $lte: filter.minSubtotal } },
-        ];
-      }
-
-      const vouchers = await Voucher.find(conditions).lean();
-      const entities = vouchers.map((voucher) => this.toDomainEntity(voucher as unknown as IVoucher));
-
-      if (!filter?.userId) {
-        return entities;
-      }
-
-      return entities.filter((voucher) => voucher.canUserUse(userId));
-    } catch (error) {
-      logger.error('VoucherRepository.findAvailableForUser error:', error);
-      throw new Error('Lỗi khi lấy danh sách mã giảm giá');
-    }
+  async findByCode(code: string) {
+    return Voucher.findOne({ code }).lean();
   }
 
-  async incrementUsage(voucherId: string, userId: string): Promise<VoucherEntity | null> {
-    try {
-      const filter = { _id: new mongoose.Types.ObjectId(voucherId) };
+  async findById(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return Voucher.findById(id).lean();
+  }
 
-      const update = {
-        $inc: { usageCount: 1, 'usageByUsers.$[element].usageCount': 1 },
-        $set: { 'usageByUsers.$[element].lastUsedAt': new Date() },
-      };
+  async incrementUsageAtomic(voucherId: string) {
+    // Attempts to increment usageCount if usageLimit not yet reached
+    const filter: any = { _id: voucherId, isActive: true };
+    // Only allow increment if usageLimit not set or usageCount < usageLimit
+    filter.$expr = { $lt: [ '$usageCount', { $ifNull: [ '$usageLimit', Number.MAX_SAFE_INTEGER ] } ] };
+    const updated = await Voucher.findOneAndUpdate(filter, { $inc: { usageCount: 1 } }, { new: true });
+    return updated;
+  }
 
-      let updated = await Voucher.findOneAndUpdate(
-        filter,
-        update,
-        {
-          arrayFilters: [{ 'element.userId': new mongoose.Types.ObjectId(userId) }],
-          new: true,
-          runValidators: true,
-        }
-      ).lean<IVoucher>();
-
-      if (!updated) {
-        // user entry does not exist yet, push new record
-        updated = await Voucher.findOneAndUpdate(
-          filter,
-          {
-            $inc: { usageCount: 1 },
-            $push: {
-              usageByUsers: {
-                userId: new mongoose.Types.ObjectId(userId),
-                usageCount: 1,
-                lastUsedAt: new Date(),
-              },
-            },
-          },
-          { new: true, runValidators: true }
-        ).lean<IVoucher>();
-      }
-
-      return updated ? this.toDomainEntity(updated) : null;
-    } catch (error) {
-      logger.error('VoucherRepository.incrementUsage error:', error);
-      throw new Error('Lỗi khi cập nhật lượt sử dụng mã giảm giá');
-    }
+  async list(filter: any = {}, options: any = {}) {
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      Voucher.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Voucher.countDocuments(filter)
+    ]);
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 }
+
+export const voucherRepository = new VoucherRepository();
+

@@ -1,83 +1,67 @@
 import { Request, Response } from 'express';
-import { ListUserVouchersUseCase } from '../../domain/usecases/voucher/ListUserVouchers.usecase';
-import { ValidateVoucherUseCase } from '../../domain/usecases/voucher/ValidateVoucher.usecase';
-import { VoucherMapper } from '../dto/voucher/Voucher.dto';
+import { voucherService } from '../../services/voucher/VoucherService';
+import { voucherRepository } from '../../data/repositories/VoucherRepository';
 import { logger } from '../../shared/utils/logger';
 
 export class VoucherController {
-  constructor(
-    private readonly listUserVouchersUseCase: ListUserVouchersUseCase,
-    private readonly validateVoucherUseCase: ValidateVoucherUseCase
-  ) {}
-
-  listUserVouchers = async (req: Request, res: Response) => {
+  async create(req: Request, res: Response) {
     try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        res.status(401).json({ message: 'Vui lòng đăng nhập' });
-        return;
-      }
-
-      const { minSubtotal } = req.query;
-      const vouchers = await this.listUserVouchersUseCase.execute(userId, {
-        minSubtotal: minSubtotal ? Number(minSubtotal) : undefined,
-      });
-
-      res.status(200).json({
-        message: 'Lấy danh sách mã giảm giá thành công',
-        data: vouchers.map((voucher) => VoucherMapper.toDTO(voucher)),
-      });
-    } catch (error) {
-      logger.error('VoucherController.listUserVouchers error:', error);
-      res.status(500).json({
-        message: 'Lỗi khi lấy danh sách mã giảm giá',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      const adminId = req.user?.userId;
+      const payload = { ...req.body, createdBy: adminId };
+      const created = await voucherService.create(payload);
+      return res.json({ success: true, data: created });
+    } catch (err: any) {
+      logger.error('VoucherController.create error', err);
+      return res.status(400).json({ success: false, message: err.message || 'Error' });
     }
-  };
+  }
 
-  applyVoucher = async (req: Request, res: Response) => {
+  async issueToUser(req: Request, res: Response) {
     try {
-      const userId = req.user?.userId;
-      if (!userId) {
-        res.status(401).json({ message: 'Vui lòng đăng nhập' });
-        return;
-      }
-
-      const { code, subtotal } = req.body;
-
-      if (!code || typeof code !== 'string') {
-        res.status(400).json({ message: 'Vui lòng nhập mã giảm giá' });
-        return;
-      }
-
-      if (subtotal === undefined || Number.isNaN(Number(subtotal))) {
-        res.status(400).json({ message: 'Thiếu thông tin giá trị đơn hàng' });
-        return;
-      }
-
-      const result = await this.validateVoucherUseCase.execute({
-        userId,
-        code,
-        subtotal: Number(subtotal),
-      });
-
-      res.status(200).json({
-        message: 'Áp dụng mã giảm giá thành công',
-        data: {
-          voucher: VoucherMapper.toDTO(result.voucher),
-          discount: result.discount,
-        },
-      });
-    } catch (error) {
-      logger.error('VoucherController.applyVoucher error:', error);
-
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-        return;
-      }
-
-      res.status(500).json({ message: 'Lỗi khi áp dụng mã giảm giá' });
+      const voucherId = req.params.id;
+      const { userId } = req.body;
+      const adminId = req.user?.userId;
+      await voucherService.issueToUser(voucherId, userId, adminId);
+      return res.json({ success: true });
+    } catch (err: any) {
+      logger.error('VoucherController.issueToUser error', err);
+      return res.status(400).json({ success: false, message: err.message || 'Error' });
     }
-  };
+  }
+
+  async redeem(req: Request, res: Response) {
+    try {
+      const userId = req.user?.userId as string;
+      const { code, orderId, cartTotal } = req.body;
+      const result = await voucherService.redeem(userId, code, { orderId, cartTotal });
+      return res.json({ success: true, data: result });
+    } catch (err: any) {
+      logger.error('VoucherController.redeem error', err);
+      return res.status(400).json({ success: false, message: err.message || 'Error' });
+    }
+  }
+
+  async listUserVouchers(req: Request, res: Response) {
+    try {
+      const userId = req.user?.userId as string;
+      const docs = await voucherRepository.list({ $or: [{ assignedTo: userId }, { assignedTo: null }] }, { limit: 50 });
+      return res.json({ success: true, data: docs });
+    } catch (err: any) {
+      logger.error('VoucherController.listUserVouchers error', err);
+      return res.status(400).json({ success: false, message: err.message || 'Error' });
+    }
+  }
+
+  async refundByOrder(req: Request, res: Response) {
+    try {
+      const { orderId } = req.body;
+      await voucherService.refundByOrder(orderId);
+      return res.json({ success: true });
+    } catch (err: any) {
+      logger.error('VoucherController.refundByOrder error', err);
+      return res.status(400).json({ success: false, message: err.message || 'Error' });
+    }
+  }
 }
+
+export const voucherController = new VoucherController();
