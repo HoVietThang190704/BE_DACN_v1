@@ -303,10 +303,9 @@ export class ProductController {
     try {
       const { id } = req.params;
 
-      // Execute use case
       await this.deleteProductUseCase.execute(id);
 
-      logger.info(`Product deleted: ${id}`);
+      logger.info(`Product soft-deleted: ${id}`);
 
       res.status(200).json({
         success: true,

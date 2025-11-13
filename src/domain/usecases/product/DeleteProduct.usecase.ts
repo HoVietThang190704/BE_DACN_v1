@@ -14,29 +14,19 @@ export class DeleteProductUseCase {
   constructor(private productRepository: IProductRepository) {}
 
   async execute(productId: string): Promise<boolean> {
-    // Check if product exists
     const product = await this.productRepository.findById(productId);
     if (!product) {
       throw new Error('Không tìm thấy sản phẩm');
     }
 
-    // Check if already deleted (inStock = false and stockQuantity = 0)
-    if (!product.inStock && product.stockQuantity === 0) {
-      throw new Error('Sản phẩm đã bị xóa trước đó');
-    }
+    await this.cleanupRelatedData(productId, product.images);
 
-    // Perform soft delete by setting inStock to false and stockQuantity to 0
-    const deleted = await this.productRepository.update(productId, {
-      inStock: false,
-      stockQuantity: 0
-    });
-
+    const deleted = await this.productRepository.delete(productId);
     if (!deleted) {
       throw new Error('Không thể xóa sản phẩm');
     }
 
-    logger.info(`Product deleted: ${productId} - ${product.name}`);
-
+    logger.info(`Product permanently deleted: ${productId} - ${product.name}`);
     return true;
   }
 
@@ -87,32 +77,8 @@ export class DeleteProductUseCase {
       throw new Error('Vui lòng xóa mềm sản phẩm trước khi xóa vĩnh viễn');
     }
 
-    // 1) Delete product images from Cloudinary (if any)
-    try {
-      if (product.images && Array.isArray(product.images)) {
-        for (const imageUrl of product.images) {
-          try {
-            const publicId = this.extractPublicIdFromUrl(imageUrl);
-            if (publicId) await deleteFromCloudinary(publicId);
-          } catch (err) {
-            logger.error('Error deleting product image from Cloudinary:', err);
-          }
-        }
-      }
-    } catch (err) {
-      logger.error('Error while cleaning up product images:', err);
-    }
+    await this.cleanupRelatedData(productId, product.images);
 
-    // 2) Remove product references from all wishlists and carts
-    try {
-      const prodObj = new mongoose.Types.ObjectId(productId);
-      await Wishlist.updateMany({}, { $pull: { items: { productId: prodObj } } });
-      await Cart.updateMany({}, { $pull: { items: { productId: prodObj } } });
-    } catch (err) {
-      logger.error('Error cleaning up references in carts/wishlists:', err);
-    }
-
-    // 3) Delete the product document
     const deleted = await this.productRepository.delete(productId);
     if (!deleted) {
       throw new Error('Không thể xóa vĩnh viễn sản phẩm');
@@ -121,6 +87,40 @@ export class DeleteProductUseCase {
     logger.warn(`Product permanently deleted: ${productId} - ${product.name}`);
 
     return true;
+  }
+
+  private async cleanupRelatedData(productId: string, images?: string[]): Promise<void> {
+    await this.removeImages(images);
+    await this.purgeFromCartsAndWishlists(productId);
+  }
+
+  private async removeImages(images?: string[]): Promise<void> {
+    if (!images || images.length === 0) {
+      return;
+    }
+
+    for (const imageUrl of images) {
+      try {
+        const publicId = this.extractPublicIdFromUrl(imageUrl);
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+      } catch (error) {
+        logger.error('Error deleting product image from Cloudinary:', error);
+      }
+    }
+  }
+
+  private async purgeFromCartsAndWishlists(productId: string): Promise<void> {
+    try {
+      const prodObj = new mongoose.Types.ObjectId(productId);
+      await Promise.all([
+        Wishlist.updateMany({}, { $pull: { items: { productId: prodObj } } }),
+        Cart.updateMany({}, { $pull: { items: { productId: prodObj } } })
+      ]);
+    } catch (error) {
+      logger.error('Error cleaning up references in carts/wishlists:', error);
+    }
   }
 
   // Helper to extract Cloudinary public id (same logic used in UploadProductImages.usecase)

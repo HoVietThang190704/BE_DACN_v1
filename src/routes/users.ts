@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { userController, addressController, orderController, voucherController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
+import { isShopOwnerOrAdmin } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
 import { updateProfileSchema } from '../shared/validation/user.schema';
 import { uploadAvatar } from '../shared/middleware/upload';
@@ -538,6 +539,19 @@ userRoutes.post('/me/orders', authenticate, (req, res) => {
   orderController.createOrder(req, res);
 });
 
+// Managed order routes for sellers/admins
+userRoutes.get('/me/manage/orders', authenticate, isShopOwnerOrAdmin, (req, res) => {
+  orderController.getManagedOrders(req, res);
+});
+
+userRoutes.get('/me/manage/orders/:id', authenticate, isShopOwnerOrAdmin, (req, res) => {
+  orderController.getManagedOrderById(req, res);
+});
+
+userRoutes.patch('/me/manage/orders/:id/status', authenticate, isShopOwnerOrAdmin, (req, res) => {
+  orderController.updateManagedOrderStatus(req, res);
+});
+
 /**
  * @swagger
  * /api/users/me/orders:
@@ -768,6 +782,10 @@ userRoutes.post('/me/orders/:id/cancel', authenticate, (req, res) => {
  */
 userRoutes.put('/me/orders/:id/payment-status', authenticate, (req, res) => {
   orderController.updatePaymentStatus(req, res);
+});
+
+userRoutes.post('/me/orders/:id/confirm-delivered', authenticate, (req, res) => {
+  orderController.confirmOrderDelivered(req, res);
 });
 
 // Voucher routes

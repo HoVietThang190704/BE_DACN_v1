@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../shared/middleware/errorHandler';
-import { repositories, shopController } from '../di/container';
+import { repositories, shopController, orderController } from '../di/container';
 import { ShopMapper } from '../presentation/dto/shop/Shop.dto';
 import { authenticate } from '../shared/middleware/auth';
-import { authorizeRoles } from '../shared/middleware/authorize';
+import { authorizeRoles, isShopOwnerOrAdmin } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
 import { createShopSchema, updateShopSchema } from '../shared/validation/shop.schema';
 

@@ -3,6 +3,7 @@ import { ProductEntity } from '../entities/Product.entity';
 export interface ProductFilters {
   search?: string;
   category?: string;
+  categoryIds?: string[];
   owner?: string;
   minPrice?: number;
   maxPrice?: number;

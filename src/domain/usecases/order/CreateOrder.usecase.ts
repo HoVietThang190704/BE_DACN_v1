@@ -91,6 +91,7 @@ export class CreateOrderUseCase {
 
     const orderItems = [];
     let subtotal = 0;
+    let managerId: string | null = null;
 
     for (const item of selectedItems) {
       const product = await this.productRepository.findById(item.productId);
@@ -101,6 +102,16 @@ export class CreateOrderUseCase {
       if (!product.inStock || (product.stockQuantity ?? 0) < item.quantity) {
         throw new Error(`Sản phẩm ${product.name} không đủ hàng trong kho`);
       }
+
+      if (!product.owner?.id) {
+        throw new Error('Không xác định được người bán của sản phẩm');
+      }
+
+      if (managerId && managerId !== product.owner.id) {
+        throw new Error('Giỏ hàng chứa sản phẩm từ nhiều người bán. Vui lòng thanh toán riêng từng người bán.');
+      }
+
+      managerId = product.owner.id;
 
       const price = item.price ?? product.price;
       const itemSubtotal = price * item.quantity;
@@ -167,6 +178,10 @@ export class CreateOrderUseCase {
 
     const shippingFee = this.determineShippingFee(subtotal);
 
+    if (!managerId) {
+      throw new Error('Không xác định được người quản lý đơn hàng');
+    }
+
     let discount = 0;
     let appliedVoucherId: string | undefined;
 
@@ -187,6 +202,7 @@ export class CreateOrderUseCase {
 
     const order = await this.orderRepository.create({
       userId,
+      managerId,
       items: orderItems,
       shippingAddress: resolvedAddress,
       subtotal,

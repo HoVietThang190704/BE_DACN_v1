@@ -15,6 +15,7 @@ import { WishlistRepository } from '../data/repositories/WishlistRepository';
 import { TicketRepository } from '../data/repositories/TicketRepository';
 import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
 import { VoucherRepository } from '../data/repositories/VoucherRepository';
+import { PostRepository } from '../data/repositories/PostRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -48,6 +49,7 @@ import { GetShopByIdUseCase } from '../domain/usecases/shop/GetShopById.usecase'
 import { FindPendingShopsUseCase } from '../domain/usecases/shop/FindPendingShops.usecase';
 import { ApproveShopUseCase } from '../domain/usecases/shop/ApproveShop.usecase';
 import { RejectShopUseCase } from '../domain/usecases/shop/RejectShop.usecase';
+import { GetShopByOwnerIdUseCase } from '../domain/usecases/shop/GetShopByOwnerId.usecase';
 
 // Address Use Cases
 import { GetUserAddressesUseCase } from '../domain/usecases/address/GetUserAddresses.usecase';
@@ -65,6 +67,10 @@ import { CreateOrderUseCase } from '../domain/usecases/order/CreateOrder.usecase
 import { ValidateVoucherUseCase } from '../domain/usecases/voucher/ValidateVoucher.usecase';
 import { ListUserVouchersUseCase } from '../domain/usecases/voucher/ListUserVouchers.usecase';
 import { UpdatePaymentStatusUseCase } from '../domain/usecases/order/UpdatePaymentStatusUseCase';
+import { GetManagedOrdersUseCase } from '../domain/usecases/order/GetManagedOrders.usecase';
+import { GetManagedOrderByIdUseCase } from '../domain/usecases/order/GetManagedOrderById.usecase';
+import { UpdateOrderStatusUseCase } from '../domain/usecases/order/UpdateOrderStatus.usecase';
+import { ConfirmOrderDeliveredUseCase } from '../domain/usecases/order/ConfirmOrderDelivered.usecase';
 // Cart Use Cases
 import { GetCartUseCase } from '../domain/usecases/cart/GetCart.usecase';
 import { AddCartItemUseCase } from '../domain/usecases/cart/AddCartItem.usecase';
@@ -96,6 +102,11 @@ import { CartController } from '../presentation/controllers/CartController';
 import { WishlistController } from '../presentation/controllers/WishlistController';
 import { TicketController } from '../presentation/controllers/TicketController';
 import { VoucherController } from '../presentation/controllers/VoucherController';
+import { SearchController } from '../presentation/controllers/SearchController';
+import { SearchProductsUseCase } from '../domain/usecases/search/SearchProducts.usecase';
+import { SearchUsersUseCase } from '../domain/usecases/search/SearchUsers.usecase';
+import { GlobalSearchUseCase } from '../domain/usecases/search/GlobalSearch.usecase';
+import { GetUsersByIdsUseCase } from '../domain/usecases/user/GetUsersByIds.usecase';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -109,6 +120,7 @@ const wishlistRepository = new WishlistRepository();
 const ticketRepository = new TicketRepository();
 const ticketCommentRepository = new TicketCommentRepository();
 const voucherRepository = new VoucherRepository();
+const postRepository = new PostRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -117,6 +129,7 @@ const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository);
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository);
 const updateUserAvatarUseCase = new UpdateUserAvatarUseCase(userRepository);
+const getUsersByIdsUseCase = new GetUsersByIdsUseCase(userRepository);
 
 // Product Use Cases
 const getProductsUseCase = new GetProductsUseCase(productRepository);
@@ -126,6 +139,11 @@ const createProductUseCase = new CreateProductUseCase(productRepository, categor
 const updateProductUseCase = new UpdateProductUseCase(productRepository);
 const deleteProductUseCase = new DeleteProductUseCase(productRepository);
 const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
+const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository);
+
+// Search Use Cases
+const searchUsersUseCase = new SearchUsersUseCase(userRepository);
+const globalSearchUseCase = new GlobalSearchUseCase(searchProductsUseCase, searchUsersUseCase, postRepository);
 
 // Category Use Cases
 const getCategoriesTreeUseCase = new GetCategoriesTreeUseCase(categoryRepository);
@@ -144,6 +162,7 @@ const getShopByIdUseCase = new GetShopByIdUseCase(shopRepository);
 const findPendingShopsUseCase = new FindPendingShopsUseCase(shopRepository);
 const approveShopUseCase = new ApproveShopUseCase(shopRepository, userRepository);
 const rejectShopUseCase = new RejectShopUseCase(shopRepository);
+const getShopByOwnerIdUseCase = new GetShopByOwnerIdUseCase(shopRepository);
 
 // Address Use Cases
 const getUserAddressesUseCase = new GetUserAddressesUseCase(addressRepository);
@@ -167,6 +186,10 @@ const createOrderUseCase = new CreateOrderUseCase(
   validateVoucherUseCase
 );
 const updatePaymentStatusUseCase = new UpdatePaymentStatusUseCase(orderRepository);
+const getManagedOrdersUseCase = new GetManagedOrdersUseCase(orderRepository);
+const getManagedOrderByIdUseCase = new GetManagedOrderByIdUseCase(orderRepository);
+const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
+const confirmOrderDeliveredUseCase = new ConfirmOrderDeliveredUseCase(orderRepository);
 const listUserVouchersUseCase = new ListUserVouchersUseCase(voucherRepository);
 
 // Cart use case instances
@@ -241,8 +264,13 @@ export const orderController = new OrderController(
   getOrderByIdUseCase,
   cancelOrderUseCase,
   getOrderStatisticsUseCase,
-  createOrderUseCase
-  , updatePaymentStatusUseCase
+  createOrderUseCase,
+  updatePaymentStatusUseCase,
+  getManagedOrdersUseCase,
+  getManagedOrderByIdUseCase,
+  updateOrderStatusUseCase,
+  confirmOrderDeliveredUseCase,
+  getUsersByIdsUseCase
 );
 
 export const cartController = new CartController(
@@ -273,6 +301,7 @@ export const voucherController = new VoucherController(
   listUserVouchersUseCase,
   validateVoucherUseCase
 );
+export const searchController = new SearchController(globalSearchUseCase);
 
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
@@ -286,6 +315,7 @@ export const repositories = {
   ,wishlistRepository
   ,ticketRepository
   ,voucherRepository
+  ,postRepository
 };
 
 export const useCases = {
@@ -295,6 +325,7 @@ export const useCases = {
   resetPasswordUseCase,
   changePasswordUseCase,
   updateUserAvatarUseCase,
+  getUsersByIdsUseCase,
   // Product
   getProductsUseCase,
   getProductByIdUseCase,
@@ -303,6 +334,10 @@ export const useCases = {
   updateProductUseCase,
   deleteProductUseCase,
   uploadProductImagesUseCase,
+  searchProductsUseCase,
+  // Search
+  searchUsersUseCase,
+  globalSearchUseCase,
   // Category
   getCategoriesTreeUseCase,
   getCategoryByIdUseCase,
@@ -323,6 +358,20 @@ export const useCases = {
   cancelOrderUseCase,
   getOrderStatisticsUseCase,
   createOrderUseCase,
+  updatePaymentStatusUseCase,
+  getManagedOrdersUseCase,
+  getManagedOrderByIdUseCase,
+  updateOrderStatusUseCase,
+  confirmOrderDeliveredUseCase,
+  // Shop
+  createShopUseCase,
+  updateShopUseCase,
+  deleteShopUseCase,
+  getShopByIdUseCase,
+  findPendingShopsUseCase,
+  approveShopUseCase,
+  rejectShopUseCase,
+  getShopByOwnerIdUseCase,
   // Voucher
   validateVoucherUseCase,
   listUserVouchersUseCase,

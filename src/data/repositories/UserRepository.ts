@@ -2,6 +2,7 @@ import { IUserRepository } from '../../domain/repositories/IUserRepository';
 import { UserEntity } from '../../domain/entities/User.entity';
 import { User as UserModel, IUser } from '../../models/users/User';
 import { logger } from '../../shared/utils/logger';
+import mongoose from 'mongoose';
 
 export class UserRepository implements IUserRepository {
   async create(user: UserEntity): Promise<UserEntity> {
@@ -37,6 +38,24 @@ export class UserRepository implements IUserRepository {
   async findByPhone(phone: string): Promise<UserEntity | null> {
     const user = await UserModel.findOne({ phone });
     return user ? this.mapToEntity(user) : null;
+  }
+
+  async findManyByIds(ids: string[]): Promise<UserEntity[]> {
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
+    const objectIds = uniqueIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    if (objectIds.length === 0) {
+      return [];
+    }
+
+    const users = await UserModel.find({ _id: { $in: objectIds } });
+    return users.map(user => this.mapToEntity(user));
   }
 
   async update(id: string, data: Partial<UserEntity>): Promise<UserEntity | null> {
@@ -106,6 +125,7 @@ export class UserRepository implements IUserRepository {
   async count(filters?: {
     role?: string;
     isVerified?: boolean;
+    searchTerm?: string;
   }): Promise<number> {
     const query: any = {};
 
@@ -115,6 +135,14 @@ export class UserRepository implements IUserRepository {
 
     if (filters?.isVerified !== undefined) {
       query.isVerified = filters.isVerified;
+    }
+
+    if (filters?.searchTerm) {
+      query.$or = [
+        { email: { $regex: filters.searchTerm, $options: 'i' } },
+        { userName: { $regex: filters.searchTerm, $options: 'i' } },
+        { phone: { $regex: filters.searchTerm, $options: 'i' } }
+      ];
     }
 
     return UserModel.countDocuments(query);

@@ -295,4 +295,45 @@ export class CategoryRepository implements ICategoryRepository {
       throw new Error('Lỗi khi giảm số lượng sản phẩm');
     }
   }
+
+  async searchByName(term: string, limit: number = 10): Promise<CategoryEntity[]> {
+    try {
+      const keyword = term?.trim();
+      if (!keyword) {
+        return [];
+      }
+
+      const normalizedLimit = Math.min(Math.max(limit, 1), 50);
+
+      const textQuery = { $text: { $search: keyword } } as Record<string, unknown>;
+      const baseFilter = { isActive: true } as Record<string, unknown>;
+
+      let categories = await Category.find({ ...baseFilter, ...textQuery })
+        .limit(normalizedLimit)
+        .lean();
+
+      if (!categories || categories.length === 0) {
+        const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        categories = await Category.find({
+          ...baseFilter,
+          $or: [
+            { name: regex },
+            { nameEn: regex },
+            { slug: regex }
+          ]
+        })
+          .limit(normalizedLimit)
+          .lean();
+      }
+
+      if (!categories) {
+        return [];
+      }
+
+      return categories.map(c => this.toDomainEntity(c as unknown as ICategory));
+    } catch (error) {
+      logger.error('CategoryRepository.searchByName error:', error);
+      return [];
+    }
+  }
 }

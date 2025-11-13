@@ -1,127 +1,48 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface VoucherUsage {
-  userId: mongoose.Types.ObjectId;
-  usageCount: number;
-  lastUsedAt?: Date;
-}
-
 export interface IVoucher extends Document {
-  _id: mongoose.Types.ObjectId;
   code: string;
+  title?: string;
   description?: string;
-  discountType: 'percentage' | 'fixed';
-  discountValue: number;
-  minOrderValue?: number;
-  maxDiscountValue?: number;
-  startDate?: Date;
-  endDate?: Date;
-  usageLimit?: number;
-  usageCount: number;
-  perUserLimit?: number;
-  usageByUsers: VoucherUsage[];
+  type: 'fixed' | 'percent';
+  value: number;
+  currency?: string;
+  maxDiscountAmount?: number;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  startsAt?: Date;
+  expiresAt?: Date;
+  usageLimit?: number | null;
+  usageCount: number;
+  perUserLimit?: number | null;
+  assignedTo?: mongoose.Types.ObjectId | null;
+  createdBy?: mongoose.Types.ObjectId | null;
+  metadata?: Record<string, any>;
 }
 
-const VoucherUsageSchema = new Schema<VoucherUsage>(
+const VoucherSchema: Schema<IVoucher> = new Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    usageCount: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
-    lastUsedAt: {
-      type: Date,
-    },
+    code: { type: String, required: true, unique: true, index: true, uppercase: true, trim: true },
+    title: { type: String },
+    description: { type: String },
+    type: { type: String, enum: ['fixed', 'percent'], required: true },
+    value: { type: Number, required: true },
+    currency: { type: String, default: 'VND' },
+    maxDiscountAmount: { type: Number },
+    isActive: { type: Boolean, default: true },
+    startsAt: { type: Date },
+    expiresAt: { type: Date },
+    usageLimit: { type: Number, default: null },
+    usageCount: { type: Number, default: 0 },
+    perUserLimit: { type: Number, default: null },
+    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    metadata: { type: Schema.Types.Mixed }
   },
-  { _id: false }
+  { timestamps: true, collection: 'vouchers' }
 );
 
-const VoucherSchema = new Schema<IVoucher>(
-  {
-    code: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      uppercase: true,
-      index: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    discountType: {
-      type: String,
-      enum: ['percentage', 'fixed'],
-      required: true,
-    },
-    discountValue: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    minOrderValue: {
-      type: Number,
-      min: 0,
-    },
-    maxDiscountValue: {
-      type: Number,
-      min: 0,
-    },
-    startDate: {
-      type: Date,
-    },
-    endDate: {
-      type: Date,
-    },
-    usageLimit: {
-      type: Number,
-      min: 0,
-    },
-    usageCount: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
-    perUserLimit: {
-      type: Number,
-      min: 0,
-    },
-    usageByUsers: {
-      type: [VoucherUsageSchema],
-      default: [],
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
-    },
-  },
-  {
-    timestamps: true,
-    collection: 'vouchers',
-    toJSON: {
-      virtuals: true,
-      transform: function (_doc, ret) {
-        ret.id = ret._id.toString();
-        delete (ret as any)._id;
-        delete (ret as any).__v;
-        return ret;
-      },
-    },
-  }
-);
-
-VoucherSchema.index({ isActive: 1, endDate: 1 });
-VoucherSchema.index({ 'usageByUsers.userId': 1 });
+VoucherSchema.index({ isActive: 1, expiresAt: 1 });
 
 export const Voucher = mongoose.model<IVoucher>('Voucher', VoucherSchema);
+
+export default Voucher;
