@@ -31,6 +31,7 @@ import productReviewRoutes from './routes/productReviews';
 import { uploadRoutes } from './routes/upload';
 import { shopRoutes } from './routes/shops';
 import ticketRoutes from './routes/tickets';
+import voucherRoutes from './routes/vouchers';
 
 const app = express();
 
@@ -124,6 +125,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/vouchers', voucherRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
