@@ -297,10 +297,7 @@ export const ticketController = new TicketController(
   assignTicketUseCase,
   updateTicketStatusUseCase
 );
-export const voucherController = new VoucherController(
-  listUserVouchersUseCase,
-  validateVoucherUseCase
-);
+export const voucherController = new VoucherController();
 export const searchController = new SearchController(globalSearchUseCase);
 
 // ==================== EXPORTS FOR REUSE ====================

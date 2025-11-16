@@ -5,6 +5,7 @@ import { config } from '../config';
 import { logger } from '../shared/utils/logger';
 import { userController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
+import AuthGoogleController from '../presentation/controllers/AuthGoogleController';
 
 export const authRoutes = Router();
 
@@ -312,6 +313,32 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
       message: 'Lỗi server, vui lòng thử lại sau'
     });
   }
+});
+
+/**
+ * @swagger
+ * /api/auth/google/token:
+ *   post:
+ *     summary: Đăng nhập bằng Google (accept id_token từ frontend)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id_token
+ *             properties:
+ *               id_token:
+ *                 type: string
+ *                 example: "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công
+ */
+authRoutes.post('/google/token', async (req: Request, res: Response) => {
+  return AuthGoogleController.token(req, res);
 });
 
 /**

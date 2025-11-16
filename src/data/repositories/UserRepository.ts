@@ -35,6 +35,11 @@ export class UserRepository implements IUserRepository {
     return user ? this.mapToEntity(user) : null;
   }
 
+  async findByGoogleId(googleId: string): Promise<UserEntity | null> {
+    const user = await UserModel.findOne({ googleId });
+    return user ? this.mapToEntity(user) : null;
+  }
+
   async findByPhone(phone: string): Promise<UserEntity | null> {
     const user = await UserModel.findOne({ phone });
     return user ? this.mapToEntity(user) : null;

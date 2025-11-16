@@ -50,6 +50,12 @@ export const config = {
   AGORA_APP_CERT: process.env.AGORA_APP_CERT || '',
   AGORA_TOKEN_EXPIRE_SECONDS: parseInt(process.env.AGORA_TOKEN_EXPIRE_SECONDS || '3600', 10),
 
+  // VNPay
+  VNPAY_TMNCODE: process.env.VNPAY_TMNCODE || '',
+  VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || '',
+  VNPAY_PAYMENT_URL: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+  VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || '',
+
   // HTTPS (optional)
   SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
   SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',

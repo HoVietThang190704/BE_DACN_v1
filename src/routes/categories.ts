@@ -12,52 +12,14 @@ import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from
 
 export const categoryRoutes = Router();
 
-/**
- * @swagger
- * /api/categories/admin/categories:
- *   post:
- *     summary: Thêm danh mục mới (admin)
- *     tags: [Categories]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *     responses:
- *       201:
- *         description: Danh mục đã được tạo thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 description:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- */
-let nextCategoryId = 1;
-categoryRoutes.post('/admin/categories', (req, res) => {
-  const { name, description } = req.body;
-  const id = nextCategoryId++;
-  res.status(201).json({
-    id,
-    name,
-    description,
-    createdAt: new Date()
-  });
-});
+// Note: the old mock endpoint POST /api/categories/admin/categories was removed
+// because it did not persist data to the database and caused confusion.
+// Use the protected POST /api/categories endpoint (admin only) which calls
+// the proper controller and use-case to create real category documents.
+// Note: the old mock endpoint POST /api/categories/admin/categories was removed
+// because it did not persist data to the database and caused confusion.
+// Use the protected POST /api/categories endpoint (admin only) which calls
+// the proper controller and use-case to create real category documents.
 
 /**
  * @swagger
