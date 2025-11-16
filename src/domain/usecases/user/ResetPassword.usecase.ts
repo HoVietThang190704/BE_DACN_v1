@@ -1,5 +1,7 @@
 import { IUserRepository } from '../../repositories/IUserRepository';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { config } from '../../../config';
 
 /**
  * Use Case: Reset Password
@@ -24,8 +26,21 @@ export class ResetPasswordUseCase {
     }
 
     // 3. Find user by reset token
-    const user = await this.userRepository.findByResetPasswordToken(token);
-    
+    let user = await this.userRepository.findByResetPasswordToken(token);
+
+    // If token not found in DB, attempt JWT verification fallback (some flows may issue JWT tokens)
+    if (!user) {
+      try {
+        const payload: any = jwt.verify(token, config.JWT_SECRET);
+        const userId = payload.userId || payload.userID || payload.id || payload.sub;
+        if (userId) {
+          user = await this.userRepository.findById(userId);
+        }
+      } catch (err) {
+        // ignore - will throw below if still no user
+      }
+    }
+
     if (!user) {
       throw new Error('Token không hợp lệ hoặc đã hết hạn');
     }

@@ -62,6 +62,12 @@ export class VoucherController {
       return res.status(400).json({ success: false, message: err.message || 'Error' });
     }
   }
+
+  // Backwards-compatible alias so routes that call `applyVoucher` still work.
+  async applyVoucher(req: Request, res: Response) {
+    // Reuse redeem implementation which handles applying a voucher for a user
+    return this.redeem(req, res);
+  }
 }
 
 export const voucherController = new VoucherController();
