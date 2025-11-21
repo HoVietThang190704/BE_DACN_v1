@@ -43,10 +43,15 @@ export interface IUserRepository {
    */
   findAll(filters?: {
     role?: string;
+    roles?: string[];
     isVerified?: boolean;
     searchTerm?: string;
     limit?: number;
     offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    createdFrom?: Date | string;
+    createdTo?: Date | string;
   }): Promise<UserEntity[]>;
 
   /**
@@ -54,8 +59,11 @@ export interface IUserRepository {
    */
   count(filters?: {
     role?: string;
+    roles?: string[];
     isVerified?: boolean;
     searchTerm?: string;
+    createdFrom?: Date | string;
+    createdTo?: Date | string;
   }): Promise<number>;
 
   /**

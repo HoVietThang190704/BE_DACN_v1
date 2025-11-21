@@ -107,6 +107,8 @@ import { SearchProductsUseCase } from '../domain/usecases/search/SearchProducts.
 import { SearchUsersUseCase } from '../domain/usecases/search/SearchUsers.usecase';
 import { GlobalSearchUseCase } from '../domain/usecases/search/GlobalSearch.usecase';
 import { GetUsersByIdsUseCase } from '../domain/usecases/user/GetUsersByIds.usecase';
+import { GetUsersUseCase } from '../domain/usecases/user/GetUsers.usecase';
+import { AdminUserController } from '../presentation/controllers/AdminUserController';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -220,6 +222,10 @@ export const userController = new UserController(
   changePasswordUseCase,
   updateUserAvatarUseCase
 );
+
+// Admin user list use-case + controller
+const getUsersUseCase = new GetUsersUseCase(userRepository);
+export const adminUserController = new AdminUserController(getUsersUseCase);
 
 export const productController = new ProductController(
   getProductsUseCase,

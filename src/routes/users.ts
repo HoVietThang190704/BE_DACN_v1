@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { userController, addressController, orderController, voucherController } from '../di/container';
+import { userController, addressController, orderController, voucherController, repositories, adminUserController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
-import { isShopOwnerOrAdmin } from '../shared/middleware/authorize';
+import { isShopOwnerOrAdmin, isAdmin } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
 import { updateProfileSchema } from '../shared/validation/user.schema';
+import { UserMapper } from '../presentation/dto/user/User.dto';
 import { uploadAvatar } from '../shared/middleware/upload';
 
 export const userRoutes = Router();
@@ -656,3 +657,42 @@ userRoutes.get('/me/vouchers', authenticate, (req, res) => {
 userRoutes.post('/me/vouchers/apply', authenticate, (req, res) => {
   voucherController.applyVoucher(req, res);
 });
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Lấy danh sách người dùng (Admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           example: customer
+ *       - in: query
+ *         name: isVerified
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           example: Nguyen
+ *     responses:
+ *       200:
+ *         description: Danh sách người dùng trả về thành công
+ */
+userRoutes.get('/', authenticate, isAdmin, (req, res) => adminUserController.listUsers(req, res));
