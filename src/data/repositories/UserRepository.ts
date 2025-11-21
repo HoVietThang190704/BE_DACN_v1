@@ -90,14 +90,22 @@ export class UserRepository implements IUserRepository {
 
   async findAll(filters?: {
     role?: string;
+    roles?: string[];
     isVerified?: boolean;
     searchTerm?: string;
     limit?: number;
     offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    createdFrom?: Date | string;
+    createdTo?: Date | string;
   }): Promise<UserEntity[]> {
     const query: any = {};
 
-    if (filters?.role) {
+    // role / roles
+    if (filters?.roles && Array.isArray(filters.roles) && filters.roles.length > 0) {
+      query.role = { $in: filters.roles };
+    } else if (filters?.role) {
       query.role = filters.role;
     }
 
@@ -105,6 +113,7 @@ export class UserRepository implements IUserRepository {
       query.isVerified = filters.isVerified;
     }
 
+    // search
     if (filters?.searchTerm) {
       query.$or = [
         { email: { $regex: filters.searchTerm, $options: 'i' } },
@@ -113,7 +122,24 @@ export class UserRepository implements IUserRepository {
       ];
     }
 
+    // createdAt range
+    if (filters?.createdFrom || filters?.createdTo) {
+      query.createdAt = {};
+      if (filters.createdFrom) query.createdAt.$gte = new Date(filters.createdFrom as any);
+      if (filters.createdTo) query.createdAt.$lte = new Date(filters.createdTo as any);
+    }
+
     let queryBuilder = UserModel.find(query);
+
+    // sorting
+    if (filters?.sortBy) {
+      const order = filters.sortOrder === 'asc' ? 1 : -1;
+      const sortObj: any = {};
+      sortObj[filters.sortBy] = order;
+      queryBuilder = queryBuilder.sort(sortObj);
+    } else {
+      queryBuilder = queryBuilder.sort({ createdAt: -1 });
+    }
 
     if (filters?.limit) {
       queryBuilder = queryBuilder.limit(filters.limit);
@@ -129,12 +155,17 @@ export class UserRepository implements IUserRepository {
 
   async count(filters?: {
     role?: string;
+    roles?: string[];
     isVerified?: boolean;
     searchTerm?: string;
+    createdFrom?: Date | string;
+    createdTo?: Date | string;
   }): Promise<number> {
     const query: any = {};
 
-    if (filters?.role) {
+    if (filters?.roles && Array.isArray(filters.roles) && filters.roles.length > 0) {
+      query.role = { $in: filters.roles };
+    } else if (filters?.role) {
       query.role = filters.role;
     }
 
@@ -148,6 +179,12 @@ export class UserRepository implements IUserRepository {
         { userName: { $regex: filters.searchTerm, $options: 'i' } },
         { phone: { $regex: filters.searchTerm, $options: 'i' } }
       ];
+    }
+
+    if (filters?.createdFrom || filters?.createdTo) {
+      query.createdAt = {};
+      if (filters.createdFrom) query.createdAt.$gte = new Date(filters.createdFrom as any);
+      if (filters.createdTo) query.createdAt.$lte = new Date(filters.createdTo as any);
     }
 
     return UserModel.countDocuments(query);
