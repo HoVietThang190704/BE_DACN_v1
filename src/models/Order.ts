@@ -13,7 +13,7 @@ export type OrderStatus =
   | 'cancelled' 
   | 'refunded';
 
-export type PaymentMethod = 'cod' | 'momo' | 'zalopay' | 'vnpay' | 'card';
+export type PaymentMethod = 'cod' | 'vnpay';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface OrderStatusHistoryEntry {
@@ -187,7 +187,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentMethod: {
       type: String,
-      enum: ['cod', 'momo', 'zalopay', 'vnpay', 'card'],
+      enum: ['cod', 'vnpay'],
       required: [true, 'Phương thức thanh toán là bắt buộc']
     },
     paymentStatus: {

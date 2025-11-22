@@ -12,12 +12,12 @@ export interface TicketDTO {
   createdBy: string;
   assignedTo?: string | null;
   relatedShopId?: string | null;
+  relatedShopReference?: string | null;
   relatedOrderId?: string | null;
+  relatedOrderReference?: string | null;
   tags?: string[];
   attachments?: any[];
   commentsCount?: number;
-  slaDueAt?: string | null;
-  slaBreached?: boolean;
   isPublic?: boolean;
   resolutionMessage?: string | null;
   resolvedAt?: string | null;
@@ -38,12 +38,12 @@ export class TicketMapper {
       createdBy: String(doc.created_by),
       assignedTo: doc.assigned_to ? String(doc.assigned_to) : null,
       relatedShopId: doc.related_shop_id ? String(doc.related_shop_id) : null,
+  relatedShopReference: doc.related_shop_reference || null,
       relatedOrderId: doc.related_order_id ? String(doc.related_order_id) : null,
+  relatedOrderReference: doc.related_order_reference || null,
       tags: doc.tags || [],
       attachments: doc.attachments || [],
-      commentsCount: doc.comments_count || 0,
-      slaDueAt: doc.sla_due_at ? new Date(doc.sla_due_at).toISOString() : null,
-      slaBreached: !!doc.sla_breached,
+  commentsCount: doc.comments_count || 0,
       isPublic: !!doc.is_public,
       resolutionMessage: doc.resolution_message || null,
       resolvedAt: doc.resolved_at ? new Date(doc.resolved_at).toISOString() : null,

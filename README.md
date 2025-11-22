@@ -41,6 +41,7 @@ NODE_ENV=development
 MONGODB_URI=your-mongodb-connection-string
 JWT_SECRET=your-super-secure-jwt-secret
 PORT=3000
+FRONTEND_URL=http://localhost:3000
 # Optional: enable HTTPS by providing certificate file paths
 SSL_KEY_PATH=/absolute/path/to/private.key
 SSL_CERT_PATH=/absolute/path/to/certificate.crt
@@ -189,6 +190,12 @@ npm start
 - Lịch sử canh tác và thu hoạch  
 - Chứng nhận an toàn thực phẩm
 
+### 💳 Thanh toán VNPay (Sandbox)
+1. Cấu hình các biến môi trường `VNPAY_TMNCODE`, `VNPAY_HASH_SECRET`, `VNPAY_PAYMENT_URL`, `VNPAY_RETURN_URL` và `FRONTEND_URL`.
+2. Endpoint `POST /api/payments/vnpay/create` (đã yêu cầu đăng nhập) nhận `orderId` và trả về `paymentUrl` để redirect người dùng đến VNPay.
+3. VNPay redirect về `VNPAY_RETURN_URL` → backend xác thực checksum, cập nhật trạng thái đơn hàng và chuyển hướng người dùng đến trang kết quả trên frontend (`/payment/vnpay/result`).
+4. Chỉ hỗ trợ **COD** và **VNPay** theo yêu cầu mới, toàn bộ UI/Swagger đã được cập nhật tương ứng.
+
 ## 📦 Deploy lên Render.com
 
 Xem chi tiết trong file [`DEPLOY.md`](./DEPLOY.md)
@@ -217,6 +224,11 @@ JWT_EXPIRES_IN=7d
 # External APIs (TODO)
 VIETNAM_MAP_API_KEY=your-api-key
 PAYMENT_GATEWAY_KEY=your-payment-key
+# VNPay Sandbox configuration
+VNPAY_TMNCODE=your-sandbox-tmncode
+VNPAY_HASH_SECRET=your-sandbox-secret
+VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:5000/api/payments/vnpay/callback
 ```
 
 ## 📁 Cấu trúc thư mục

@@ -7,6 +7,7 @@ export interface ILivestream extends Document {
   description: string;
   thumbnail?: string;
   streamUrl?: string;
+  hostAvatar?: string;
   status: LivestreamStatus;
   hostId?: string;
   hostName?: string;
@@ -23,6 +24,7 @@ const LivestreamSchema: Schema = new Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, required: false, default: '' },
   thumbnail: { type: String, default: '' },
+  hostAvatar: { type: String, default: '' },
   streamUrl: { type: String, default: '' },
   status: { type: String, enum: ['LIVE', 'SCHEDULED', 'ENDED'], default: 'SCHEDULED' },
   hostId: { type: String, default: '' },

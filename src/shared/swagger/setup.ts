@@ -201,7 +201,7 @@ const options: swaggerJSDoc.Options = {
             },
             paymentMethod: {
               type: 'string',
-              enum: ['cod', 'momo', 'zalopay', 'vnpay', 'card'],
+              enum: ['cod', 'vnpay'],
               example: 'cod'
             },
             paymentStatus: {

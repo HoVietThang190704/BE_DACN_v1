@@ -8,6 +8,8 @@ export type CreateTicketDTO = {
   priority?: string;
   relatedShopId?: string;
   relatedOrderId?: string;
+  relatedShopReference?: string;
+  relatedOrderReference?: string;
   attachments?: any[];
   isPublic?: boolean;
   createdBy: string;
@@ -26,6 +28,8 @@ export class CreateTicketUseCase {
       createdBy: input.createdBy,
       relatedShopId: input.relatedShopId,
       relatedOrderId: input.relatedOrderId,
+      relatedShopReference: input.relatedShopReference,
+      relatedOrderReference: input.relatedOrderReference,
       attachments: input.attachments || [],
       isPublic: input.isPublic ?? true
     };

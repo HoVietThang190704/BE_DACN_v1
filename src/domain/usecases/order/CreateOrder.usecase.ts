@@ -27,6 +27,8 @@ export interface CreateOrderInput {
   shippingAddressId?: string;
   shippingAddress?: ShippingAddressInput;
   saveShippingAddress?: boolean;
+  productId?: string; // buy now product id
+  quantity?: number; // buy now product quantity
 }
 
 export class CreateOrderUseCase {
@@ -76,14 +78,30 @@ export class CreateOrderUseCase {
       saveShippingAddress,
     } = input;
 
-    const cart = await this.cartRepository.findByUserId(userId);
-    if (!cart || cart.items.length === 0) {
-      throw new Error('Giỏ hàng của bạn đang trống');
+    const buyNow = !!input.productId;
+    let cart = null;
+    if (!buyNow) {
+      cart = await this.cartRepository.findByUserId(userId);
+      if (!cart || cart.items.length === 0) {
+        throw new Error('Giỏ hàng của bạn đang trống');
+      }
     }
 
-    const selectedItems = cartItemIds && cartItemIds.length > 0
-      ? cart.items.filter((item) => cartItemIds.includes(item.id))
-      : cart.items;
+    let selectedItems = [] as any[];
+    if (buyNow) {
+      const qty = Math.max(1, Math.floor(Number(input.quantity || 1)));
+      selectedItems = [{
+        id: `buynow-${input.productId}`,
+        productId: input.productId,
+        quantity: qty,
+        price: undefined,
+        thumbnail: undefined
+      }];
+    } else {
+      selectedItems = cartItemIds && cartItemIds.length > 0
+        ? cart.items.filter((item) => cartItemIds.includes(item.id))
+        : cart.items;
+    }
 
     if (selectedItems.length === 0) {
       throw new Error('Vui lòng chọn sản phẩm để đặt hàng');
@@ -228,7 +246,9 @@ export class CreateOrderUseCase {
       })
     );
 
-    await this.cartRepository.removeItems(userId, selectedItems.map((item) => item.id));
+    if (!buyNow && selectedItems.length > 0) {
+      await this.cartRepository.removeItems(userId, selectedItems.map((item) => item.id));
+    }
 
     if (appliedVoucherId) {
       await this.voucherRepository.incrementUsage(appliedVoucherId, userId);

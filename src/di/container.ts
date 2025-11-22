@@ -16,6 +16,10 @@ import { TicketRepository } from '../data/repositories/TicketRepository';
 import { TicketCommentRepository } from '../data/repositories/TicketCommentRepository';
 import { VoucherRepository } from '../data/repositories/VoucherRepository';
 import { PostRepository } from '../data/repositories/PostRepository';
+import { SupportFaqRepository } from '../data/repositories/SupportFaqRepository';
+import { SupportFaqFeedbackRepository } from '../data/repositories/SupportFaqFeedbackRepository';
+import { PaymentRepository } from '../data/repositories/PaymentRepository';
+import { supportFaqs } from '../shared/data/supportFaqs';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -71,6 +75,8 @@ import { GetManagedOrdersUseCase } from '../domain/usecases/order/GetManagedOrde
 import { GetManagedOrderByIdUseCase } from '../domain/usecases/order/GetManagedOrderById.usecase';
 import { UpdateOrderStatusUseCase } from '../domain/usecases/order/UpdateOrderStatus.usecase';
 import { ConfirmOrderDeliveredUseCase } from '../domain/usecases/order/ConfirmOrderDelivered.usecase';
+import { CreateVNPayPaymentUseCase } from '../domain/usecases/payment/CreateVNPayPayment.usecase';
+import { HandleVNPayCallbackUseCase } from '../domain/usecases/payment/HandleVNPayCallback.usecase';
 // Cart Use Cases
 import { GetCartUseCase } from '../domain/usecases/cart/GetCart.usecase';
 import { AddCartItemUseCase } from '../domain/usecases/cart/AddCartItem.usecase';
@@ -90,6 +96,9 @@ import { GetTicketsUseCase } from '../domain/usecases/ticket/GetTickets.usecase'
 import { GetTicketByIdUseCase } from '../domain/usecases/ticket/GetTicketById.usecase';
 import { AssignTicketUseCase } from '../domain/usecases/ticket/AssignTicket.usecase';
 import { UpdateTicketStatusUseCase } from '../domain/usecases/ticket/UpdateTicketStatus.usecase';
+import { GetSupportFaqsUseCase } from '../domain/usecases/support/GetSupportFaqs.usecase';
+import { SearchSupportFaqsUseCase } from '../domain/usecases/support/SearchSupportFaqs.usecase';
+import { VoteSupportFaqUseCase } from '../domain/usecases/support/VoteSupportFaq.usecase';
 
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
@@ -109,6 +118,9 @@ import { GlobalSearchUseCase } from '../domain/usecases/search/GlobalSearch.usec
 import { GetUsersByIdsUseCase } from '../domain/usecases/user/GetUsersByIds.usecase';
 import { GetUsersUseCase } from '../domain/usecases/user/GetUsers.usecase';
 import { AdminUserController } from '../presentation/controllers/AdminUserController';
+import { SupportController } from '../presentation/controllers/SupportController';
+import { VNPayController } from '../presentation/controllers/VNPayController';
+import { VNPayGateway } from '../services/payment/VNPayGateway';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -123,6 +135,10 @@ const ticketRepository = new TicketRepository();
 const ticketCommentRepository = new TicketCommentRepository();
 const voucherRepository = new VoucherRepository();
 const postRepository = new PostRepository();
+const supportFaqFeedbackRepository = new SupportFaqFeedbackRepository();
+const supportFaqRepository = new SupportFaqRepository(supportFaqs, supportFaqFeedbackRepository);
+const paymentRepository = new PaymentRepository();
+const vnPayGateway = new VNPayGateway();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -193,6 +209,8 @@ const getManagedOrderByIdUseCase = new GetManagedOrderByIdUseCase(orderRepositor
 const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
 const confirmOrderDeliveredUseCase = new ConfirmOrderDeliveredUseCase(orderRepository);
 const listUserVouchersUseCase = new ListUserVouchersUseCase(voucherRepository);
+const createVNPayPaymentUseCase = new CreateVNPayPaymentUseCase(orderRepository, paymentRepository, vnPayGateway);
+const handleVNPayCallbackUseCase = new HandleVNPayCallbackUseCase(paymentRepository, orderRepository, vnPayGateway);
 
 // Cart use case instances
 const getCartUseCase = new GetCartUseCase(cartRepository, productRepository);
@@ -213,6 +231,9 @@ const getTicketsUseCase = new GetTicketsUseCase(ticketRepository);
 const getTicketByIdUseCase = new GetTicketByIdUseCase(ticketRepository);
 const assignTicketUseCase = new AssignTicketUseCase(ticketRepository);
 const updateTicketStatusUseCase = new UpdateTicketStatusUseCase(ticketRepository);
+const getSupportFaqsUseCase = new GetSupportFaqsUseCase(supportFaqRepository);
+const searchSupportFaqsUseCase = new SearchSupportFaqsUseCase(supportFaqRepository);
+const voteSupportFaqUseCase = new VoteSupportFaqUseCase(supportFaqFeedbackRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -305,6 +326,15 @@ export const ticketController = new TicketController(
 );
 export const voucherController = new VoucherController();
 export const searchController = new SearchController(globalSearchUseCase);
+export const supportController = new SupportController(
+  getSupportFaqsUseCase,
+  searchSupportFaqsUseCase,
+  voteSupportFaqUseCase
+);
+export const vnPayController = new VNPayController(
+  createVNPayPaymentUseCase,
+  handleVNPayCallbackUseCase
+);
 
 // ==================== EXPORTS FOR REUSE ====================
 export const repositories = {
@@ -319,6 +349,8 @@ export const repositories = {
   ,ticketRepository
   ,voucherRepository
   ,postRepository
+  ,supportFaqRepository
+  ,paymentRepository
 };
 
 export const useCases = {
@@ -366,6 +398,8 @@ export const useCases = {
   getManagedOrderByIdUseCase,
   updateOrderStatusUseCase,
   confirmOrderDeliveredUseCase,
+  createVNPayPaymentUseCase,
+  handleVNPayCallbackUseCase,
   // Shop
   createShopUseCase,
   updateShopUseCase,
@@ -389,6 +423,8 @@ export const useCases = {
   addWishlistItemUseCase,
   removeWishlistItemUseCase,
   toggleWishlistItemUseCase
+  ,getSupportFaqsUseCase
+  ,searchSupportFaqsUseCase
 };
 
 // expose ticket use-cases
