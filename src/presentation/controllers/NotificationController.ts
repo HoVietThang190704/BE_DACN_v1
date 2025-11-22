@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
-import { notificationService } from '../../services/notification/NotificationService';
-import { Notification } from '../../models/Notification';
+import { notificationService, NotificationStatusFilter } from '../../services/notification/NotificationService';
 import { logger } from '../../shared/utils/logger';
 
 export class NotificationController {
@@ -60,29 +59,26 @@ export class NotificationController {
         return;
       }
 
-      // pagination support
-      const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
-      const limit = Math.min(1000, Math.max(10, parseInt(String(req.query.limit || '100'), 10)));
-      const skip = (page - 1) * limit;
+      const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10));
+      const limit = Math.min(100, Math.max(5, parseInt(String(req.query.limit ?? '10'), 10)));
+      const rawStatus = String(req.query.status ?? 'all').toLowerCase() as NotificationStatusFilter;
+      const status: NotificationStatusFilter = ['all', 'read', 'unread'].includes(rawStatus) ? rawStatus : 'all';
+      const targetUserId = role === 'admin' ? (req.query.userId as string | undefined) : undefined;
 
-      let query: any = {};
+      const result = await notificationService.listUserNotifications({
+        userId,
+        role,
+        targetUserId,
+        page,
+        limit,
+        status,
+      });
 
-      // Admins can view all notifications (optionally filtered by userId query)
-      if (role === 'admin') {
-        if (req.query.userId) {
-          query.userId = req.query.userId;
-        }
-      } else {
-        // shop_owner and customer only see their own notifications
-        query.userId = userId;
-      }
-
-      const docs = await Notification.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
-      const total = await Notification.countDocuments(query);
-      res.status(200).json({ success: true, data: docs, meta: { page, limit, total } });
+      res.status(200).json({ success: true, data: result.items, meta: result.meta });
     } catch (err: any) {
       logger.error('NotificationController.list error:', err);
-      res.status(500).json({ success: false, message: 'Internal error' });
+      const status = err?.message?.toLowerCase().includes('invalid') ? 400 : 500;
+      res.status(status).json({ success: false, message: err?.message || 'Internal error' });
     }
   }
 
@@ -90,17 +86,56 @@ export class NotificationController {
     try {
       const userId = req.user?.userId;
       const { id } = req.params;
-      if (!userId) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
-      const doc = await Notification.findById(id);
-      if (!doc) { res.status(404).json({ success: false, message: 'Not found' }); return; }
-      if (String(doc.userId) !== String(userId)) { res.status(403).json({ success: false, message: 'Forbidden' }); return; }
-      doc.isRead = true;
-      doc.readAt = new Date();
-      await doc.save();
-      res.status(200).json({ success: true, data: doc });
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const updated = await notificationService.markAsRead(userId, id);
+      if (!updated) {
+        res.status(404).json({ success: false, message: 'Not found' });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: updated });
     } catch (err: any) {
       logger.error('NotificationController.markRead error:', err);
-      res.status(500).json({ success: false, message: 'Internal error' });
+      const status = err?.message?.toLowerCase().includes('invalid') ? 400 : 500;
+      res.status(status).json({ success: false, message: err?.message || 'Internal error' });
+    }
+  }
+
+  async markAllRead(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const updated = await notificationService.markAllAsRead(userId);
+      res.status(200).json({ success: true, data: { updated } });
+    } catch (err: any) {
+      logger.error('NotificationController.markAllRead error:', err);
+      const status = err?.message?.toLowerCase().includes('invalid') ? 400 : 500;
+      res.status(status).json({ success: false, message: err?.message || 'Internal error' });
+    }
+  }
+
+  async summary(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'Unauthorized' });
+        return;
+      }
+
+      const data = await notificationService.getSummary(userId);
+      res.status(200).json({ success: true, data });
+    } catch (err: any) {
+      logger.error('NotificationController.summary error:', err);
+      const status = err?.message?.toLowerCase().includes('invalid') ? 400 : 500;
+      res.status(status).json({ success: false, message: err?.message || 'Internal error' });
     }
   }
 }

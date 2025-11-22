@@ -10,17 +10,16 @@ export interface ITicket extends Document {
   created_by: mongoose.Types.ObjectId;
   assigned_to?: mongoose.Types.ObjectId | null;
   related_shop_id?: mongoose.Types.ObjectId | null;
+  related_shop_reference?: string | null;
   related_order_id?: mongoose.Types.ObjectId | null;
+  related_order_reference?: string | null;
   tags?: string[];
   attachments?: Array<any>;
   comments_count?: number;
-  sla_due_at?: Date | null;
-  sla_breached?: boolean;
-  read_by?: mongoose.Types.ObjectId[];
   is_public?: boolean;
   resolution_message?: string | null;
   resolved_at?: Date | null;
-  is_active?: boolean;
+  // is_active removed from schema
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,17 +34,16 @@ const TicketSchema = new Schema<ITicket>({
   created_by: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   assigned_to: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
   related_shop_id: { type: Schema.Types.ObjectId, ref: 'Shop', default: null, index: true },
+  related_shop_reference: { type: String, default: null, trim: true },
   related_order_id: { type: Schema.Types.ObjectId, ref: 'Order', default: null, index: true },
+  related_order_reference: { type: String, default: null, trim: true },
   tags: [String],
   attachments: [{ url: String, filename: String, mimeType: String, size: Number, uploaded_by: { type: Schema.Types.ObjectId, ref: 'User' }, uploaded_at: Date }],
   comments_count: { type: Number, default: 0 },
-  sla_due_at: { type: Date, default: null, index: true },
-  sla_breached: { type: Boolean, default: false },
-  read_by: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  // NOTE: removed unused fields (sla_breached, read_by, is_active) to simplify schema
   is_public: { type: Boolean, default: true },
   resolution_message: { type: String, default: null },
-  resolved_at: { type: Date, default: null },
-  is_active: { type: Boolean, default: true }
+  resolved_at: { type: Date, default: null }
 }, { timestamps: true });
 
 TicketSchema.index({ title: 'text', description: 'text' });

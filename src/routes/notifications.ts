@@ -90,11 +90,48 @@ router.post('/broadcast', authenticate, authorize('admin'), (req, res) => notifi
  *     summary: Get notifications for current user
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number (default 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Page size (default 10, max 100)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, read, unread]
+ *         description: Filter notifications by read status
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: (Admin only) View notifications of specific user
  *     responses:
  *       200:
  *         description: List of notifications
  */
 router.get('/', authenticate, (req, res) => notificationController.list(req, res));
+
+/**
+ * @openapi
+ * /api/notifications/summary:
+ *   get:
+ *     tags:
+ *       - Notifications
+ *     summary: Get notification summary for current user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Summary with unread count
+ */
+router.get('/summary', authenticate, (req, res) => notificationController.summary(req, res));
 
 /**
  * @openapi
@@ -116,5 +153,20 @@ router.get('/', authenticate, (req, res) => notificationController.list(req, res
  *         description: Notification marked as read
  */
 router.patch('/:id/read', authenticate, (req, res) => notificationController.markRead(req, res));
+
+/**
+ * @openapi
+ * /api/notifications/read-all:
+ *   patch:
+ *     tags:
+ *       - Notifications
+ *     summary: Mark all notifications as read for current user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Number of notifications updated
+ */
+router.patch('/read-all', authenticate, (req, res) => notificationController.markAllRead(req, res));
 
 export default router;

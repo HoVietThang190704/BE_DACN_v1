@@ -7,6 +7,8 @@ export const createTicketSchema = z.object({
   priority: z.enum(['low','medium','high','urgent']).optional(),
   relatedShopId: z.string().optional(),
   relatedOrderId: z.string().optional(),
+  relatedShopReference: z.string().max(120).optional(),
+  relatedOrderReference: z.string().max(120).optional(),
   attachments: z.array(z.object({ url: z.string(), filename: z.string().optional() })).optional(),
   isPublic: z.boolean().optional()
 });

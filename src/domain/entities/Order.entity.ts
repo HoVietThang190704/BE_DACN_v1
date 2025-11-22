@@ -7,7 +7,7 @@ export type OrderStatus =
   | 'cancelled'     // Đã hủy
   | 'refunded';     // Đã hoàn tiền
 
-export type PaymentMethod = 'cod' | 'momo' | 'zalopay' | 'vnpay' | 'card';
+export type PaymentMethod = 'cod' | 'vnpay';
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 
@@ -181,10 +181,7 @@ export class OrderEntity implements IOrderEntity {
   getPaymentMethodDisplay(): string {
     const methodMap: Record<PaymentMethod, string> = {
       cod: 'Thanh toán khi nhận hàng (COD)',
-      momo: 'Ví MoMo',
-      zalopay: 'ZaloPay',
-      vnpay: 'VNPAY',
-      card: 'Thẻ ngân hàng'
+      vnpay: 'VNPay'
     };
     return methodMap[this.paymentMethod];
   }

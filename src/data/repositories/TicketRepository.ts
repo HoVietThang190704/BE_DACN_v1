@@ -2,23 +2,56 @@ import { Ticket } from '../../models/Ticket';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
 
+const toObjectIdOrNull = (value?: string | null) => {
+  if (!value) return null;
+  return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
+};
+
+const normalizeReference = (value?: unknown) => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text.length ? text : null;
+};
+
 export class TicketRepository {
   async create(data: any) {
     try {
-      const doc = await Ticket.create({
-        ticket_number: data.ticketNumber || null,
+      const relatedShopId = toObjectIdOrNull(data.relatedShopId);
+      const relatedOrderId = toObjectIdOrNull(data.relatedOrderId);
+      const assignedToId = toObjectIdOrNull(data.assignedTo);
+
+      const relatedShopReference = normalizeReference(data.relatedShopReference)
+        ?? (!relatedShopId && data.relatedShopId ? String(data.relatedShopId) : null);
+
+      const relatedOrderReference = normalizeReference(data.relatedOrderReference)
+        ?? (!relatedOrderId && data.relatedOrderId ? String(data.relatedOrderId) : null);
+
+      const payload: any = {
         title: data.title,
         description: data.description || '',
         type: data.type || 'support',
         priority: data.priority || 'medium',
-        status: data.status || 'open',
-        created_by: new mongoose.Types.ObjectId(data.createdBy),
-        assigned_to: data.assignedTo ? new mongoose.Types.ObjectId(data.assignedTo) : null,
-        related_shop_id: data.relatedShopId ? new mongoose.Types.ObjectId(data.relatedShopId) : null,
-        related_order_id: data.relatedOrderId ? new mongoose.Types.ObjectId(data.relatedOrderId) : null,
+    status: data.status || 'open',
+    created_by: new mongoose.Types.ObjectId(data.createdBy),
+    assigned_to: assignedToId,
+        related_shop_id: relatedShopId,
+        related_shop_reference: relatedShopReference,
+        related_order_id: relatedOrderId,
+        related_order_reference: relatedOrderReference,
         tags: data.tags || [],
         attachments: data.attachments || []
-      });
+      };
+
+      const ticketNumber = normalizeReference(data.ticketNumber);
+      if (ticketNumber) {
+        payload.ticket_number = ticketNumber;
+      }
+
+      if (typeof data.isPublic === 'boolean') {
+        payload.is_public = data.isPublic;
+      }
+
+      const doc = await Ticket.create(payload);
       return doc;
     } catch (error) {
       logger.error('TicketRepository.create error:', error);

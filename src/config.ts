@@ -8,6 +8,7 @@ export const config = {
   PORT: parseInt(process.env.PORT || '5000', 10),
   NODE_ENV: process.env.NODE_ENV || 'development',
   NODE_IP: process.env.IP || 'localhost',
+  FRONTEND_BASE_URL: process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3000',
   // Database - MongoDB
   MONGODB_URI: process.env.MONGODB_URI || (() => {
     console.error('❌ MONGODB_URI environment variable is required!');
@@ -54,7 +55,7 @@ export const config = {
   VNPAY_TMNCODE: process.env.VNPAY_TMNCODE || '',
   VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || '',
   VNPAY_PAYMENT_URL: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || '',
+  VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || 'http://localhost:5000/api/payments/vnpay/callback',
 
   // HTTPS (optional)
   SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',

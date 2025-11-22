@@ -202,6 +202,8 @@ export class OrderController {
         shippingAddressId,
         shippingAddress,
         saveShippingAddress,
+        productId,
+        quantity,
       } = req.body ?? {};
 
       if (!shippingAddressId && !shippingAddress) {
@@ -218,13 +220,13 @@ export class OrderController {
         }
       }
 
-      const paymentMethodList: PaymentMethod[] = ['cod', 'momo', 'zalopay', 'vnpay', 'card'];
+      const paymentMethodList: PaymentMethod[] = ['cod', 'vnpay'];
       if (paymentMethod && !paymentMethodList.includes(paymentMethod)) {
         res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ' });
         return;
       }
 
-      const order = await this.createOrderUseCase.execute({
+      const executeParams: any = {
         userId,
         cartItemIds: Array.isArray(cartItemIds) ? cartItemIds : undefined,
         paymentMethod,
@@ -233,7 +235,14 @@ export class OrderController {
         shippingAddressId,
         shippingAddress,
         saveShippingAddress,
-      });
+      };
+
+      if (productId) {
+        executeParams.productId = productId;
+        executeParams.quantity = typeof quantity === 'number' ? quantity : Number(quantity || 1);
+      }
+
+      const order = await this.createOrderUseCase.execute(executeParams);
 
       res.status(201).json({
         message: 'Tạo đơn hàng thành công',

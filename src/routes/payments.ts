@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import VNPayController from '../presentation/controllers/VNPayController';
+import { vnPayController } from '../di/container';
+import { authenticate } from '../shared/middleware/auth';
 
 const router = Router();
 
@@ -17,23 +18,22 @@ const router = Router();
  *             type: object
  *             required:
  *               - orderId
- *               - amount
  *             properties:
  *               orderId:
  *                 type: string
  *                 example: "ORDER123"
- *               amount:
- *                 type: number
- *                 example: 100000
- *               returnUrl:
+ *               frontendRedirectUrl:
  *                 type: string
- *                 example: "http://localhost:5000/api/payments/vnpay/callback"
+ *                 example: "http://localhost:3000/vi/payment/vnpay/result"
+ *               locale:
+ *                 type: string
+ *                 enum: [vn, en]
  *     responses:
  *       200:
  *         description: Payment created, returns paymentUrl to redirect user
  */
 // Create VNPay payment and return redirect URL
-router.post('/vnpay/create', VNPayController.create);
+router.post('/vnpay/create', authenticate, (req, res) => vnPayController.create(req, res));
 
 /**
  * @swagger
@@ -67,6 +67,6 @@ router.post('/vnpay/create', VNPayController.create);
  *         description: Callback processed
  */
 // VNPay will redirect to this URL after payment
-router.get('/vnpay/callback', VNPayController.callback);
+router.get('/vnpay/callback', (req, res) => vnPayController.callback(req, res));
 
 export default router;
