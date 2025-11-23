@@ -6,7 +6,7 @@ import { User } from '../../models/users/User';
 import { config } from '../../config';
 import { logger } from '../../shared/utils/logger';
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
 export default class AuthGoogleController {
   static async token(req: Request, res: Response) {
@@ -14,7 +14,39 @@ export default class AuthGoogleController {
       const { id_token } = req.body;
       if (!id_token) return res.status(400).json({ success: false, message: 'id_token required' });
 
-      const ticket = await client.verifyIdToken({ idToken: id_token, audience: process.env.GOOGLE_CLIENT_ID });
+      // TEMP DEBUG: decode token without verification to inspect `aud` claim
+      let decodedAud: string | string[] | undefined | null = null;
+      try {
+        // jwt.decode only parses the token; it does NOT verify signature — safe for debugging
+        const decoded = jwt.decode(id_token) as unknown as { aud?: string | string[] } | null;
+        decodedAud = decoded?.aud;
+        logger.info(`Debug: decoded id_token aud: ${JSON.stringify(decodedAud)}`);
+        logger.info(`Debug: server GOOGLE_CLIENT_ID: ${config.GOOGLE_CLIENT_ID}`);
+      } catch (dErr) {
+        logger.warn('Debug: failed to decode id_token for inspection', dErr);
+      }
+
+      let ticket;
+      try {
+        // Support multiple acceptable audiences (helpful in dev/testing when tokens
+        // may be issued to different OAuth client IDs). Configure via
+        // `GOOGLE_CLIENT_AUDIENCES` (comma-separated) or fall back to `GOOGLE_CLIENT_ID`.
+        const audiencesEnv = config.GOOGLE_CLIENT_AUDIENCES;
+        const audiences = audiencesEnv
+          ? audiencesEnv.split(',').map((s) => s.trim()).filter(Boolean)
+          : [config.GOOGLE_CLIENT_ID];
+
+        logger.info(`AuthGoogleController: verifying id_token against audiences: ${JSON.stringify(audiences)}`);
+
+        ticket = await client.verifyIdToken({ idToken: id_token, audience: audiences });
+      } catch (verifyErr) {
+        logger.error('AuthGoogleController.verifyIdToken failed:', verifyErr);
+        logger.info(`Debug (post-verify) decoded aud: ${JSON.stringify(decodedAud)}`);
+        if (config.NODE_ENV !== 'production') {
+          return res.status(400).json({ success: false, message: 'Invalid Google token (aud mismatch)', data: { token_aud: decodedAud, expected_aud: config.GOOGLE_CLIENT_ID } });
+        }
+        return res.status(401).json({ success: false, message: 'Invalid Google token' });
+      }
       const payload = ticket.getPayload();
       if (!payload) return res.status(401).json({ success: false, message: 'Invalid Google token' });
 

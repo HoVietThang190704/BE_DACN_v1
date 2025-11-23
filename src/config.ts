@@ -51,6 +51,11 @@ export const config = {
   AGORA_APP_CERT: process.env.AGORA_APP_CERT || '',
   AGORA_TOKEN_EXPIRE_SECONDS: parseInt(process.env.AGORA_TOKEN_EXPIRE_SECONDS || '3600', 10),
 
+  // Google OAuth
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+  GOOGLE_CLIENT_AUDIENCES: process.env.GOOGLE_CLIENT_AUDIENCES || '',
+
   // VNPay
   VNPAY_TMNCODE: process.env.VNPAY_TMNCODE || '',
   VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || '',
