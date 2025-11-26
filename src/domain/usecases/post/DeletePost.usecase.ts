@@ -1,5 +1,6 @@
 import { IPostRepository } from '../../repositories/IPostRepository';
 import { ICommentRepository } from '../../repositories/ICommentRepository';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 export interface DeletePostDTO {
   postId: string;
@@ -13,7 +14,8 @@ export interface DeletePostDTO {
 export class DeletePostUseCase {
   constructor(
     private postRepository: IPostRepository,
-    private commentRepository: ICommentRepository
+    private commentRepository: ICommentRepository,
+    private readonly elasticsearchService?: ElasticsearchService
   ) {}
 
   async execute(dto: DeletePostDTO): Promise<boolean> {
@@ -47,6 +49,8 @@ export class DeletePostUseCase {
     if (!deleted) {
       throw new Error('Không thể xóa bài viết');
     }
+
+    await this.elasticsearchService?.removePost(dto.postId);
 
     return true;
   }

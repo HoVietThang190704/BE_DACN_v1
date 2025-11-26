@@ -4,6 +4,7 @@ import { deleteFromCloudinary } from '../../../shared/utils/cloudinary';
 import { Wishlist } from '../../../models/Wishlist';
 import { Cart } from '../../../models/Cart';
 import mongoose from 'mongoose';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Delete Product
@@ -11,7 +12,10 @@ import mongoose from 'mongoose';
  */
 
 export class DeleteProductUseCase {
-  constructor(private productRepository: IProductRepository) {}
+  constructor(
+    private productRepository: IProductRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(productId: string): Promise<boolean> {
     const product = await this.productRepository.findById(productId);
@@ -25,6 +29,8 @@ export class DeleteProductUseCase {
     if (!deleted) {
       throw new Error('Không thể xóa sản phẩm');
     }
+
+    await this.elasticsearchService?.removeProduct(productId);
 
     logger.info(`Product permanently deleted: ${productId} - ${product.name}`);
     return true;
@@ -57,6 +63,8 @@ export class DeleteProductUseCase {
       throw new Error('Không thể khôi phục sản phẩm');
     }
 
+    await this.elasticsearchService?.indexProduct(restored);
+
     logger.info(`Product restored: ${productId} - ${product.name}`);
 
     return true;
@@ -83,6 +91,8 @@ export class DeleteProductUseCase {
     if (!deleted) {
       throw new Error('Không thể xóa vĩnh viễn sản phẩm');
     }
+
+    await this.elasticsearchService?.removeProduct(productId);
 
     logger.warn(`Product permanently deleted: ${productId} - ${product.name}`);
 

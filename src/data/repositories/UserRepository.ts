@@ -3,6 +3,7 @@ import { UserEntity } from '../../domain/entities/User.entity';
 import { User as UserModel, IUser } from '../../models/users/User';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
+import { buildVietnameseRegex } from '../../shared/utils/textSearch';
 
 export class UserRepository implements IUserRepository {
   async create(user: UserEntity): Promise<UserEntity> {
@@ -115,11 +116,16 @@ export class UserRepository implements IUserRepository {
 
     // search
     if (filters?.searchTerm) {
-      query.$or = [
-        { email: { $regex: filters.searchTerm, $options: 'i' } },
-        { userName: { $regex: filters.searchTerm, $options: 'i' } },
-        { phone: { $regex: filters.searchTerm, $options: 'i' } }
-      ];
+      const trimmed = filters.searchTerm.trim();
+      if (trimmed) {
+        const flexibleRegex = buildVietnameseRegex(trimmed);
+        const fallbackRegex = new RegExp(trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        query.$or = [
+          { userName: flexibleRegex },
+          { email: fallbackRegex },
+          { phone: fallbackRegex }
+        ];
+      }
     }
 
     // createdAt range
@@ -174,11 +180,16 @@ export class UserRepository implements IUserRepository {
     }
 
     if (filters?.searchTerm) {
-      query.$or = [
-        { email: { $regex: filters.searchTerm, $options: 'i' } },
-        { userName: { $regex: filters.searchTerm, $options: 'i' } },
-        { phone: { $regex: filters.searchTerm, $options: 'i' } }
-      ];
+      const trimmed = filters.searchTerm.trim();
+      if (trimmed) {
+        const flexibleRegex = buildVietnameseRegex(trimmed);
+        const fallbackRegex = new RegExp(trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        query.$or = [
+          { userName: flexibleRegex },
+          { email: fallbackRegex },
+          { phone: fallbackRegex }
+        ];
+      }
     }
 
     if (filters?.createdFrom || filters?.createdTo) {

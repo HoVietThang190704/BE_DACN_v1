@@ -1,6 +1,7 @@
 import { CategoryEntity } from '../../entities/Category.entity';
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Update Category
@@ -20,7 +21,10 @@ export interface UpdateCategoryInput {
 }
 
 export class UpdateCategoryUseCase {
-  constructor(private categoryRepository: ICategoryRepository) {}
+  constructor(
+    private categoryRepository: ICategoryRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(categoryId: string, input: UpdateCategoryInput): Promise<CategoryEntity> {
     // Check if category exists
@@ -108,6 +112,8 @@ export class UpdateCategoryUseCase {
     if (updateData.level !== undefined && updateData.level !== existingCategory.level) {
       await this.updateDescendantsLevel(categoryId, updateData.level - existingCategory.level);
     }
+
+    await this.elasticsearchService?.indexCategory(updatedCategory);
 
     logger.info(`Category updated: ${categoryId} - ${updatedCategory.name}`);
 

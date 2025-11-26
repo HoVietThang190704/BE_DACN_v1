@@ -12,7 +12,7 @@ export interface SearchUsersResult {
   limit: number;
 }
 
-const MIN_QUERY_LENGTH = 2;
+const MIN_QUERY_LENGTH = 1;
 const DEFAULT_LIMIT = 6;
 
 export class SearchUsersUseCase {
@@ -44,7 +44,6 @@ export class SearchUsersUseCase {
     try {
       total = await this.userRepository.count({ searchTerm: keyword });
     } catch {
-      // Fallback to approximate total when count is unavailable
     }
 
     return {

@@ -92,8 +92,6 @@ const ShopSchema = new Schema<IShop>(
   }
 );
 
-// Indexes
-ShopSchema.index({ owner_id: 1 });
 ShopSchema.index({ shop_name: 'text', story: 'text' });
 
 export const Shop = mongoose.model<IShop>('Shop', ShopSchema);
