@@ -1,6 +1,7 @@
 import { ProductEntity } from '../../entities/Product.entity';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { logger } from '../../../shared/utils/logger';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Update Product
@@ -21,7 +22,10 @@ export interface UpdateProductInput {
 }
 
 export class UpdateProductUseCase {
-  constructor(private productRepository: IProductRepository) {}
+  constructor(
+    private productRepository: IProductRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(productId: string, input: UpdateProductInput): Promise<ProductEntity> {
     // Check if product exists
@@ -64,6 +68,8 @@ export class UpdateProductUseCase {
     if (!updatedProduct) {
       throw new Error('Không thể cập nhật sản phẩm');
     }
+
+    await this.elasticsearchService?.indexProduct(updatedProduct);
 
     logger.info(`Product updated: ${productId} - ${updatedProduct.name}`);
 

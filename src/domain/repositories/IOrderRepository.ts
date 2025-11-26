@@ -113,4 +113,5 @@ export interface IOrderRepository {
     delivered: number;
     cancelled: number;
   }>;
+  updateTotals(orderId: string, discount: number, total: number): Promise<OrderEntity | null>;
 }

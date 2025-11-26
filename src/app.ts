@@ -14,6 +14,8 @@ import { setupSwagger } from './shared/swagger/setup';
 import { SocketService } from './services/socket/SocketService';
 import { setIO } from './services/socket/socketManager';
 import notificationRoutes from './routes/notifications';
+import { elasticsearchService } from './services/search';
+import reindexService from './services/search/reindex.service';
 
 // Import routes
 import { authRoutes } from './routes/auth';
@@ -130,6 +132,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/v1/search', searchRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/support', supportRoutes);
 
@@ -230,6 +233,25 @@ async function startServer() {
       logger.error('❌ MongoDB connection failed:', error);
       logger.warn('⚠️  Server is running but database features will not work');
     });
+
+    // Initialize Elasticsearch connection in background for visibility
+    if (elasticsearchService.isEnabled()) {
+      elasticsearchService.initialize()
+        .then(() => {
+          logger.info('✅ Elasticsearch connected successfully');
+
+          // Run reindex check in background: only index collections that are missing docs in ES
+          reindexService.reindexIfNeeded()
+            .then(() => logger.info('✅ Elasticsearch reindex check complete'))
+            .catch(err => logger.error('❌ Elasticsearch reindex failed:', err));
+        })
+        .catch((error) => {
+          logger.error('❌ Elasticsearch connection failed:', error);
+          logger.warn('⚠️  Search features will fall back to MongoDB queries');
+        });
+    } else {
+      logger.warn('⚠️  Elasticsearch is not configured. Advanced search features are disabled.');
+    }
 
   } catch (error) {
     logger.error('❌ Failed to start server:', error);

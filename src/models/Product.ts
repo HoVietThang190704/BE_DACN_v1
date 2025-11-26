@@ -91,7 +91,6 @@ const ProductSchema: Schema<IProduct> = new Schema({
 
 ProductSchema.index({ name: 'text', description: 'text' });
 ProductSchema.index({ category: 1, inStock: 1 });
-ProductSchema.index({ owner: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ createdAt: -1 });
 

@@ -15,6 +15,7 @@ import {
   SharePostUseCase
 } from '../domain/usecases/post';
 import { authMiddleware } from '../shared/middleware/auth.middleware';
+import { elasticsearchService } from '../services/search';
 
 const router = Router();
 
@@ -22,14 +23,14 @@ const router = Router();
 const postRepository = new PostRepository();
 const commentRepository = new (require('../data/repositories/CommentRepository').CommentRepository)();
 
-const createPostUseCase = new CreatePostUseCase(postRepository);
-const updatePostUseCase = new UpdatePostUseCase(postRepository);
-const deletePostUseCase = new DeletePostUseCase(postRepository, commentRepository);
+const createPostUseCase = new CreatePostUseCase(postRepository, elasticsearchService);
+const updatePostUseCase = new UpdatePostUseCase(postRepository, elasticsearchService);
+const deletePostUseCase = new DeletePostUseCase(postRepository, commentRepository, elasticsearchService);
 const getPostByIdUseCase = new GetPostByIdUseCase(postRepository);
 const getPostsFeedUseCase = new GetPostsFeedUseCase(postRepository);
 const getUserPostsUseCase = new GetUserPostsUseCase(postRepository);
 const getPublicPostsUseCase = new GetPublicPostsUseCase(postRepository);
-const searchPostsUseCase = new SearchPostsUseCase(postRepository);
+const searchPostsUseCase = new SearchPostsUseCase(postRepository, elasticsearchService);
 const getTrendingPostsUseCase = new GetTrendingPostsUseCase(postRepository);
 const toggleLikePostUseCase = new ToggleLikePostUseCase(postRepository);
 const sharePostUseCase = new SharePostUseCase(postRepository);

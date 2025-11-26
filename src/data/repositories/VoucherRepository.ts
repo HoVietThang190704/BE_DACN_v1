@@ -19,10 +19,10 @@ export class VoucherRepository {
       id: doc._id?.toString() || doc.id,
       code: doc.code,
       description: doc.description,
-      discountType: doc.discountType,
-      discountValue: doc.discountValue,
-      minOrderValue: doc.minOrderValue,
-      maxDiscountValue: doc.maxDiscountValue,
+      discountType: (doc.type === 'percent' || doc.type === 'percentage') ? 'percentage' : (doc.type === 'fixed' ? 'fixed' : (doc.discountType ?? 'fixed')),
+      discountValue: typeof doc.value === 'number' ? doc.value : (doc.discountValue ?? 0),
+      minOrderValue: doc.minOrderValue ?? doc.metadata?.minOrderValue,
+      maxDiscountValue: doc.maxDiscountAmount ?? doc.maxDiscountValue,
       startDate: doc.startDate,
       endDate: doc.endDate,
       usageLimit: doc.usageLimit,
@@ -36,7 +36,8 @@ export class VoucherRepository {
   }
 
   async findByCode(code: string) {
-    const doc: any = await Voucher.findOne({ code }).lean();
+    const normalized = String(code).toUpperCase();
+    const doc: any = await Voucher.findOne({ code: normalized }).lean();
     if (!doc) return null;
     return this.toEntity(doc);
   }

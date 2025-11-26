@@ -27,7 +27,7 @@ class VoucherService {
     return true;
   }
 
-  async redeem(userId: string, code: string, orderContext: { orderId?: string; cartTotal: number }) {
+  async redeem(userId: string, code: string, orderContext: { orderId?: string; cartTotal?: number; subtotal?: number }) {
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
@@ -44,31 +44,63 @@ class VoucherService {
         throw new Error('Bạn đã dùng voucher này quá số lần cho phép');
       }
 
+      // if orderId provided, allow assignment of an existing unassigned redemption by the same user
+      let possibleUnassigned: any = undefined;
+      if (orderContext.orderId) {
+        possibleUnassigned = await voucherRedemptionRepository.findUnassigned(String(voucherDoc._id), userId, session);
+      }
+
       if (voucherDoc.usageLimit != null && voucherDoc.usageCount >= (voucherDoc.usageLimit as number)) {
-        throw new Error('Voucher đã được sử dụng hết');
+        // if there is an unassigned redemption belonging to this user, allow assignment even if usageCount equals usageLimit
+        if (!possibleUnassigned || String(possibleUnassigned.userId) !== String(userId)) {
+          throw new Error('Voucher đã được sử dụng hết');
+        }
       }
 
       // compute discount
+      const cartTotal = typeof orderContext.cartTotal === 'number' ? orderContext.cartTotal : orderContext.subtotal ?? 0;
       let discount = 0;
       if (voucherDoc.type === 'fixed') {
         discount = voucherDoc.value;
       } else {
-        discount = Math.floor(orderContext.cartTotal * (voucherDoc.value / 100));
+        discount = Math.floor(cartTotal * (voucherDoc.value / 100));
         if (voucherDoc.maxDiscountAmount) discount = Math.min(discount, voucherDoc.maxDiscountAmount);
       }
-      discount = Math.min(discount, orderContext.cartTotal);
+      discount = Math.min(discount, cartTotal);
 
-      // atomic increment usageCount
-      const updated = await Voucher.findOneAndUpdate(
-        { _id: voucherDoc._id, $expr: { $lt: [ '$usageCount', { $ifNull: [ '$usageLimit', Number.MAX_SAFE_INTEGER ] } ] } },
-        { $inc: { usageCount: 1 } },
-        { new: true, session }
-      ).session(session);
+      // If an orderId is present then do a committed redemption (persist usage and redemption record).
+      // If no orderId is supplied the call is only a validation check and must not mutate DB state.
+      let updated: any = null;
+      let redemption: any = undefined;
+      if (orderContext.orderId) {
+        // If a redemption for this order already exists, treat as idempotent and return
+        const existingForOrder: any = await voucherRedemptionRepository.findByOrderId(orderContext.orderId, session);
+        if (existingForOrder) {
+          // redemption already associated with this order
+          redemption = existingForOrder;
+          updated = await Voucher.findById(voucherDoc._id).session(session);
+        } else {
+          // check for validation-only unassigned redemption (older flows may have created these)
+          const unassigned = await voucherRedemptionRepository.findUnassigned(String(voucherDoc._id), userId, session);
 
-      if (!updated) throw new Error('Voucher không khả dụng (đã hết lượt)');
+          if (unassigned) {
+            // assign existing unassigned redemption to this order and update amountApplied - do not increment usageCount (assumed already accounted)
+            redemption = await voucherRedemptionRepository.updateAssignToOrder(String(unassigned._id), orderContext.orderId, discount, session as any);
+            updated = await Voucher.findById(voucherDoc._id).session(session);
+          } else {
+            // atomic increment usageCount and create a new redemption record
+            updated = await Voucher.findOneAndUpdate(
+              { _id: voucherDoc._id, $expr: { $lt: [ '$usageCount', { $ifNull: [ '$usageLimit', Number.MAX_SAFE_INTEGER ] } ] } },
+              { $inc: { usageCount: 1 } },
+              { new: true, session }
+            ).session(session);
 
-  // insert redemption
-  const redemption = await voucherRedemptionRepository.create({ voucherId: voucherDoc._id, userId, orderId: orderContext.orderId, amountApplied: discount });
+            if (!updated) throw new Error('Voucher không khả dụng (đã hết lượt)');
+
+            redemption = await voucherRedemptionRepository.create({ voucherId: voucherDoc._id, userId, orderId: orderContext.orderId, amountApplied: discount }, session as any);
+          }
+        }
+      }
 
       await session.commitTransaction();
       session.endSession();
@@ -80,7 +112,25 @@ class VoucherService {
         logger.warn('Failed to send voucher redemption notification', e);
       }
 
-      return { discount, newTotal: orderContext.cartTotal - discount, voucherId: voucherDoc._id, redemptionId: redemption._id };
+      // normalize voucher payload for clients (frontend expects a simple voucher shape)
+      const voucherPayload = {
+        id: String(voucherDoc._id),
+        code: voucherDoc.code,
+        description: voucherDoc.description,
+        discountType: voucherDoc.type === 'percent' ? 'percentage' : 'fixed',
+        discountValue: voucherDoc.value,
+        minOrderValue: voucherDoc.metadata?.minOrderValue ?? undefined,
+        maxDiscountValue: voucherDoc.maxDiscountAmount ?? undefined,
+        startDate: voucherDoc.startsAt ? voucherDoc.startsAt.toISOString() : undefined,
+        endDate: voucherDoc.expiresAt ? voucherDoc.expiresAt.toISOString() : undefined,
+        usageLimit: voucherDoc.usageLimit ?? undefined,
+        usageCount: voucherDoc.usageCount ?? 0,
+        perUserLimit: voucherDoc.perUserLimit ?? undefined,
+        isActive: voucherDoc.isActive,
+      };
+
+      // If we performed a committed redemption above, return redemptionId; otherwise redemption is undefined
+      return { discount, newTotal: cartTotal - discount, voucherId: voucherDoc._id, redemptionId: redemption ? redemption._id : undefined, voucher: voucherPayload };
     } catch (err) {
       await session.abortTransaction();
       session.endSession();

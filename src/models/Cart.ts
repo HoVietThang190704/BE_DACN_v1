@@ -91,7 +91,4 @@ const CartSchema = new Schema<ICart>(
   }
 );
 
-// Indexes
-CartSchema.index({ userId: 1 }, { unique: true });
-
 export const Cart = mongoose.model<ICart>('Cart', CartSchema);

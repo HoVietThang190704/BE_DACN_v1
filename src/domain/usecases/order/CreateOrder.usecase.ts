@@ -1,4 +1,5 @@
 import { IOrderRepository } from '../../repositories/IOrderRepository';
+import mongoose from 'mongoose';
 import { ICartRepository } from '../../repositories/ICartRepository';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { IAddressRepository } from '../../repositories/IAddressRepository';
@@ -98,9 +99,10 @@ export class CreateOrderUseCase {
         thumbnail: undefined
       }];
     } else {
+      // cart is validated above when !buyNow — use non-null assertion to satisfy TS
       selectedItems = cartItemIds && cartItemIds.length > 0
-        ? cart.items.filter((item) => cartItemIds.includes(item.id))
-        : cart.items;
+        ? cart!.items.filter((item) => cartItemIds.includes(item.id))
+        : cart!.items;
     }
 
     if (selectedItems.length === 0) {
@@ -204,19 +206,41 @@ export class CreateOrderUseCase {
     let appliedVoucherId: string | undefined;
 
     if (voucherCode) {
-      const { voucher, discount: voucherDiscount } = await this.validateVoucherUseCase.execute({
-        userId,
-        code: voucherCode,
-        subtotal,
-      });
+      // Voucher should be validated against the full order total (subtotal + shipping fee)
+      const orderTotalForVoucher = subtotal + shippingFee;
+      try {
+        const { voucher, discount: voucherDiscount } = await this.validateVoucherUseCase.execute({
+          userId,
+          code: voucherCode,
+          subtotal: orderTotalForVoucher,
+        });
 
-      discount = voucherDiscount;
-      appliedVoucherId = voucher.id;
+        discount = voucherDiscount;
+        appliedVoucherId = voucher.id;
+      } catch (err: any) {
+      }
     }
 
     const total = Math.max(0, subtotal + shippingFee - discount);
 
     const paymentStatus: PaymentStatus = paymentMethod === 'cod' ? 'pending' : 'pending';
+
+    for (const item of orderItems) {
+      if (typeof item.price !== 'number' || !Number.isFinite(item.price) || item.price < 0) {
+        throw new Error(`Invalid product price for product ${item.productId}`);
+      }
+      if (typeof item.subtotal !== 'number' || !Number.isFinite(item.subtotal) || item.subtotal < 0) {
+        throw new Error(`Invalid product subtotal for product ${item.productId}`);
+      }
+      if (!mongoose.Types.ObjectId.isValid(String(item.productId))) {
+        throw new Error(`Invalid product id: ${item.productId}`);
+      }
+    }
+
+    const computedSubtotal = orderItems.reduce((s, it) => s + (it.subtotal || 0), 0);
+    if (computedSubtotal !== subtotal) {
+      throw new Error('Order subtotal mismatch');
+    }
 
     const order = await this.orderRepository.create({
       userId,
@@ -248,10 +272,6 @@ export class CreateOrderUseCase {
 
     if (!buyNow && selectedItems.length > 0) {
       await this.cartRepository.removeItems(userId, selectedItems.map((item) => item.id));
-    }
-
-    if (appliedVoucherId) {
-      await this.voucherRepository.incrementUsage(appliedVoucherId, userId);
     }
 
     return order;

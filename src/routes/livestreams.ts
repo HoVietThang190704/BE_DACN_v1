@@ -29,15 +29,15 @@ const normalizeProductIds = (products: unknown): string[] => {
 };
 
 const orderProductDocs = (ids: string[], docs: IProduct[]): IProduct[] => {
-  const docMap = new Map(docs.map((doc) => [doc._id.toString(), doc]));
+  const docMap = new Map((docs as any[]).map((doc: any) => [String((doc as any)?._id ?? ''), doc]));
   return ids
     .map((id) => docMap.get(id))
     .filter((doc): doc is IProduct => Boolean(doc));
 };
 
 const mapProductsToSummaries = (docs: IProduct[]): LivestreamProductSummary[] => {
-  return docs.map((doc) => ({
-    id: doc._id.toString(),
+  return (docs as any[]).map((doc: any) => ({
+    id: String((doc as any)?._id ?? ''),
     name: doc.name,
     price: doc.price,
     unit: doc.unit,
@@ -193,7 +193,7 @@ router.get('/', async (req: Request, res: Response) => {
     const items = await Livestream.find(filter).sort({ createdAt: -1 }).limit(100);
 
     // If some livestreams do not have hostAvatar set, try to fill from user profile
-    const transformed = items.map(transformLivestream);
+    const transformed = items.map((d) => transformLivestream(d));
 
     const missingHostIds = transformed
       .filter((it: any) => !(it.hostAvatar) && it.hostId)
@@ -369,7 +369,7 @@ router.get('/user/:userId/history', async (req: Request, res: Response) => {
     .sort({ endTime: -1 }) // Sort by most recent ended first
     .limit(50);
     
-    return res.json(items.map(transformLivestream));
+    return res.json(items.map((d) => transformLivestream(d)));
   } catch (error) {
     console.error('get user livestream history error', error);
     return res.status(500).json({ error: 'internal_error' });

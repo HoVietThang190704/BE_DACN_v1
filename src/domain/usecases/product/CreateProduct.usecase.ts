@@ -2,6 +2,7 @@ import { ProductEntity } from '../../entities/Product.entity';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Create Product
@@ -30,7 +31,8 @@ export interface ProductOwnerContext {
 export class CreateProductUseCase {
   constructor(
     private productRepository: IProductRepository,
-    private categoryRepository: ICategoryRepository
+    private categoryRepository: ICategoryRepository,
+    private readonly elasticsearchService?: ElasticsearchService
   ) {}
 
   async execute(input: CreateProductInput, owner: ProductOwnerContext): Promise<ProductEntity> {
@@ -72,6 +74,8 @@ export class CreateProductUseCase {
     } as unknown as Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'>;
 
     const product = await this.productRepository.create(productData);
+
+    await this.elasticsearchService?.indexProduct(product);
 
     logger.info(`Product created: ${product.id} - ${product.name}`);
 

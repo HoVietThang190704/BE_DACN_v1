@@ -8,6 +8,7 @@ import {
 import { PostEntity } from '../../domain/entities/Post.entity';
 import { Post as PostModel, IPost } from '../../models/Post';
 import { logger } from '../../shared/utils/logger';
+import { buildVietnameseRegex } from '../../shared/utils/textSearch';
 
 /**
  * Post Repository Implementation using Mongoose
@@ -83,7 +84,16 @@ export class PostRepository implements IPostRepository {
     }
 
     if (filters.search) {
-      filter.$text = { $search: filters.search };
+      const trimmed = filters.search.trim();
+      if (trimmed) {
+        filter.$text = { $search: trimmed };
+        const regex = buildVietnameseRegex(trimmed);
+        if (filter.$or) {
+          filter.$or.push({ content: regex });
+        } else {
+          filter.$or = [{ content: regex }];
+        }
+      }
     }
 
     if (filters.minLikes !== undefined) {
