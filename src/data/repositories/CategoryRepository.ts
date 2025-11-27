@@ -3,6 +3,7 @@ import { CategoryEntity } from '../../domain/entities/Category.entity';
 import { Category, ICategory } from '../../models/Category';
 import { logger } from '../../shared/utils/logger';
 import mongoose from 'mongoose';
+import { buildVietnameseRegex } from '../../shared/utils/textSearch';
 
 export class CategoryRepository implements ICategoryRepository {
   
@@ -313,13 +314,14 @@ export class CategoryRepository implements ICategoryRepository {
         .lean();
 
       if (!categories || categories.length === 0) {
-        const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        const regex = buildVietnameseRegex(keyword);
         categories = await Category.find({
           ...baseFilter,
           $or: [
             { name: regex },
             { nameEn: regex },
-            { slug: regex }
+            { slug: regex },
+            { description: regex }
           ]
         })
           .limit(normalizedLimit)

@@ -267,7 +267,6 @@ OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ userId: 1, status: 1 });
 OrderSchema.index({ managerId: 1, createdAt: -1 });
 OrderSchema.index({ managerId: 1, status: 1 });
-OrderSchema.index({ orderNumber: 1 }, { unique: true });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 

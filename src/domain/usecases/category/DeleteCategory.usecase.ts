@@ -1,6 +1,7 @@
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { IProductRepository } from '../../repositories/IProductRepository';
 import { logger } from '../../../shared/utils/logger';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Delete Category
@@ -14,7 +15,8 @@ export interface DeleteCategoryOptions {
 export class DeleteCategoryUseCase {
   constructor(
     private categoryRepository: ICategoryRepository,
-    private productRepository: IProductRepository
+    private productRepository: IProductRepository,
+    private readonly elasticsearchService?: ElasticsearchService
   ) {}
 
   async execute(categoryId: string, options?: DeleteCategoryOptions): Promise<boolean> {
@@ -52,6 +54,8 @@ export class DeleteCategoryUseCase {
       throw new Error('Không thể xóa danh mục');
     }
 
+    await this.elasticsearchService?.removeCategory(categoryId);
+
     // If force delete and has products, update products to remove category
     if (options?.force && category.productCount > 0) {
       logger.warn(`Force deleting category ${categoryId} with ${category.productCount} products`);
@@ -80,6 +84,9 @@ export class DeleteCategoryUseCase {
     }
 
     const deleted = await this.categoryRepository.delete(categoryId);
+    if (deleted) {
+      await this.elasticsearchService?.removeCategory(categoryId);
+    }
 
     logger.warn(`Category permanently deleted: ${categoryId} - ${category.name}`);
 
@@ -110,6 +117,8 @@ export class DeleteCategoryUseCase {
     if (!restored) {
       throw new Error('Không thể khôi phục danh mục');
     }
+
+    await this.elasticsearchService?.indexCategory(restored);
 
     logger.info(`Category restored: ${categoryId} - ${category.name}`);
 

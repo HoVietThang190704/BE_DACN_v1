@@ -14,6 +14,7 @@ import { OrderMapper } from '../dto/order/Order.dto';
 import { ManagedOrderDTO, ManagedOrderMapper } from '../dto/order/ShopOrder.dto';
 import { OrderFilters, OrderPagination } from '../../domain/repositories/IOrderRepository';
 import { logger } from '../../shared/utils/logger';
+import { voucherService } from '../../services/voucher/VoucherService';
 import { OrderStatus, PaymentMethod, OrderEntity } from '../../domain/entities/Order.entity';
 
 /**
@@ -242,7 +243,27 @@ export class OrderController {
         executeParams.quantity = typeof quantity === 'number' ? quantity : Number(quantity || 1);
       }
 
-      const order = await this.createOrderUseCase.execute(executeParams);
+      let order = await this.createOrderUseCase.execute(executeParams);
+      if (voucherCode) {
+        try {
+          const orderTotalForVoucher = order.subtotal + order.shippingFee;
+          const result = await voucherService.redeem(userId, voucherCode, { orderId: order.id, cartTotal: orderTotalForVoucher });
+          if (result && typeof result.discount === 'number' && result.discount > 0) {
+            try {
+              await this.createOrderUseCase['orderRepository'].updateTotals(order.id, result.discount, result.newTotal);
+              try {
+                const refreshed = await this.createOrderUseCase['orderRepository'].findById(order.id);
+                if (refreshed) order = refreshed;
+              } catch (e) {
+              }
+            } catch (updErr) {
+              logger.warn('Failed to update order totals after voucher redemption', updErr);
+            }
+          }
+        } catch (e) {
+          logger.warn('Failed to redeem voucher after order creation', e);
+        }
+      }
 
       res.status(201).json({
         message: 'Tạo đơn hàng thành công',

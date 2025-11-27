@@ -115,12 +115,14 @@ import { SearchController } from '../presentation/controllers/SearchController';
 import { SearchProductsUseCase } from '../domain/usecases/search/SearchProducts.usecase';
 import { SearchUsersUseCase } from '../domain/usecases/search/SearchUsers.usecase';
 import { GlobalSearchUseCase } from '../domain/usecases/search/GlobalSearch.usecase';
+import { SuggestProductsUseCase } from '../domain/usecases/search/SuggestProducts.usecase';
 import { GetUsersByIdsUseCase } from '../domain/usecases/user/GetUsersByIds.usecase';
 import { GetUsersUseCase } from '../domain/usecases/user/GetUsers.usecase';
 import { AdminUserController } from '../presentation/controllers/AdminUserController';
 import { SupportController } from '../presentation/controllers/SupportController';
 import { VNPayController } from '../presentation/controllers/VNPayController';
 import { VNPayGateway } from '../services/payment/VNPayGateway';
+import { elasticsearchService } from '../services/search';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -153,23 +155,24 @@ const getUsersByIdsUseCase = new GetUsersByIdsUseCase(userRepository);
 const getProductsUseCase = new GetProductsUseCase(productRepository);
 const getProductByIdUseCase = new GetProductByIdUseCase(productRepository);
 const getCategoriesUseCase = new GetCategoriesUseCase(productRepository);
-const createProductUseCase = new CreateProductUseCase(productRepository, categoryRepository);
-const updateProductUseCase = new UpdateProductUseCase(productRepository);
-const deleteProductUseCase = new DeleteProductUseCase(productRepository);
+const createProductUseCase = new CreateProductUseCase(productRepository, categoryRepository, elasticsearchService);
+const updateProductUseCase = new UpdateProductUseCase(productRepository, elasticsearchService);
+const deleteProductUseCase = new DeleteProductUseCase(productRepository, elasticsearchService);
 const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
-const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository);
+const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository, elasticsearchService);
+const suggestProductsUseCase = new SuggestProductsUseCase(productRepository, elasticsearchService);
 
 // Search Use Cases
 const searchUsersUseCase = new SearchUsersUseCase(userRepository);
-const globalSearchUseCase = new GlobalSearchUseCase(searchProductsUseCase, searchUsersUseCase, postRepository);
+const globalSearchUseCase = new GlobalSearchUseCase(searchProductsUseCase, searchUsersUseCase, postRepository, elasticsearchService);
 
 // Category Use Cases
 const getCategoriesTreeUseCase = new GetCategoriesTreeUseCase(categoryRepository);
 const getCategoryByIdUseCase = new GetCategoryByIdUseCase(categoryRepository);
 const getCategoryBreadcrumbUseCase = new GetCategoryBreadcrumbUseCase(categoryRepository);
-const createCategoryUseCase = new CreateCategoryUseCase(categoryRepository);
-const updateCategoryUseCase = new UpdateCategoryUseCase(categoryRepository);
-const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository, productRepository);
+const createCategoryUseCase = new CreateCategoryUseCase(categoryRepository, elasticsearchService);
+const updateCategoryUseCase = new UpdateCategoryUseCase(categoryRepository, elasticsearchService);
+const deleteCategoryUseCase = new DeleteCategoryUseCase(categoryRepository, productRepository, elasticsearchService);
 // const updateCategoryImageUseCase = new UpdateCategoryImageUseCase(categoryRepository);
 
 // Shop use case instances
@@ -325,7 +328,7 @@ export const ticketController = new TicketController(
   updateTicketStatusUseCase
 );
 export const voucherController = new VoucherController();
-export const searchController = new SearchController(globalSearchUseCase);
+export const searchController = new SearchController(globalSearchUseCase, suggestProductsUseCase);
 export const supportController = new SupportController(
   getSupportFaqsUseCase,
   searchSupportFaqsUseCase,

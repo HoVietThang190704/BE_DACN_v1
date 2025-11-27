@@ -9,7 +9,7 @@ import {
   GetCommentRepliesUseCase,
   ToggleLikeCommentUseCase
 } from '../domain/usecases/comment';
-import { authMiddleware } from '../shared/middleware/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../shared/middleware/auth.middleware';
 
 const router = Router();
 
@@ -143,7 +143,7 @@ router.delete('/:commentId', authMiddleware, (req, res) => commentController.del
  *       200:
  *         description: Thành công
  */
-router.get('/post/:postId', (req, res) => commentController.getCommentsByPostId(req, res));
+router.get('/post/:postId', optionalAuthMiddleware, (req, res) => commentController.getCommentsByPostId(req, res));
 
 /**
  * @swagger
@@ -174,7 +174,7 @@ router.get('/post/:postId', (req, res) => commentController.getCommentsByPostId(
  *                   items:
  *                     type: object
  */
-router.get('/:commentId/replies', (req, res) => commentController.getCommentReplies(req, res));
+router.get('/:commentId/replies', optionalAuthMiddleware, (req, res) => commentController.getCommentReplies(req, res));
 
 /**
  * @swagger

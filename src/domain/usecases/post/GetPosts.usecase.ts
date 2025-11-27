@@ -1,4 +1,6 @@
 import { IPostRepository, PostPagination, PaginatedPosts } from '../../repositories/IPostRepository';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
+import { logger } from '../../../shared/utils/logger';
 
 export interface GetPostByIdDTO {
   postId: string;
@@ -90,7 +92,10 @@ export class GetPublicPostsUseCase {
  * Use Case: Search Posts
  */
 export class SearchPostsUseCase {
-  constructor(private postRepository: IPostRepository) {}
+  constructor(
+    private postRepository: IPostRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(
     query: string,
@@ -101,14 +106,31 @@ export class SearchPostsUseCase {
       throw new Error('Từ khóa tìm kiếm không được để trống');
     }
 
-    if (query.trim().length < 2) {
-      throw new Error('Từ khóa tìm kiếm phải có ít nhất 2 ký tự');
+    if (query.trim().length < 1) {
+      throw new Error('Từ khóa tìm kiếm phải có ít nhất 1 ký tự');
     }
 
-    // Search posts
-    const posts = await this.postRepository.search(query, pagination);
+    if (this.elasticsearchService?.isEnabled()) {
+      try {
+        const result = await this.elasticsearchService.searchPosts(query, {
+          page: pagination?.page,
+          limit: pagination?.limit
+        });
 
-    return posts;
+        return {
+          posts: result.items,
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+          hasMore: result.total > result.limit * result.page
+        };
+      } catch (error) {
+        logger.warn('[SearchPostsUseCase] Elasticsearch search failed, falling back to Mongo search', error);
+      }
+    }
+
+    return this.postRepository.search(query, pagination);
   }
 }
 

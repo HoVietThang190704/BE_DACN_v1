@@ -223,9 +223,11 @@ export class OrderRepository implements IOrderRepository {
       });
 
       return this.toDomainEntity(newOrder as IOrder);
-    } catch (error) {
-      logger.error('OrderRepository.create error:', error);
-      throw new Error('Lỗi khi tạo đơn hàng');
+    } catch (error: any) {
+      // log more context to help debugging (don't leak to clients)
+      logger.error('OrderRepository.create error:', { error: error?.message || error, order: { userId: order.userId, managerId: order.managerId } });
+      // include original message in thrown error so controllers can surface it to clients during debugging
+      throw new Error(`Lỗi khi tạo đơn hàng: ${error?.message || String(error)}`);
     }
   }
 
@@ -417,6 +419,16 @@ export class OrderRepository implements IOrderRepository {
     } catch (error) {
       logger.error('OrderRepository.updateStatus error:', error);
       throw new Error('Lỗi khi cập nhật trạng thái đơn hàng');
+    }
+  }
+
+  async updateTotals(orderId: string, discount: number, total: number): Promise<OrderEntity | null> {
+    try {
+      const updated = await Order.findByIdAndUpdate(orderId, { $set: { discount, total } }, { new: true }).lean();
+      return updated ? this.toDomainEntity(updated as unknown as IOrder) : null;
+    } catch (error) {
+      logger.error('OrderRepository.updateTotals error:', error);
+      throw new Error('Lỗi khi cập nhật tổng đơn hàng');
     }
   }
 }

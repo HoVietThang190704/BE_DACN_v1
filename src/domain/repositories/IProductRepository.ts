@@ -4,6 +4,7 @@ export interface ProductFilters {
   search?: string;
   category?: string;
   categoryIds?: string[];
+  searchCategoryIds?: string[];
   owner?: string;
   minPrice?: number;
   maxPrice?: number;

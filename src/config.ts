@@ -71,5 +71,8 @@ export const config = {
   // HTTPS (optional)
   SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
   SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',
-  SSL_CA_PATH: process.env.SSL_CA_PATH || ''
+  SSL_CA_PATH: process.env.SSL_CA_PATH || '',
+
+  // Search
+  ELASTICSEARCH_NODE: process.env.ELASTICSEARCH_NODE || 'http://localhost:9201'
 } as const;

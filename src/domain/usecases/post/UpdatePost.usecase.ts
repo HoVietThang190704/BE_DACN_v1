@@ -1,5 +1,6 @@
 import { IPostRepository } from '../../repositories/IPostRepository';
 import { PostEntity } from '../../entities/Post.entity';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 export interface UpdatePostDTO {
   postId: string;
@@ -14,7 +15,10 @@ export interface UpdatePostDTO {
  * Use Case: Update Post
  */
 export class UpdatePostUseCase {
-  constructor(private postRepository: IPostRepository) {}
+  constructor(
+    private postRepository: IPostRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(dto: UpdatePostDTO): Promise<PostEntity> {
     // Validate input
@@ -83,6 +87,8 @@ export class UpdatePostUseCase {
     if (!updatedPost) {
       throw new Error('Không thể cập nhật bài viết');
     }
+
+    await this.elasticsearchService?.indexPost(updatedPost);
 
     return updatedPost;
   }

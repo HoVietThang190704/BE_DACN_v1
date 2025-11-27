@@ -10,7 +10,7 @@ export class ValidateVoucherUseCase {
   constructor(private readonly voucherRepository: IVoucherRepository) {}
 
   async execute({ userId, code, subtotal }: ValidateVoucherInput) {
-    const voucher = await this.voucherRepository.findByCode(code);
+    const voucher = await this.voucherRepository.findByCode(String(code).toUpperCase());
 
     if (!voucher) {
       throw new Error('Mã giảm giá không tồn tại');
