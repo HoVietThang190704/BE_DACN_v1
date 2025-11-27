@@ -1,6 +1,7 @@
 import { CategoryEntity } from '../../entities/Category.entity';
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 /**
  * Use Case: Create Category
@@ -21,7 +22,10 @@ export interface CreateCategoryInput {
 }
 
 export class CreateCategoryUseCase {
-  constructor(private categoryRepository: ICategoryRepository) {}
+  constructor(
+    private categoryRepository: ICategoryRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(input: CreateCategoryInput): Promise<CategoryEntity> {
     // Validate input
@@ -67,6 +71,8 @@ export class CreateCategoryUseCase {
 
     // Create category
     const category = await this.categoryRepository.create(categoryData);
+
+    await this.elasticsearchService?.indexCategory(category);
 
     logger.info(`Category created: ${category.id} - ${category.name}`);
 

@@ -110,6 +110,8 @@ router.get('/me', authenticate, (req, res) => voucherController.listUserVouchers
  *                 type: string
  *               cartTotal:
  *                 type: number
+ *               subtotal:
+ *                 type: number
  *     responses:
  *       200:
  *         description: Redeemed

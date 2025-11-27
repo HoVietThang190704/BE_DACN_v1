@@ -63,6 +63,16 @@ export class CreateProductReviewUseCase {
     }
 
     if (level === 0) {
+      // prevent a user from submitting more than one top-level review (rating) per product
+      try {
+        const existing = await this.reviewRepository.findAll({ productId: dto.productId, userId: dto.userId, level: 0 }, undefined, { page: 1, limit: 1 });
+        if (existing.total > 0) {
+          throw new Error('Bạn đã đánh giá sản phẩm này trước đó. Vui lòng phản hồi (reply) vào đánh giá trước đó nếu bạn muốn thêm ý kiến.');
+        }
+      } catch (err) {
+        // if repository throws, rethrow to surface the error to the caller
+        if (err instanceof Error) throw err;
+      }
       if (dto.rating === undefined || dto.rating === null) {
         throw new Error('Vui lòng chọn số sao đánh giá');
       }

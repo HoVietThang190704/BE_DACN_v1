@@ -1,5 +1,6 @@
 import { IPostRepository } from '../../repositories/IPostRepository';
 import { PostEntity } from '../../entities/Post.entity';
+import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
 export interface CreatePostDTO {
   userId: string;
@@ -13,7 +14,10 @@ export interface CreatePostDTO {
  * Use Case: Create Post
  */
 export class CreatePostUseCase {
-  constructor(private postRepository: IPostRepository) {}
+  constructor(
+    private postRepository: IPostRepository,
+    private readonly elasticsearchService?: ElasticsearchService
+  ) {}
 
   async execute(dto: CreatePostDTO): Promise<PostEntity> {
     // Validate input
@@ -57,6 +61,8 @@ export class CreatePostUseCase {
 
     // Save to repository
     const post = await this.postRepository.create(postData);
+
+    await this.elasticsearchService?.indexPost(post);
 
     return post;
   }

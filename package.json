@@ -8,6 +8,7 @@
     "start": "node dist/app.js",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
+    "reindex:es": "ts-node src/scripts/reindex-elasticsearch.ts",
     "check-env": "node check-env.js",
     "setup": "npm run check-env && npm run dev",
     "seed:categories": "ts-node-dev --transpile-only src/shared/database/seed-categories.ts"
@@ -49,6 +50,7 @@
   "homepage": "https://github.com/HoVietThang190704/BE_DACN_v1#readme",
   "description": "Hệ thống Backend Đồ án Chuyên ngành - Kiến trúc Microservices với API Gateway, Catalog Service và Order Service",
   "dependencies": {
+    "@elastic/elasticsearch": "^8.11.0",
     "agora-access-token": "^2.0.4",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",

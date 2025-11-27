@@ -32,8 +32,10 @@ export class VoucherController {
   async redeem(req: Request, res: Response) {
     try {
       const userId = req.user?.userId as string;
-      const { code, orderId, cartTotal } = req.body;
-      const result = await voucherService.redeem(userId, code, { orderId, cartTotal });
+      const { code, orderId } = req.body;
+      // support both 'cartTotal' (old) and 'subtotal' (client uses subtotal) as input
+      const cartTotal = req.body.cartTotal ?? req.body.subtotal;
+      const result = await voucherService.redeem(userId, code, { orderId, cartTotal, subtotal: req.body.subtotal });
       return res.json({ success: true, data: result });
     } catch (err: any) {
       logger.error('VoucherController.redeem error', err);
