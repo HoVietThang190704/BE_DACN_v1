@@ -62,6 +62,8 @@ export const config = {
   VNPAY_PAYMENT_URL: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || 'http://localhost:5000/api/payments/vnpay/callback',
 
+  // Firebase Admin (service account JSON as a single env var string)
+  FIREBASE_SERVICE_ACCOUNT_JSON: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
   // HTTPS (optional)
   SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
   SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',
