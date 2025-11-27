@@ -152,6 +152,10 @@ npm start
 ### 🔐 Authentication ✅
 - `POST /api/auth/register` - Đăng ký tài khoản mới (có validation)
 - `POST /api/auth/login` - Đăng nhập với JWT token
+- `POST /api/auth/google/token` - Đăng nhập bằng Google OAuth
+- `POST /api/auth/facebook/token` - Đăng nhập bằng Facebook OAuth ✨
+- `POST /api/auth/phone/send-otp` - Gửi mã OTP đến số điện thoại
+- `POST /api/auth/phone/verify-otp` - Xác thực OTP và đăng nhập
 - `POST /api/auth/logout` - Đăng xuất
 - `GET /api/auth/profile` - Thông tin profile (TODO: JWT middleware)
 

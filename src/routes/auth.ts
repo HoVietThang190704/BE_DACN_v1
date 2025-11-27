@@ -7,6 +7,7 @@ import { logger } from '../shared/utils/logger';
 import { userController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
 import AuthGoogleController from '../presentation/controllers/AuthGoogleController';
+import AuthFacebookController from '../presentation/controllers/AuthFacebookController';
 import { OTPService } from '../services/OTPService';
 import { initFirebaseAdmin, firebaseAdmin, firebaseInitialized } from '../lib/firebaseAdmin';
 
@@ -342,6 +343,55 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
  */
 authRoutes.post('/google/token', async (req: Request, res: Response) => {
   return AuthGoogleController.token(req, res);
+});
+
+/**
+ * @swagger
+ * /api/auth/facebook/token:
+ *   post:
+ *     summary: Đăng nhập bằng Facebook (accept access_token từ frontend)
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - access_token
+ *             properties:
+ *               access_token:
+ *                 type: string
+ *                 example: "EAABwzLixnjYBO..."
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Facebook login successful"
+ *                 user:
+ *                   type: object
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *       400:
+ *         description: Thiếu access_token
+ *       401:
+ *         description: Token không hợp lệ
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/facebook/token', async (req: Request, res: Response) => {
+  return AuthFacebookController.token(req, res);
 });
 
 /**
