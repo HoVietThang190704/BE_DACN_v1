@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { User, IUser } from '../models/users/User';
 import { config } from '../config';
 import { logger } from '../shared/utils/logger';
 import { userController } from '../di/container';
 import { authenticate } from '../shared/middleware/auth';
 import AuthGoogleController from '../presentation/controllers/AuthGoogleController';
+import { OTPService } from '../services/OTPService';
+import { initFirebaseAdmin, firebaseAdmin, firebaseInitialized } from '../lib/firebaseAdmin';
 
 export const authRoutes = Router();
 
@@ -735,4 +738,258 @@ authRoutes.post('/reset-password', async (req: Request, res: Response) => {
  */
 authRoutes.post('/change-password', authenticate, async (req: Request, res: Response) => {
   await userController.changePassword(req, res);
+});
+
+/**
+ * @swagger
+ * /api/auth/phone/send-otp:
+ *   post:
+ *     summary: Gửi mã OTP đến số điện thoại
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *     responses:
+ *       200:
+ *         description: OTP đã được gửi thành công
+ *       400:
+ *         description: Số điện thoại không hợp lệ
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/phone/send-otp', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điện thoại là bắt buộc'
+      });
+    }
+
+    // Validate phone format
+    const phoneRegex = /^(\+84|84|0)[1-9][0-9]{8}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điện thoại không hợp lệ'
+      });
+    }
+
+    // Create OTP
+    const { otp, expiresAt } = await OTPService.createOTP(phone);
+
+    // Send OTP via SMS
+    const sent = await OTPService.sendOTP(phone, otp);
+
+    if (!sent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể gửi OTP. Vui lòng thử lại sau.'
+      });
+    }
+
+    logger.info(`OTP sent to phone: ${phone}`);
+
+    return res.json({
+      success: true,
+      message: 'Mã OTP đã được gửi đến số điện thoại của bạn',
+      expiresAt
+    });
+  } catch (error) {
+    logger.error('Send OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi gửi OTP'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/phone/verify-otp:
+ *   post:
+ *     summary: Xác thực OTP và đăng nhập bằng số điện thoại
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *               - otp
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công
+ *       400:
+ *         description: OTP không hợp lệ hoặc đã hết hạn
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/phone/verify-otp', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điện thoại và mã OTP là bắt buộc'
+      });
+    }
+
+    // Verify OTP
+    const isValid = await OTPService.verifyOTP(phone, otp);
+
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không hợp lệ hoặc đã hết hạn'
+      });
+    }
+
+    // Normalize phone
+    const normalizedPhone = OTPService.normalizePhone(phone);
+
+    // Find or create user
+    let user = await User.findOne({ phone: normalizedPhone });
+
+    if (!user) {
+      // Create new user with phone login
+      const randomPassword = crypto.randomBytes(20).toString('hex');
+      user = new User({
+        phone: normalizedPhone,
+        email: `${normalizedPhone}@phone.local`, // Temporary email
+        password: randomPassword,
+        userName: `User_${normalizedPhone.substring(normalizedPhone.length - 4)}`,
+        role: 'customer',
+        isVerified: true // Phone verified via OTP
+      });
+      await user.save();
+      logger.info(`New user created via phone OTP: ${normalizedPhone}`);
+    }
+
+    // Generate JWT tokens
+    const payloadJwt = { userId: user._id, email: user.email, role: user.role };
+    const secret = config.JWT_SECRET as string;
+    const accessToken = jwt.sign(payloadJwt, secret as jwt.Secret, { expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+    const refreshToken = jwt.sign(payloadJwt, secret as jwt.Secret, { expiresIn: config.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+
+    return res.json({
+      success: true,
+      message: 'Đăng nhập thành công',
+      user: {
+        id: user._id,
+        email: user.email,
+        userName: user.userName,
+        phone: user.phone,
+        role: user.role,
+        isVerified: user.isVerified
+      },
+      accessToken,
+      refreshToken
+    });
+  } catch (error) {
+    logger.error('Verify OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi xác thực OTP'
+    });
+  }
+});
+
+/**
+ * Verify Firebase ID token (sent from client after phone auth) and create/login user
+ */
+authRoutes.post('/phone/firebase-verify', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ success: false, message: 'idToken is required' });
+    }
+
+    // Initialize firebase admin if not already
+    initFirebaseAdmin();
+    if (!firebaseInitialized()) {
+      logger.error('Firebase Admin is not initialized');
+      return res.status(500).json({ success: false, message: 'Firebase not configured on server' });
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = await firebaseAdmin.auth().verifyIdToken(idToken);
+    } catch (err) {
+      logger.error('Firebase token verification failed:', err);
+      return res.status(401).json({ success: false, message: 'Invalid Firebase ID token' });
+    }
+
+    const phoneNumber: string | undefined = decoded.phone_number || decoded.phone;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'No phone number in Firebase token' });
+    }
+
+    // Normalize phone
+    const normalizedPhone = OTPService.normalizePhone(phoneNumber);
+
+    // Find or create user
+    let user = await User.findOne({ phone: normalizedPhone });
+    if (!user) {
+      const randomPassword = crypto.randomBytes(20).toString('hex');
+      user = new User({
+        phone: normalizedPhone,
+        email: `${normalizedPhone}@phone.local`,
+        password: randomPassword,
+        userName: `User_${normalizedPhone.substring(normalizedPhone.length - 4)}`,
+        role: 'customer',
+        isVerified: true
+      });
+      await user.save();
+      logger.info(`New user created via Firebase phone auth: ${normalizedPhone}`);
+    }
+
+    // Generate JWT tokens
+    const payloadJwt = { userId: user._id, email: user.email, role: user.role };
+    const secret = config.JWT_SECRET as string;
+    const accessToken = jwt.sign(payloadJwt, secret as jwt.Secret, { expiresIn: config.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+    const refreshToken = jwt.sign(payloadJwt, secret as jwt.Secret, { expiresIn: config.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+
+    return res.json({
+      success: true,
+      message: 'Đăng nhập thành công',
+      user: {
+        id: user._id,
+        email: user.email,
+        userName: user.userName,
+        phone: user.phone,
+        role: user.role,
+        isVerified: user.isVerified
+      },
+      accessToken,
+      refreshToken
+    });
+
+  } catch (error) {
+    logger.error('Firebase verify error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi server khi xác thực Firebase token' });
+  }
 });
