@@ -56,6 +56,10 @@ export const config = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_CLIENT_AUDIENCES: process.env.GOOGLE_CLIENT_AUDIENCES || '',
 
+  // Facebook OAuth
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+
   // VNPay
   VNPAY_TMNCODE: process.env.VNPAY_TMNCODE || '',
   VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || '',
