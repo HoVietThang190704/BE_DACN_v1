@@ -10,7 +10,9 @@ export interface TicketDTO {
   priority: string;
   status: string;
   createdBy: string;
+  createdByName?: string | null;
   assignedTo?: string | null;
+  assignedToName?: string | null;
   relatedShopId?: string | null;
   relatedShopReference?: string | null;
   relatedOrderId?: string | null;
@@ -35,8 +37,10 @@ export class TicketMapper {
       type: doc.type,
       priority: doc.priority,
       status: doc.status,
-      createdBy: String(doc.created_by),
-      assignedTo: doc.assigned_to ? String(doc.assigned_to) : null,
+      createdBy: doc.created_by ? (typeof doc.created_by === 'object' && doc.created_by?._id ? String(doc.created_by._id) : String(doc.created_by)) : '',
+      createdByName: doc.created_by && typeof doc.created_by === 'object' && doc.created_by.name ? doc.created_by.name : null,
+      assignedTo: doc.assigned_to ? (typeof doc.assigned_to === 'object' && doc.assigned_to?._id ? String(doc.assigned_to._id) : String(doc.assigned_to)) : null,
+      assignedToName: doc.assigned_to && typeof doc.assigned_to === 'object' && doc.assigned_to.name ? doc.assigned_to.name : null,
       relatedShopId: doc.related_shop_id ? String(doc.related_shop_id) : null,
   relatedShopReference: doc.related_shop_reference || null,
       relatedOrderId: doc.related_order_id ? String(doc.related_order_id) : null,

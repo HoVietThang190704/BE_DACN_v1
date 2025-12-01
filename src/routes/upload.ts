@@ -16,9 +16,9 @@ const upload = multer({
     // Only allow image files. Prefer checking mimetype startsWith('image/'),
     // but keep extension fallback for odd clients.
     try {
-      const allowedTypes = /jpeg|jpg|png|gif|webp/;
+      const allowedTypes = /(jpeg|jpg|jfif|png|gif|webp)/;
       const orig = String(file.originalname || '');
-      const ext = path.extname(orig).toLowerCase();
+      const ext = path.extname(orig).toLowerCase().replace(/^\./, '');
       const mimetype = String(file.mimetype || '');
 
       // Debug log to help diagnose unexpected uploads
@@ -86,6 +86,8 @@ const upload = multer({
 router.post('/images', authMiddleware, upload.array('images', 10), async (req: Request, res: Response) => {
   try {
     const files = req.files as Express.Multer.File[];
+    // Log origin and filenames to aid debugging when running in production
+    console.info('[upload] origin:', req.headers.origin || 'none', 'files:', files.map(f => f.originalname));
     
     if (!files || files.length === 0) {
       res.status(400).json({

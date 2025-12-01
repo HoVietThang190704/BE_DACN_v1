@@ -39,6 +39,26 @@ export class SocketService {
         this.handleLeaveLivestream(socket, livestreamId);
       });
 
+      socket.on('support-chat:join', ({ userId }) => {
+        if (!userId) return;
+        logger.info(`💬 Support chat join for user ${userId}`);
+        socket.join(`support-chat:user:${userId}`);
+      });
+
+      socket.on('support-chat:leave', ({ userId }) => {
+        if (!userId) return;
+        logger.info(`💬 Support chat leave for user ${userId}`);
+        socket.leave(`support-chat:user:${userId}`);
+      });
+
+      socket.on('support-chat:join-admin', ({ adminId }) => {
+        logger.info(`💬 Support chat admin join ${adminId || 'unknown'}`);
+        socket.join('support-chat:admins');
+        if (adminId) {
+          socket.join(`support-chat:admin:${adminId}`);
+        }
+      });
+
       // Handle disconnect
       socket.on('disconnect', () => {
         this.handleDisconnect(socket);

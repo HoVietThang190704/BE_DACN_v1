@@ -95,16 +95,12 @@ export class ElasticsearchService {
     try {
       const client = this.client ?? this.createClient();
       await client.ping();
-
-      // Try to read server version and warn if it looks incompatible
       try {
-        // client.info() returns version info — use any to avoid tight type coupling
         const info: any = await client.info();
         const version = info?.version?.number ?? info?.body?.version?.number ?? 'unknown';
         logger.info(`[ElasticsearchService] Connected to Elasticsearch server (version=${version})`);
 
         const major = typeof version === 'string' ? parseInt(version.split('.')[0], 10) : NaN;
-        // If server version looks too old (e.g., < 7) warn — the client may not be compatible
         if (!Number.isNaN(major) && major < 7) {
           logger.warn('[ElasticsearchService] Elasticsearch server version seems old — client may be incompatible.');
         }
@@ -141,7 +137,7 @@ export class ElasticsearchService {
       }
       if (body.settings) {
         try {
-          await client.indices.putSettings({ index, settings: body.settings });
+          await this.safePutIndexSettings(client, index, body.settings);
         } catch (settingsError) {
           logger.warn(`[ElasticsearchService] Failed to update settings for ${index}:`, settingsError);
         }
@@ -187,14 +183,16 @@ export class ElasticsearchService {
       },
       mappings: {
         properties: {
+          // Prioritized fields first for readability: exact & text name, tokenized searchTerms
           name: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword', normalizer: 'lowercase_normalizer' } } },
+          searchTerms: { type: 'keyword', normalizer: 'lowercase_normalizer' },
           nameEn: { type: 'text', analyzer: 'standard' },
-          unit: { type: 'keyword' },
-          description: { type: 'text', analyzer: 'standard' },
-          categoryId: { type: 'keyword' },
           categoryName: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword', normalizer: 'lowercase_normalizer' } } },
+          categoryId: { type: 'keyword' },
           categorySlug: { type: 'keyword' },
           tags: { type: 'keyword' },
+          description: { type: 'text', analyzer: 'standard' },
+          unit: { type: 'keyword' },
           price: { type: 'double' },
           rating: { type: 'double' },
           reviewCount: { type: 'integer' },
@@ -204,7 +202,6 @@ export class ElasticsearchService {
           ownerId: { type: 'keyword' },
           ownerName: { type: 'text', analyzer: 'standard' },
           suggest: { type: 'completion' },
-          searchTerms: { type: 'keyword', normalizer: 'lowercase_normalizer' },
           createdAt: { type: 'date' },
           updatedAt: { type: 'date' }
         }
@@ -431,10 +428,11 @@ export class ElasticsearchService {
     const combinedTermTokens = Array.from(new Set([...queryTokens, ...normalizedTokens]));
 
     const shouldQueries: estypes.QueryDslQueryContainer[] = [
+      // Highest importance fields first: exact keyword, name text, category
       {
         multi_match: {
           query: trimmedQuery,
-          fields: ['name^4', 'name.keyword^6', 'nameEn^2', 'categoryName^3', 'description', 'tags^2'],
+          fields: ['name.keyword^6', 'name^4', 'categoryName^3', 'nameEn^2', 'tags^2', 'description'],
           fuzziness: 'AUTO',
           operator: 'and'
         }
@@ -454,7 +452,7 @@ export class ElasticsearchService {
         {
           multi_match: {
             query: normalizedQuery,
-            fields: ['name^3', 'nameEn^2', 'categoryName^2', 'description'],
+            fields: ['name.keyword^6', 'name^3', 'categoryName^2', 'nameEn^2', 'tags^2', 'description'],
             fuzziness: 'AUTO',
             operator: 'and'
           }
@@ -471,7 +469,8 @@ export class ElasticsearchService {
     }
 
     if (combinedTermTokens.length > 0) {
-      shouldQueries.push({
+      // Token-based exact matches are prioritized early
+      shouldQueries.splice(1, 0, {
         terms: {
           searchTerms: combinedTermTokens,
           boost: 2
@@ -523,7 +522,6 @@ export class ElasticsearchService {
         shouldQueries.push({ ids: { values: suggestedIds, boost: 4 } });
       }
     } catch (e) {
-      // silently ignore suggest prefetch errors; search will continue using shouldQueries already built
     }
 
     const response = await client.search<{ _source: any }>({
@@ -728,6 +726,44 @@ export class ElasticsearchService {
     }
 
     return entity;
+  }
+
+  private async safePutIndexSettings(client: Client, index: string, settings: any): Promise<void> {
+    try {
+      await client.indices.putSettings({ index, settings });
+      return;
+    } catch (err: any) {
+      const reason = (err?.meta?.body?.error?.reason ?? err?.message ?? '') as string;
+      if (typeof reason === 'string' && reason.indexOf("Can't update non dynamic settings") > -1) {
+        try {
+          await client.indices.putSettings({ index, settings, reopen: true } as any);
+          return;
+        } catch (reopenErr) {
+          logger.warn(`[ElasticsearchService] putSettings reopen failed for ${index}, will try close/put/open sequence:`, reopenErr);
+        }
+
+        try {
+          logger.info(`[ElasticsearchService] Closing index ${index} to apply non-dynamic settings`);
+          await client.indices.close({ index });
+        } catch (closeErr) {
+          logger.warn(`[ElasticsearchService] Failed to close index ${index} before putSettings:`, closeErr);
+        }
+
+        try {
+          await client.indices.putSettings({ index, settings });
+        } catch (putErr) {
+          logger.error(`[ElasticsearchService] Failed to putSettings for ${index} after closing index:`, putErr);
+        }
+
+        try {
+          await client.indices.open({ index });
+        } catch (openErr) {
+          logger.warn(`[ElasticsearchService] Failed to re-open index ${index} after putSettings:`, openErr);
+        }
+      } else {
+        throw err;
+      }
+    }
   }
 
 }

@@ -20,6 +20,8 @@ import { SupportFaqRepository } from '../data/repositories/SupportFaqRepository'
 import { SupportFaqFeedbackRepository } from '../data/repositories/SupportFaqFeedbackRepository';
 import { PaymentRepository } from '../data/repositories/PaymentRepository';
 import { supportFaqs } from '../shared/data/supportFaqs';
+import { RegisterShopOwnerRepository } from '../data/repositories/RegisterShopOwnerRepository';
+import { ChatSupportRepository } from '../data/repositories/ChatSupportRepository';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -99,6 +101,10 @@ import { UpdateTicketStatusUseCase } from '../domain/usecases/ticket/UpdateTicke
 import { GetSupportFaqsUseCase } from '../domain/usecases/support/GetSupportFaqs.usecase';
 import { SearchSupportFaqsUseCase } from '../domain/usecases/support/SearchSupportFaqs.usecase';
 import { VoteSupportFaqUseCase } from '../domain/usecases/support/VoteSupportFaq.usecase';
+import { GetChatSupportThreadUseCase } from '../domain/usecases/support/GetChatSupportThread.usecase';
+import { SendChatSupportMessageUseCase } from '../domain/usecases/support/SendChatSupportMessage.usecase';
+import { ListChatSupportThreadsUseCase } from '../domain/usecases/support/ListChatSupportThreads.usecase';
+import { MarkChatSupportThreadReadUseCase } from '../domain/usecases/support/MarkChatSupportThreadRead.usecase';
 
 // ==================== CONTROLLERS ====================
 import { UserController } from '../presentation/controllers/UserController';
@@ -120,9 +126,15 @@ import { GetUsersByIdsUseCase } from '../domain/usecases/user/GetUsersByIds.usec
 import { GetUsersUseCase } from '../domain/usecases/user/GetUsers.usecase';
 import { AdminUserController } from '../presentation/controllers/AdminUserController';
 import { SupportController } from '../presentation/controllers/SupportController';
+import { SupportChatController } from '../presentation/controllers/SupportChatController';
 import { VNPayController } from '../presentation/controllers/VNPayController';
 import { VNPayGateway } from '../services/payment/VNPayGateway';
 import { elasticsearchService } from '../services/search';
+import { RegisterShopOwnerController } from '../presentation/controllers/RegisterShopOwnerController';
+import { SubmitRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/SubmitRegisterShopOwnerRequest.usecase';
+import { GetMyRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/GetMyRegisterShopOwnerRequest.usecase';
+import { ListRegisterShopOwnerRequestsUseCase } from '../domain/usecases/registerShopOwner/ListRegisterShopOwnerRequests.usecase';
+import { ReviewRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/ReviewRegisterShopOwnerRequest.usecase';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -141,6 +153,8 @@ const supportFaqFeedbackRepository = new SupportFaqFeedbackRepository();
 const supportFaqRepository = new SupportFaqRepository(supportFaqs, supportFaqFeedbackRepository);
 const paymentRepository = new PaymentRepository();
 const vnPayGateway = new VNPayGateway();
+const registerShopOwnerRepository = new RegisterShopOwnerRepository();
+const chatSupportRepository = new ChatSupportRepository();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -214,6 +228,10 @@ const confirmOrderDeliveredUseCase = new ConfirmOrderDeliveredUseCase(orderRepos
 const listUserVouchersUseCase = new ListUserVouchersUseCase(voucherRepository);
 const createVNPayPaymentUseCase = new CreateVNPayPaymentUseCase(orderRepository, paymentRepository, vnPayGateway);
 const handleVNPayCallbackUseCase = new HandleVNPayCallbackUseCase(paymentRepository, orderRepository, vnPayGateway);
+const submitRegisterShopOwnerRequestUseCase = new SubmitRegisterShopOwnerRequestUseCase(registerShopOwnerRepository, userRepository);
+const getMyRegisterShopOwnerRequestUseCase = new GetMyRegisterShopOwnerRequestUseCase(registerShopOwnerRepository);
+const listRegisterShopOwnerRequestsUseCase = new ListRegisterShopOwnerRequestsUseCase(registerShopOwnerRepository);
+const reviewRegisterShopOwnerRequestUseCase = new ReviewRegisterShopOwnerRequestUseCase(registerShopOwnerRepository, userRepository);
 
 // Cart use case instances
 const getCartUseCase = new GetCartUseCase(cartRepository, productRepository);
@@ -237,6 +255,10 @@ const updateTicketStatusUseCase = new UpdateTicketStatusUseCase(ticketRepository
 const getSupportFaqsUseCase = new GetSupportFaqsUseCase(supportFaqRepository);
 const searchSupportFaqsUseCase = new SearchSupportFaqsUseCase(supportFaqRepository);
 const voteSupportFaqUseCase = new VoteSupportFaqUseCase(supportFaqFeedbackRepository);
+const getChatSupportThreadUseCase = new GetChatSupportThreadUseCase(chatSupportRepository, userRepository);
+const sendChatSupportMessageUseCase = new SendChatSupportMessageUseCase(chatSupportRepository, userRepository);
+const listChatSupportThreadsUseCase = new ListChatSupportThreadsUseCase(chatSupportRepository);
+const markChatSupportThreadReadUseCase = new MarkChatSupportThreadReadUseCase(chatSupportRepository);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -334,9 +356,22 @@ export const supportController = new SupportController(
   searchSupportFaqsUseCase,
   voteSupportFaqUseCase
 );
+export const supportChatController = new SupportChatController(
+  getChatSupportThreadUseCase,
+  sendChatSupportMessageUseCase,
+  listChatSupportThreadsUseCase,
+  markChatSupportThreadReadUseCase
+);
 export const vnPayController = new VNPayController(
   createVNPayPaymentUseCase,
   handleVNPayCallbackUseCase
+);
+
+export const registerShopOwnerController = new RegisterShopOwnerController(
+  submitRegisterShopOwnerRequestUseCase,
+  getMyRegisterShopOwnerRequestUseCase,
+  listRegisterShopOwnerRequestsUseCase,
+  reviewRegisterShopOwnerRequestUseCase
 );
 
 // ==================== EXPORTS FOR REUSE ====================
@@ -353,7 +388,9 @@ export const repositories = {
   ,voucherRepository
   ,postRepository
   ,supportFaqRepository
+  ,chatSupportRepository
   ,paymentRepository
+   ,registerShopOwnerRepository
 };
 
 export const useCases = {
@@ -428,6 +465,14 @@ export const useCases = {
   toggleWishlistItemUseCase
   ,getSupportFaqsUseCase
   ,searchSupportFaqsUseCase
+  ,submitRegisterShopOwnerRequestUseCase
+  ,getMyRegisterShopOwnerRequestUseCase
+  ,listRegisterShopOwnerRequestsUseCase
+  ,reviewRegisterShopOwnerRequestUseCase
+  ,getChatSupportThreadUseCase
+  ,sendChatSupportMessageUseCase
+  ,listChatSupportThreadsUseCase
+  ,markChatSupportThreadReadUseCase
 };
 
 // expose ticket use-cases

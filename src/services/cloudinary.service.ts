@@ -25,20 +25,28 @@ export class CloudinaryService {
    */
   static async uploadImage(
     buffer: Buffer,
-    folder: string = 'posts'
+    folder: string = 'posts',
+    publicId?: string
   ): Promise<UploadResult> {
     try {
       return new Promise((resolve, reject) => {
+        const uploadOptions: Record<string, unknown> = {
+          folder: `fresh-food/${folder}`,
+          resource_type: 'image',
+          transformation: [
+            { width: 1200, height: 1200, crop: 'limit' }, // Max size
+            { quality: 'auto:good' }, // Auto quality
+            { fetch_format: 'auto' } // Auto format (WebP when supported)
+          ]
+        };
+
+        if (publicId) {
+          // allow passing custom public id for stable naming
+          (uploadOptions as any).public_id = publicId;
+        }
+
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: `fresh-food/${folder}`,
-            resource_type: 'image',
-            transformation: [
-              { width: 1200, height: 1200, crop: 'limit' }, // Max size
-              { quality: 'auto:good' }, // Auto quality
-              { fetch_format: 'auto' } // Auto format (WebP when supported)
-            ]
-          },
+          uploadOptions,
           (error, result) => {
             if (error) {
               logger.error('Cloudinary upload error:', error);
@@ -74,9 +82,11 @@ export class CloudinaryService {
     folder: string = 'posts'
   ): Promise<UploadResult[]> {
     try {
-      const uploadPromises = files.map(file =>
-        this.uploadImage(file.buffer, folder)
-      );
+      const uploadPromises = files.map(file => {
+        // create lightweight unique public id; avoid using original filename directly
+        const randomId = `${folder}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        return this.uploadImage(file.buffer, folder, randomId);
+      });
       return await Promise.all(uploadPromises);
     } catch (error) {
       logger.error('Error uploading multiple images:', error);

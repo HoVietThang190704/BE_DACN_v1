@@ -61,7 +61,10 @@ export class TicketRepository {
 
   async findById(id: string) {
     try {
-      const doc = await Ticket.findById(id).lean();
+      const doc = await Ticket.findById(id)
+        .populate({ path: 'created_by', select: 'name email' })
+        .populate({ path: 'assigned_to', select: 'name email' })
+        .lean();
       return doc || null;
     } catch (error) {
       logger.error('TicketRepository.findById error:', error);
@@ -71,7 +74,14 @@ export class TicketRepository {
 
   async find(filter: any = {}, limit = 50, offset = 0) {
     try {
-      const docs = await Ticket.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit).lean();
+      // Populate created_by and assigned_to to include reviewer/creator info
+      const docs = await Ticket.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .populate({ path: 'created_by', select: 'name email' })
+        .populate({ path: 'assigned_to', select: 'name email' })
+        .lean();
       return docs;
     } catch (error) {
       logger.error('TicketRepository.find error:', error);
@@ -81,7 +91,10 @@ export class TicketRepository {
 
   async assign(id: string, userId: string) {
     try {
-      const updated = await Ticket.findByIdAndUpdate(id, { $set: { assigned_to: new mongoose.Types.ObjectId(userId) } }, { new: true }).lean();
+      const updated = await Ticket.findByIdAndUpdate(id, { $set: { assigned_to: new mongoose.Types.ObjectId(userId) } }, { new: true })
+        .populate({ path: 'created_by', select: 'name email' })
+        .populate({ path: 'assigned_to', select: 'name email' })
+        .lean();
       return updated || null;
     } catch (error) {
       logger.error('TicketRepository.assign error:', error);
@@ -96,7 +109,10 @@ export class TicketRepository {
         update.resolved_at = new Date();
         update.resolution_message = resolutionMessage || null;
       }
-      const updated = await Ticket.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
+      const updated = await Ticket.findByIdAndUpdate(id, { $set: update }, { new: true })
+        .populate({ path: 'created_by', select: 'name email' })
+        .populate({ path: 'assigned_to', select: 'name email' })
+        .lean();
       return updated || null;
     } catch (error) {
       logger.error('TicketRepository.setStatus error:', error);
