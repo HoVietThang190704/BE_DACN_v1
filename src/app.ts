@@ -14,6 +14,7 @@ import { setupSwagger } from './shared/swagger/setup';
 import { SocketService } from './services/socket/SocketService';
 import { setIO } from './services/socket/socketManager';
 import notificationRoutes from './routes/notifications';
+import { initFirebaseAdmin } from './lib/firebaseAdmin';
 import { elasticsearchService } from './services/search';
 import reindexService from './services/search/reindex.service';
 
@@ -88,6 +89,9 @@ app.use((req, res, next) => {
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Initialize Firebase Admin early (if configured)
+initFirebaseAdmin();
 
 // Basic health check - always responds (for Render port detection)
 app.get('/health', (req, res) => {

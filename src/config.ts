@@ -56,12 +56,18 @@ export const config = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_CLIENT_AUDIENCES: process.env.GOOGLE_CLIENT_AUDIENCES || '',
 
+  // Facebook OAuth
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+
   // VNPay
   VNPAY_TMNCODE: process.env.VNPAY_TMNCODE || '',
   VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || '',
   VNPAY_PAYMENT_URL: process.env.VNPAY_PAYMENT_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || 'http://localhost:5000/api/payments/vnpay/callback',
 
+  // Firebase Admin (service account JSON as a single env var string)
+  FIREBASE_SERVICE_ACCOUNT_JSON: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
   // HTTPS (optional)
   SSL_KEY_PATH: process.env.SSL_KEY_PATH || '',
   SSL_CERT_PATH: process.env.SSL_CERT_PATH || '',
