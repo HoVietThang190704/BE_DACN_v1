@@ -23,6 +23,8 @@ const upload = multer({
 
 export const uploadAvatar = upload.single('avatar');
 
+export const uploadCertificate = upload.single('certificate');
+
 export const uploadProductImages = upload.array('images', 5);
 
 export const uploadMultiple = upload.array('images', 10);

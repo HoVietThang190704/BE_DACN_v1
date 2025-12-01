@@ -24,7 +24,7 @@ export class DatabaseConnection {
 
       // MongoDB connection options
       const options = {
-        maxPoolSize: 10,
+        maxPoolSize: 1000,
         serverSelectionTimeoutMS: 10000, // Increase timeout
         socketTimeoutMS: 45000,
         family: 4, // Use IPv4, skip trying IPv6

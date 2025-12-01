@@ -38,6 +38,7 @@ import voucherRoutes from './routes/vouchers';
 import { searchRoutes } from './routes/search';
 import paymentsRoutes from './routes/payments';
 import supportRoutes from './routes/support';
+import { registerShopOwnerRoutes } from './routes/registerShopOwner';
 
 const app = express();
 
@@ -139,6 +140,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/register-shop-owner', registerShopOwnerRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);
@@ -163,8 +165,6 @@ app.get('/api', (req, res) => {
 
 // Error handling
 app.use(errorHandler);
-
-// 404 handler - đặt cuối cùng để catch tất cả routes không tìm thấy
 app.use((req, res) => {
   res.status(404).json({
     error: 'Endpoint không tìm thấy',
