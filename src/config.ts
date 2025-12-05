@@ -37,6 +37,12 @@ export const config = {
   // External APIs
   SMS_API_KEY: process.env.SMS_API_KEY || '',
   EMAIL_SERVICE_API_KEY: process.env.EMAIL_SERVICE_API_KEY || '',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || 'gemini-2.0-flash',
+  GOOGLE_SEARCH_API_KEY:
+    process.env.GOOGLE_SEARCH_API_KEY || process.env.GOOGLE_PROGRAMMABLE_SEARCH_KEY || process.env.GOOGLE_CSE_API_KEY || '',
+  GOOGLE_SEARCH_ENGINE_ID:
+    process.env.GOOGLE_SEARCH_ENGINE_ID || process.env.GOOGLE_PROGRAMMABLE_SEARCH_CX || process.env.GOOGLE_CSE_ID || '',
   
   // Business Logic
   STUDENT_DISCOUNT_PERCENT: 15,

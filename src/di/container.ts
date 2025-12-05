@@ -22,6 +22,9 @@ import { PaymentRepository } from '../data/repositories/PaymentRepository';
 import { supportFaqs } from '../shared/data/supportFaqs';
 import { RegisterShopOwnerRepository } from '../data/repositories/RegisterShopOwnerRepository';
 import { ChatSupportRepository } from '../data/repositories/ChatSupportRepository';
+import { GeminiAssistantService } from '../services/ai/GeminiAssistantService';
+import { FallbackKnowledgeService } from '../services/ai/FallbackKnowledgeService';
+import { ProgrammableSearchService } from '../services/ai/ProgrammableSearchService';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -39,6 +42,7 @@ import { CreateProductUseCase } from '../domain/usecases/product/CreateProduct.u
 import { UpdateProductUseCase } from '../domain/usecases/product/UpdateProduct.usecase';
 import { DeleteProductUseCase } from '../domain/usecases/product/DeleteProduct.usecase';
 import { UploadProductImagesUseCase } from '../domain/usecases/product/UploadProductImages.usecase';
+import { GetProductShareInfoUseCase } from '../domain/usecases/product/GetProductShareInfo.usecase';
 
 // Category Use Cases
 import { GetCategoriesTreeUseCase } from '../domain/usecases/category/GetCategoriesTree.usecase';
@@ -131,10 +135,14 @@ import { VNPayController } from '../presentation/controllers/VNPayController';
 import { VNPayGateway } from '../services/payment/VNPayGateway';
 import { elasticsearchService } from '../services/search';
 import { RegisterShopOwnerController } from '../presentation/controllers/RegisterShopOwnerController';
+import { AiAssistantController } from '../presentation/controllers/AiAssistantController';
 import { SubmitRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/SubmitRegisterShopOwnerRequest.usecase';
 import { GetMyRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/GetMyRegisterShopOwnerRequest.usecase';
 import { ListRegisterShopOwnerRequestsUseCase } from '../domain/usecases/registerShopOwner/ListRegisterShopOwnerRequests.usecase';
 import { ReviewRegisterShopOwnerRequestUseCase } from '../domain/usecases/registerShopOwner/ReviewRegisterShopOwnerRequest.usecase';
+import { AskAiAssistantUseCase } from '../domain/usecases/ai/AskAiAssistant.usecase';
+import { qrCodeService } from '../services/share';
+import { config } from '../config';
 
 // ==================== REPOSITORY INSTANCES ====================
 const userRepository = new UserRepository();
@@ -155,6 +163,9 @@ const paymentRepository = new PaymentRepository();
 const vnPayGateway = new VNPayGateway();
 const registerShopOwnerRepository = new RegisterShopOwnerRepository();
 const chatSupportRepository = new ChatSupportRepository();
+const geminiAssistantService = new GeminiAssistantService();
+const fallbackKnowledgeService = new FallbackKnowledgeService();
+const programmableSearchService = new ProgrammableSearchService();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -173,6 +184,7 @@ const createProductUseCase = new CreateProductUseCase(productRepository, categor
 const updateProductUseCase = new UpdateProductUseCase(productRepository, elasticsearchService);
 const deleteProductUseCase = new DeleteProductUseCase(productRepository, elasticsearchService);
 const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
+const getProductShareInfoUseCase = new GetProductShareInfoUseCase(productRepository, qrCodeService, config.FRONTEND_BASE_URL);
 const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository, elasticsearchService);
 const suggestProductsUseCase = new SuggestProductsUseCase(productRepository, elasticsearchService);
 
@@ -259,6 +271,13 @@ const getChatSupportThreadUseCase = new GetChatSupportThreadUseCase(chatSupportR
 const sendChatSupportMessageUseCase = new SendChatSupportMessageUseCase(chatSupportRepository, userRepository);
 const listChatSupportThreadsUseCase = new ListChatSupportThreadsUseCase(chatSupportRepository);
 const markChatSupportThreadReadUseCase = new MarkChatSupportThreadReadUseCase(chatSupportRepository);
+const askAiAssistantUseCase = new AskAiAssistantUseCase(
+  productRepository,
+  categoryRepository,
+  geminiAssistantService,
+  fallbackKnowledgeService,
+  programmableSearchService
+);
 
 // ==================== CONTROLLER INSTANCES ====================
 export const userController = new UserController(
@@ -280,7 +299,8 @@ export const productController = new ProductController(
   createProductUseCase,
   updateProductUseCase,
   deleteProductUseCase,
-  uploadProductImagesUseCase
+  uploadProductImagesUseCase,
+  getProductShareInfoUseCase
 );
 
 export const categoryController = new CategoryController(
@@ -362,6 +382,7 @@ export const supportChatController = new SupportChatController(
   listChatSupportThreadsUseCase,
   markChatSupportThreadReadUseCase
 );
+export const aiAssistantController = new AiAssistantController(askAiAssistantUseCase);
 export const vnPayController = new VNPayController(
   createVNPayPaymentUseCase,
   handleVNPayCallbackUseCase
@@ -473,6 +494,7 @@ export const useCases = {
   ,sendChatSupportMessageUseCase
   ,listChatSupportThreadsUseCase
   ,markChatSupportThreadReadUseCase
+  ,askAiAssistantUseCase
 };
 
 // expose ticket use-cases

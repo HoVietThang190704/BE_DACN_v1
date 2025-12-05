@@ -12,10 +12,13 @@ import {
   SearchPostsUseCase,
   GetTrendingPostsUseCase,
   ToggleLikePostUseCase,
-  SharePostUseCase
+  SharePostUseCase,
+  GetPostShareInfoUseCase
 } from '../domain/usecases/post';
 import { authMiddleware } from '../shared/middleware/auth.middleware';
 import { elasticsearchService } from '../services/search';
+import { qrCodeService } from '../services/share';
+import { config } from '../config';
 
 const router = Router();
 
@@ -34,6 +37,7 @@ const searchPostsUseCase = new SearchPostsUseCase(postRepository, elasticsearchS
 const getTrendingPostsUseCase = new GetTrendingPostsUseCase(postRepository);
 const toggleLikePostUseCase = new ToggleLikePostUseCase(postRepository);
 const sharePostUseCase = new SharePostUseCase(postRepository);
+const getPostShareInfoUseCase = new GetPostShareInfoUseCase(postRepository, qrCodeService, config.FRONTEND_BASE_URL);
 
 // Initialize controller
 const postController = new PostController(
@@ -47,7 +51,8 @@ const postController = new PostController(
   searchPostsUseCase,
   getTrendingPostsUseCase,
   toggleLikePostUseCase,
-  sharePostUseCase
+  sharePostUseCase,
+  getPostShareInfoUseCase
 );
 
 // Routes - Specific routes MUST come before parameterized routes
@@ -224,6 +229,32 @@ router.post('/', authMiddleware, (req, res) => postController.createPost(req, re
 
 /**
  * @swagger
+ * /api/posts/{postId}/share-info:
+ *   get:
+ *     tags: [Posts]
+ *     summary: Lấy thông tin chia sẻ bài post
+ *     description: Tạo liên kết và mã QR để chia sẻ bài post công khai
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: locale
+ *         schema:
+ *           type: string
+ *           default: vi
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       400:
+ *         description: Không thể tạo dữ liệu chia sẻ
+ */
+router.get('/:postId/share-info', (req, res) => postController.getShareInfo(req, res));
+
+/**
+ * @swagger
  * /api/posts/{postId}:
  *   get:
  *     tags: [Posts]
@@ -239,16 +270,6 @@ router.post('/', authMiddleware, (req, res) => postController.createPost(req, re
  *     responses:
  *       200:
  *         description: Lấy bài post thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   description: Thông tin bài post
  *       404:
  *         description: Không tìm thấy bài post
  */
