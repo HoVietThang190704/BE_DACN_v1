@@ -7,8 +7,10 @@ import { UpdateProductUseCase } from '../../domain/usecases/product/UpdateProduc
 import { DeleteProductUseCase } from '../../domain/usecases/product/DeleteProduct.usecase';
 import { UploadProductImagesUseCase } from '../../domain/usecases/product/UploadProductImages.usecase';
 import { ProductMapper } from '../dto/product/Product.dto';
+import { ShareInfoMapper } from '../dto/share/ShareInfo.dto';
 import { ProductFilters, ProductSorting, ProductPagination } from '../../domain/repositories/IProductRepository';
 import { logger } from '../../shared/utils/logger';
+import { GetProductShareInfoUseCase } from '../../domain/usecases/product/GetProductShareInfo.usecase';
 
 /**
  * Product Controller - HTTP Layer
@@ -22,7 +24,8 @@ export class ProductController {
     private createProductUseCase: CreateProductUseCase,
     private updateProductUseCase: UpdateProductUseCase,
     private deleteProductUseCase: DeleteProductUseCase,
-    private uploadProductImagesUseCase: UploadProductImagesUseCase
+    private uploadProductImagesUseCase: UploadProductImagesUseCase,
+    private getProductShareInfoUseCase: GetProductShareInfoUseCase
   ) {}
 
   /**
@@ -138,6 +141,34 @@ export class ProductController {
       res.status(500).json({
         success: false,
         message: error.message || 'Lỗi khi lấy thông tin sản phẩm'
+      });
+    }
+  }
+
+  /**
+   * GET /api/products/:id/share-info
+   * Build share metadata (link + QR) for a product detail page
+   */
+  async getProductShareInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const locale = (req.query.locale as string) || 'vi';
+
+      const shareInfo = await this.getProductShareInfoUseCase.execute({
+        productId: id,
+        locale
+      });
+
+      res.status(200).json({
+        success: true,
+        data: ShareInfoMapper.toDTO(shareInfo)
+      });
+    } catch (error: any) {
+      logger.error('ProductController.getProductShareInfo error:', error);
+      const status = error.message === 'Không tìm thấy sản phẩm' ? 404 : 400;
+      res.status(status).json({
+        success: false,
+        message: error.message || 'Không thể tạo liên kết chia sẻ cho sản phẩm'
       });
     }
   }

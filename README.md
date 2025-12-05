@@ -46,6 +46,8 @@ FRONTEND_URL=http://localhost:3000
 SSL_KEY_PATH=/absolute/path/to/private.key
 SSL_CERT_PATH=/absolute/path/to/certificate.crt
 SSL_CA_PATH=/absolute/path/to/ca-bundle.crt
+# Optional: enable AI assistant with Gemini
+GEMINI_API_KEY=your-google-gemini-api-key
 ```
 
 ### 4. Start Development Server
@@ -177,6 +179,10 @@ npm start
 - `PUT /api/users/profile` - Cập nhật profile
 - `GET /api/users/orders` - Lịch sử đơn hàng
 
+### 🤖 AI Assistant
+- `POST /api/ai/chat` - Chatbot endpoint (yêu cầu cấu hình `GEMINI_API_KEY`, hỗ trợ trả lời theo dữ liệu danh mục/sản phẩm)
+- Khi kho dữ liệu trống, chatbot có thể dùng Google Programmable Search để lấy thông tin tham khảo (cần `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_ENGINE_ID`).
+
 ## 🌟 Tính năng nổi bật
 
 ### 🥬 Sản phẩm thực phẩm Việt Nam
@@ -228,6 +234,11 @@ JWT_EXPIRES_IN=7d
 # External APIs (TODO)
 VIETNAM_MAP_API_KEY=your-api-key
 PAYMENT_GATEWAY_KEY=your-payment-key
+# Gemini AI Assistant (optional but required for chatbot)
+GEMINI_API_KEY=your-google-gemini-api-key
+# Google Programmable Search (optional web fallback when catalog is empty)
+GOOGLE_SEARCH_API_KEY=your-google-custom-search-api-key
+GOOGLE_SEARCH_ENGINE_ID=your-search-engine-id
 # VNPay Sandbox configuration
 VNPAY_TMNCODE=your-sandbox-tmncode
 VNPAY_HASH_SECRET=your-sandbox-secret

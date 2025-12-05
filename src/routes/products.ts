@@ -348,6 +348,34 @@ productRoutes.get('/:id/traceability', asyncHandler(async (req: Request, res: Re
 }));
 
 // GET /api/products/:id - Chi tiết sản phẩm
+/**
+ * @swagger
+ * /api/products/{id}/share-info:
+ *   get:
+ *     summary: Lấy thông tin chia sẻ sản phẩm
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: locale
+ *         schema:
+ *           type: string
+ *           default: vi
+ *     responses:
+ *       200:
+ *         description: Trả về liên kết và QR code của sản phẩm
+ *       404:
+ *         description: Không tìm thấy sản phẩm
+ */
+productRoutes.get('/:id/share-info', asyncHandler(async (req: Request, res: Response) => {
+  await productController.getProductShareInfo(req, res);
+}));
+
+// GET /api/products/:id - Chi tiết sản phẩm
 productRoutes.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   await productController.getProductById(req, res);
 }));
