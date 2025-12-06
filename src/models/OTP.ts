@@ -1,10 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type OTPType = 'phone' | 'email';
+export type OTPPurpose = 'register' | 'reset_password' | 'two_factor';
 
 export interface IOTP extends Document {
   target: string;
   targetType: OTPType;
+  purpose: OTPPurpose;
   otp: string;
   expiresAt: Date;
   verified: boolean;
@@ -39,6 +41,12 @@ const OTPSchema: Schema<IOTP> = new Schema({
     enum: ['phone', 'email'],
     required: true
   },
+  purpose: {
+    type: String,
+    enum: ['register', 'reset_password', 'two_factor'],
+    default: 'register',
+    index: true
+  },
   otp: {
     type: String,
     required: true,
@@ -65,6 +73,6 @@ const OTPSchema: Schema<IOTP> = new Schema({
   }
 });
 
-OTPSchema.index({ target: 1, targetType: 1, createdAt: -1 });
+OTPSchema.index({ target: 1, targetType: 1, purpose: 1, createdAt: -1 });
 
 export const OTP = mongoose.model<IOTP>('OTP', OTPSchema);
