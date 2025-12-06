@@ -14,6 +14,8 @@ export interface UpdateProfileInput {
     street?: string;
     detail?: string;
   } | null;
+  role?: string;
+  isVerified?: boolean;
 }
 
 /**
@@ -77,6 +79,8 @@ export class UpdateUserProfileUseCase {
     if (input.dateOfBirth !== undefined) updateData.dateOfBirth = input.dateOfBirth;
     if (input.avatar !== undefined) updateData.avatar = input.avatar as any;
     if (input.address !== undefined) (updateData as any).address = input.address;
+    if (input.role !== undefined) updateData.role = input.role as "customer" | "shop_owner" | "admin";
+    if (input.isVerified !== undefined) updateData.isVerified = input.isVerified;
 
     // 7. Update user
     const updatedUser = await this.userRepository.update(input.userId, updateData);

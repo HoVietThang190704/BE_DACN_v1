@@ -1,10 +1,14 @@
 import { Request, Response } from 'express';
 import { GetUsersUseCase } from '../../domain/usecases/user/GetUsers.usecase';
+import { UpdateUserProfileUseCase } from '../../domain/usecases/user/UpdateUserProfile.usecase';
 import { UserMapper } from '../dto/user/User.dto';
 import { logger } from '../../shared/utils/logger';
 
 export class AdminUserController {
-  constructor(private getUsersUseCase: GetUsersUseCase) {}
+  constructor(
+    private getUsersUseCase: GetUsersUseCase,
+    private updateUserProfileUseCase: UpdateUserProfileUseCase
+  ) {}
 
   async listUsers(req: Request, res: Response): Promise<void> {
     try {
@@ -55,6 +59,52 @@ export class AdminUserController {
     } catch (error: any) {
       logger.error('AdminUserController.listUsers error:', error);
       res.status(500).json({ success: false, message: 'Lỗi server khi lấy danh sách người dùng' });
+    }
+  }
+
+  /**
+   * PUT /api/users/:id
+   * Admin cập nhật thông tin user bất kỳ
+   */
+  async updateUser(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.params.id;
+      const { userName, phone, dateOfBirth, date_of_birth, avatar, address, role, isVerified } = req.body;
+      const normalizedDateOfBirth = dateOfBirth || date_of_birth;
+
+      const updatedUser = await this.updateUserProfileUseCase.execute({
+        userId,
+        userName,
+        phone,
+        dateOfBirth: normalizedDateOfBirth ? new Date(normalizedDateOfBirth) : undefined,
+        avatar,
+        address,
+        role,
+      });
+
+      const userDto = UserMapper.toResponseDto(updatedUser);
+      res.json({
+        success: true,
+        message: 'Cập nhật user thành công',
+        data: userDto
+      });
+    } catch (error: any) {
+      logger.error('AdminUserController.updateUser error:', error);
+      if (error.message === 'User not found') {
+        res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+        return;
+      }
+      if (
+        error.message.includes('Phone number already in use') ||
+        error.message.includes('Invalid phone number') ||
+        error.message.includes('User name') ||
+        error.message.includes('age') ||
+        error.message.includes('date of birth')
+      ) {
+        res.status(400).json({ success: false, message: error.message });
+        return;
+      }
+      res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật user' });
     }
   }
 }

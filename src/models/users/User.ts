@@ -28,6 +28,7 @@ export interface IUser extends Document {
   resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
+  locked?: boolean;
   
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -104,6 +105,10 @@ const UserSchema: Schema = new Schema({
   },
   resetPasswordExpires: {
     type: Date
+  },
+  locked: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true, // Tự động tạo createdAt và updatedAt

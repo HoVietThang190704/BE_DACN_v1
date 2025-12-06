@@ -30,6 +30,7 @@ import { UpdateUserProfileUseCase } from '../domain/usecases/user/UpdateUserProf
 import { ResetPasswordUseCase } from '../domain/usecases/user/ResetPassword.usecase';
 import { ChangePasswordUseCase } from '../domain/usecases/user/ChangePassword.usecase';
 import { UpdateUserAvatarUseCase } from '../domain/usecases/user/UpdateUserAvatar.usecase';
+import { LockUserUseCase } from '../domain/usecases/user/LockUser.usecase';
 
 // Product Use Cases
 import { GetProductsUseCase } from '../domain/usecases/product/GetProducts.usecase';
@@ -163,6 +164,7 @@ const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository);
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository);
 const updateUserAvatarUseCase = new UpdateUserAvatarUseCase(userRepository);
+const lockUserUseCase = new LockUserUseCase(userRepository);
 const getUsersByIdsUseCase = new GetUsersByIdsUseCase(userRepository);
 
 // Product Use Cases
@@ -266,12 +268,13 @@ export const userController = new UserController(
   updateUserProfileUseCase,
   resetPasswordUseCase,
   changePasswordUseCase,
-  updateUserAvatarUseCase
+  updateUserAvatarUseCase,
+  lockUserUseCase
 );
 
 // Admin user list use-case + controller
 const getUsersUseCase = new GetUsersUseCase(userRepository);
-export const adminUserController = new AdminUserController(getUsersUseCase);
+export const adminUserController = new AdminUserController(getUsersUseCase, updateUserProfileUseCase);
 
 export const productController = new ProductController(
   getProductsUseCase,

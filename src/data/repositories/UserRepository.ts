@@ -65,23 +65,24 @@ export class UserRepository implements IUserRepository {
   }
 
   async update(id: string, data: Partial<UserEntity>): Promise<UserEntity | null> {
-    const updateData: any = {};
-    if (data.userName !== undefined) updateData.userName = data.userName;
-    if (data.phone !== undefined) updateData.phone = data.phone;
-    if (data.avatar !== undefined) updateData.avatar = data.avatar;
-    if (data.cloudinaryPublicId !== undefined) updateData.cloudinaryPublicId = data.cloudinaryPublicId;
-    if (data.dateOfBirth !== undefined) updateData.date_of_birth = data.dateOfBirth;
-    if (data.isVerified !== undefined) updateData.isVerified = data.isVerified;
-    if (data.role !== undefined) updateData.role = data.role;
-    if ((data as any).address !== undefined) updateData.address = (data as any).address;
+      const updateData: any = {};
+      if (data.userName !== undefined) updateData.userName = data.userName;
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.avatar !== undefined) updateData.avatar = data.avatar;
+      if (data.cloudinaryPublicId !== undefined) updateData.cloudinaryPublicId = data.cloudinaryPublicId;
+      if (data.dateOfBirth !== undefined) updateData.date_of_birth = data.dateOfBirth;
+      if (data.isVerified !== undefined) updateData.isVerified = data.isVerified;
+      if (data.role !== undefined) updateData.role = data.role;
+      if ((data as any).address !== undefined) updateData.address = (data as any).address;
+      if ((data as any).locked !== undefined) updateData.locked = (data as any).locked;
 
-    const user = await UserModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+      const user = await UserModel.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true, runValidators: true }
+      );
 
-    return user ? this.mapToEntity(user) : null;
+      return user ? this.mapToEntity(user) : null;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -229,7 +230,8 @@ export class UserRepository implements IUserRepository {
       // dateOfBirth
       model.date_of_birth,
       model.createdAt,
-      model.updatedAt
+      model.updatedAt,
+      model.locked // Thêm trường locked vào entity
     );
   }
 

@@ -17,7 +17,7 @@ export class OrderRepository implements IOrderRepository {
     return new OrderEntity({
       id: String(model._id),
       userId: String(model.userId),
-  managerId: model.managerId ? String(model.managerId) : undefined,
+      managerId: model.managerId ? String(model.managerId) : undefined,
       orderNumber: model.orderNumber,
       items: model.items.map(item => ({
         productId: String(item.productId),
@@ -139,6 +139,7 @@ export class OrderRepository implements IOrderRepository {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
+          .populate('userId', 'userName email') // <-- thêm dòng này
           .lean(),
         Order.countDocuments(filter)
       ]);
@@ -175,6 +176,7 @@ export class OrderRepository implements IOrderRepository {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
+          .populate('userId', 'userName email') // <-- thêm dòng này
           .lean(),
         Order.countDocuments(filter)
       ]);
