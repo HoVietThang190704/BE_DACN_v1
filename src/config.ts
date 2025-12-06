@@ -37,6 +37,8 @@ export const config = {
   // External APIs
   SMS_API_KEY: process.env.SMS_API_KEY || '',
   EMAIL_SERVICE_API_KEY: process.env.EMAIL_SERVICE_API_KEY || '',
+  EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS || '',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'DACN Platform',
   
   // Business Logic
   STUDENT_DISCOUNT_PERCENT: 15,
