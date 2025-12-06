@@ -126,13 +126,20 @@ export const authRoutes = Router();
  */
 authRoutes.post('/register', async (req: Request, res: Response): Promise<any> => {
   try {
-  const { email, password, userName, phone, date_of_birth, address } = req.body;
+  const { email, password, userName, phone, date_of_birth, address, otp } = req.body;
 
     // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Email và password là bắt buộc'
+      });
+    }
+
+    if (!otp || String(otp).trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP là bắt buộc'
       });
     }
 
@@ -145,6 +152,22 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
       });
     }
 
+    const sanitizedOtp = String(otp).trim();
+    if (sanitizedOtp.length !== 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không hợp lệ'
+      });
+    }
+
+    const otpValid = await OTPService.verifyEmailOTP(email, sanitizedOtp);
+    if (!otpValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác hoặc đã hết hạn'
+      });
+    }
+
     // Create new user
     const user = new User({
       email: email.toLowerCase(),
@@ -154,7 +177,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
       date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
       address: address || undefined,
       role: 'customer', // Mặc định là customer
-      isVerified: false // Mặc định chưa xác thực
+      isVerified: true // Đã xác thực thông qua email OTP
     });
 
     await user.save();
@@ -788,6 +811,94 @@ authRoutes.post('/reset-password', async (req: Request, res: Response) => {
  */
 authRoutes.post('/change-password', authenticate, async (req: Request, res: Response) => {
   await userController.changePassword(req, res);
+});
+
+/**
+ * @swagger
+ * /api/auth/email/send-otp:
+ *   post:
+ *     summary: Gửi mã OTP xác thực email đăng ký
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: OTP đã được gửi tới email
+ *       400:
+ *         description: Email không hợp lệ
+ *       409:
+ *         description: Email đã tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/email/send-otp', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email là bắt buộc'
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email không hợp lệ'
+      });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email đã được sử dụng'
+      });
+    }
+
+    const { otp, expiresAt } = await OTPService.createEmailOTP(normalizedEmail);
+    const sent = await OTPService.sendEmailOTP(normalizedEmail, otp);
+
+    if (!sent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể gửi OTP. Vui lòng thử lại sau.'
+      });
+    }
+
+    const responseBody: Record<string, unknown> = {
+      success: true,
+      message: 'Mã OTP đã được gửi đến email của bạn',
+      expiresAt
+    };
+
+    if (config.NODE_ENV === 'development') {
+      responseBody.devOtp = otp;
+    }
+
+    return res.json(responseBody);
+  } catch (error) {
+    logger.error('Send email OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi gửi OTP email'
+    });
+  }
 });
 
 /**
