@@ -33,7 +33,9 @@ const optionalVars = [
   'PORT',
   'CLOUDINARY_CLOUD_NAME',
   'CLOUDINARY_API_KEY',
-  'SMS_API_KEY'
+  'SMS_API_KEY',
+  'GOOGLE_SEARCH_API_KEY',
+  'GOOGLE_SEARCH_ENGINE_ID'
 ];
 
 let hasErrors = false;

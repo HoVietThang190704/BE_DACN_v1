@@ -11,3 +11,4 @@ export {
 } from './GetPosts.usecase';
 export { ToggleLikePostUseCase } from './ToggleLikePost.usecase';
 export { SharePostUseCase } from './SharePost.usecase';
+export { GetPostShareInfoUseCase } from './GetPostShareInfo.usecase';

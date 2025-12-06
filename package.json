@@ -51,6 +51,7 @@
   "description": "Hệ thống Backend Đồ án Chuyên ngành - Kiến trúc Microservices với API Gateway, Catalog Service và Order Service",
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",
+    "@google/generative-ai": "^0.24.1",
     "agora-access-token": "^2.0.4",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
@@ -68,6 +69,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

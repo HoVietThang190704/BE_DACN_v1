@@ -10,9 +10,11 @@ import {
   SearchPostsUseCase,
   GetTrendingPostsUseCase,
   ToggleLikePostUseCase,
-  SharePostUseCase
+  SharePostUseCase,
+  GetPostShareInfoUseCase
 } from '../../domain/usecases/post';
 import { PostMapper, CreatePostRequestDTO, UpdatePostRequestDTO, SharePostRequestDTO } from '../dto/post/Post.dto';
+import { ShareInfoMapper } from '../dto/share/ShareInfo.dto';
 import { PostFilters, PostSorting, PostPagination } from '../../domain/repositories/IPostRepository';
 import { logger } from '../../shared/utils/logger';
 
@@ -32,7 +34,8 @@ export class PostController {
     private searchPostsUseCase: SearchPostsUseCase,
     private getTrendingPostsUseCase: GetTrendingPostsUseCase,
     private toggleLikePostUseCase: ToggleLikePostUseCase,
-    private sharePostUseCase: SharePostUseCase
+    private sharePostUseCase: SharePostUseCase,
+    private getPostShareInfoUseCase: GetPostShareInfoUseCase
   ) {}
 
   /**
@@ -445,6 +448,33 @@ export class PostController {
       res.status(400).json({
         success: false,
         message: error.message || 'Lỗi khi chia sẻ bài viết'
+      });
+    }
+  }
+
+  /**
+   * GET /api/posts/:postId/share-info
+   * Build share metadata for a public post
+   */
+  async getShareInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const postId = req.params.postId;
+      const locale = (req.query.locale as string) || 'vi';
+
+      const shareInfo = await this.getPostShareInfoUseCase.execute({
+        postId,
+        locale
+      });
+
+      res.status(200).json({
+        success: true,
+        data: ShareInfoMapper.toDTO(shareInfo)
+      });
+    } catch (error: any) {
+      logger.error('Error generating post share info:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Không thể tạo liên kết chia sẻ cho bài viết'
       });
     }
   }
