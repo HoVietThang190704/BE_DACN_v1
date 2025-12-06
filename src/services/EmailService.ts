@@ -91,4 +91,21 @@ export class EmailService {
 
     return this.sendEmail({ to: email, subject, text, html });
   }
+
+  static async sendPasswordResetOtpEmail(email: string, otp: string): Promise<boolean> {
+    const subject = 'Mã OTP đặt lại mật khẩu của bạn';
+    const text = `Bạn vừa yêu cầu đặt lại mật khẩu trên DACN. Mã OTP của bạn là ${otp}. Mã chỉ có hiệu lực trong 5 phút.`;
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.5; color: #111827;">
+        <h2 style="color: #dc2626;">Yêu cầu đặt lại mật khẩu</h2>
+        <p>Xin chào,</p>
+        <p>Mã OTP đặt lại mật khẩu của bạn là:</p>
+        <p style="font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #111827;">${otp}</p>
+        <p>Mã sẽ hết hạn sau <strong>5 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+        <p style="margin-top: 24px;">Trân trọng,<br/>Đội ngũ DACN Platform</p>
+      </div>
+    `;
+
+    return this.sendEmail({ to: email, subject, text, html });
+  }
 }

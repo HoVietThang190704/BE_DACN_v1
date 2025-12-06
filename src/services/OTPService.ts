@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { OTP, OTPType } from '../models/OTP';
+import { OTP, OTPPurpose, OTPType } from '../models/OTP';
 import { logger } from '../shared/utils/logger';
 import { config } from '../config';
 import { EmailService } from './EmailService';
@@ -21,18 +21,22 @@ export class OTPService {
     return target.trim().toLowerCase();
   }
 
-  private static getTargetLabel(target: string, type: OTPType): string {
-    return `${type}: ${target}`;
+  private static getTargetLabel(target: string, type: OTPType, purpose: OTPPurpose): string {
+    return `${type}/${purpose}: ${target}`;
   }
 
   /**
    * Create and persist OTP for a given target (phone/email)
    */
-  static async createOTP(target: string, type: OTPType = 'phone'): Promise<{ otp: string; expiresAt: Date }> {
+  static async createOTP(
+    target: string,
+    type: OTPType = 'phone',
+    purpose: OTPPurpose = 'register'
+  ): Promise<{ otp: string; expiresAt: Date }> {
     try {
       const normalizedTarget = this.normalizeTarget(target, type);
 
-      await OTP.deleteMany({ target: normalizedTarget, targetType: type });
+      await OTP.deleteMany({ target: normalizedTarget, targetType: type, purpose });
 
       const otpCode = this.generateOTP();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -40,6 +44,7 @@ export class OTPService {
       const otpDoc = new OTP({
         target: normalizedTarget,
         targetType: type,
+        purpose,
         otp: otpCode,
         expiresAt,
         verified: false,
@@ -48,7 +53,7 @@ export class OTPService {
 
       await otpDoc.save();
 
-      logger.info(`OTP created for ${this.getTargetLabel(normalizedTarget, type)}`);
+      logger.info(`OTP created for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
       return { otp: otpCode, expiresAt };
     } catch (error) {
       logger.error('Error creating OTP:', error);
@@ -56,40 +61,52 @@ export class OTPService {
     }
   }
 
-  static async createPhoneOTP(phone: string): Promise<{ otp: string; expiresAt: Date }> {
-    return this.createOTP(phone, 'phone');
+  static async createPhoneOTP(
+    phone: string,
+    purpose: OTPPurpose = 'register'
+  ): Promise<{ otp: string; expiresAt: Date }> {
+    return this.createOTP(phone, 'phone', purpose);
   }
 
-  static async createEmailOTP(email: string): Promise<{ otp: string; expiresAt: Date }> {
-    return this.createOTP(email, 'email');
+  static async createEmailOTP(
+    email: string,
+    purpose: OTPPurpose = 'register'
+  ): Promise<{ otp: string; expiresAt: Date }> {
+    return this.createOTP(email, 'email', purpose);
   }
 
   /**
    * Verify OTP for a given target
    */
-  static async verifyOTP(target: string, otp: string, type: OTPType = 'phone'): Promise<boolean> {
+  static async verifyOTP(
+    target: string,
+    otp: string,
+    type: OTPType = 'phone',
+    purpose: OTPPurpose = 'register'
+  ): Promise<boolean> {
     try {
       const normalizedTarget = this.normalizeTarget(target, type);
 
       const otpDoc = await OTP.findOne({
         target: normalizedTarget,
         targetType: type,
+        purpose,
         verified: false
       }).sort({ createdAt: -1 });
 
       if (!otpDoc) {
-        logger.warn(`No OTP found for ${this.getTargetLabel(normalizedTarget, type)}`);
+        logger.warn(`No OTP found for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
         return false;
       }
 
       if (new Date() > otpDoc.expiresAt) {
-        logger.warn(`OTP expired for ${this.getTargetLabel(normalizedTarget, type)}`);
+        logger.warn(`OTP expired for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
         await OTP.deleteOne({ _id: otpDoc._id });
         return false;
       }
 
       if (otpDoc.attempts >= 5) {
-        logger.warn(`Max attempts reached for ${this.getTargetLabel(normalizedTarget, type)}`);
+        logger.warn(`Max attempts reached for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
         await OTP.deleteOne({ _id: otpDoc._id });
         return false;
       }
@@ -100,11 +117,11 @@ export class OTPService {
       if (otpDoc.otp === otp) {
         otpDoc.verified = true;
         await otpDoc.save();
-        logger.info(`OTP verified successfully for ${this.getTargetLabel(normalizedTarget, type)}`);
+        logger.info(`OTP verified successfully for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
         return true;
       }
 
-      logger.warn(`Invalid OTP for ${this.getTargetLabel(normalizedTarget, type)}`);
+      logger.warn(`Invalid OTP for ${this.getTargetLabel(normalizedTarget, type, purpose)}`);
       return false;
     } catch (error) {
       logger.error('Error verifying OTP:', error);
@@ -112,12 +129,20 @@ export class OTPService {
     }
   }
 
-  static async verifyPhoneOTP(phone: string, otp: string): Promise<boolean> {
-    return this.verifyOTP(phone, otp, 'phone');
+  static async verifyPhoneOTP(
+    phone: string,
+    otp: string,
+    purpose: OTPPurpose = 'register'
+  ): Promise<boolean> {
+    return this.verifyOTP(phone, otp, 'phone', purpose);
   }
 
-  static async verifyEmailOTP(email: string, otp: string): Promise<boolean> {
-    return this.verifyOTP(email, otp, 'email');
+  static async verifyEmailOTP(
+    email: string,
+    otp: string,
+    purpose: OTPPurpose = 'register'
+  ): Promise<boolean> {
+    return this.verifyOTP(email, otp, 'email', purpose);
   }
 
   /**
@@ -151,6 +176,15 @@ export class OTPService {
       return await EmailService.sendOtpEmail(email.trim().toLowerCase(), otp);
     } catch (error) {
       logger.error('Error sending email OTP:', error);
+      return false;
+    }
+  }
+
+  static async sendPasswordResetEmailOTP(email: string, otp: string): Promise<boolean> {
+    try {
+      return await EmailService.sendPasswordResetOtpEmail(email.trim().toLowerCase(), otp);
+    } catch (error) {
+      logger.error('Error sending password reset email OTP:', error);
       return false;
     }
   }
