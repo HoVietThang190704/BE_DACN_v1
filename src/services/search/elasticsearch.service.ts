@@ -683,6 +683,7 @@ export class ElasticsearchService {
       tags: Array.isArray(source.tags) ? source.tags : [],
       rating: Number(source.rating) || 0,
       reviewCount: Number(source.reviewCount) || 0,
+      sold: Number(source.sold) || 0,
       createdAt: source.createdAt ? new Date(source.createdAt) : new Date(),
       updatedAt: source.updatedAt ? new Date(source.updatedAt) : new Date()
     });

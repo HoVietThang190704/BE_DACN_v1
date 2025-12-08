@@ -385,7 +385,9 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
         .filter((p: any) => p && !Number.isNaN(p.livePrice) && p.livePrice >= 0);
 
       const validIds = normalizeProductIds(item.products || []);
-      normalizedPricing = pricing.filter((p) => validIds.includes(p.productId));
+      normalizedPricing = pricing.filter((p): p is { productId: string; livePrice: number; maxQuantity: number | null; claimedQuantity: number; active: boolean } => {
+        return !!p && typeof p.productId === 'string' && validIds.includes(p.productId);
+      });
       item.productPricing = normalizedPricing;
     }
     
