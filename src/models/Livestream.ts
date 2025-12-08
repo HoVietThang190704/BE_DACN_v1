@@ -15,9 +15,18 @@ export interface ILivestream extends Document {
   startTime?: Date;
   endTime?: Date;
   products: string[];
+  productPricing?: LivestreamProductPrice[];
   channelName: string; 
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface LivestreamProductPrice {
+  productId: string;
+  livePrice: number;
+  maxQuantity?: number;
+  claimedQuantity: number;
+  active: boolean;
 }
 
 const LivestreamSchema: Schema = new Schema({
@@ -33,6 +42,18 @@ const LivestreamSchema: Schema = new Schema({
   startTime: { type: Date },
   endTime: { type: Date },
   products: [{ type: String }],
+  productPricing: {
+    type: [
+      new Schema({
+        productId: { type: String, required: true },
+        livePrice: { type: Number, required: true, min: 0 },
+        maxQuantity: { type: Number, default: null, min: 0 },
+        claimedQuantity: { type: Number, default: 0, min: 0 },
+        active: { type: Boolean, default: true },
+      }, { _id: false })
+    ],
+    default: []
+  },
   channelName: { type: String, required: true, index: true }
 }, { timestamps: true, collection: 'livestreams' });
 

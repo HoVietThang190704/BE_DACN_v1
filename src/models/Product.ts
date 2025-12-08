@@ -14,6 +14,7 @@ export interface IProduct extends Document {
   tags: string[];
   rating: number;
   reviewCount: number;
+  sold: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +81,11 @@ const ProductSchema: Schema<IProduct> = new Schema({
     max: 5
   },
   reviewCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  sold: {
     type: Number,
     default: 0,
     min: 0
