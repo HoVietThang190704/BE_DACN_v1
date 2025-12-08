@@ -53,6 +53,7 @@ export class ProductRepository implements IProductRepository {
       images: model.images,
       inStock: model.inStock,
       stockQuantity: model.stockQuantity,
+      sold: (model as any).sold ?? 0,
       rating: model.rating,
       reviewCount: model.reviewCount,
       tags: model.tags,
@@ -689,6 +690,9 @@ export class ProductRepository implements IProductRepository {
 
       product.stockQuantity -= quantity;
       product.inStock = product.stockQuantity > 0;
+      // Increment sold count when stock is deducted (orders placed/paid)
+      const currentSold = (product as any).sold ?? 0;
+      product.set('sold', currentSold + quantity);
       await product.save();
 
       return true;

@@ -205,6 +205,7 @@ export class OrderController {
         saveShippingAddress,
         productId,
         quantity,
+        livestreamId,
       } = req.body ?? {};
 
       if (!shippingAddressId && !shippingAddress) {
@@ -241,6 +242,10 @@ export class OrderController {
       if (productId) {
         executeParams.productId = productId;
         executeParams.quantity = typeof quantity === 'number' ? quantity : Number(quantity || 1);
+      }
+
+      if (livestreamId) {
+        executeParams.livestreamId = livestreamId;
       }
 
       let order = await this.createOrderUseCase.execute(executeParams);

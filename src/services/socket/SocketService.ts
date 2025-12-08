@@ -3,10 +3,12 @@ import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import { logger } from '../../shared/utils/logger';
 import { LivestreamMessage } from '../../models/LivestreamMessage';
+import { Livestream } from '../../models/Livestream';
 
 export class SocketService {
   private io: SocketIOServer;
   private livestreamRooms: Map<string, Set<string>>;
+  private broadcastInterval: NodeJS.Timeout | null = null;
   
   constructor(server: HttpServer | HttpsServer) {
     this.io = new SocketIOServer(server, {
@@ -18,6 +20,21 @@ export class SocketService {
     });
     this.livestreamRooms = new Map();
     this.setupEventHandlers();
+    // Start periodic broadcast to keep list subscribers in sync
+    this.broadcastInterval = setInterval(() => this.broadcastListViewerCounts(), 5_000);
+  }
+
+  private async broadcastListViewerCounts(): Promise<void> {
+    try {
+      // Query live streams and build snapshot from DB + runtime viewers
+      const liveStreams = await Livestream.find({ status: 'LIVE' }).select('_id viewerCount');
+      const counts = liveStreams.map((doc: any) => ({ id: String((doc._id ?? '')), viewerCount: this.livestreamRooms.get(String(doc._id))?.size ?? (doc.viewerCount ?? 0) }));
+      if (!counts || counts.length === 0) return;
+      logger.info(`Broadcasting viewer counts to livestreams:list (${counts.length} items)`);
+      this.io.to('livestreams:list').emit('livestreams:viewer-counts', counts);
+    } catch (err) {
+      logger.error('Error broadcasting livestreams:viewer-counts', err);
+    }
   }
 
   private setupEventHandlers(): void {
@@ -63,6 +80,18 @@ export class SocketService {
       socket.on('disconnect', () => {
         this.handleDisconnect(socket);
       });
+      // Listen for list join/leave
+      socket.on('livestreams:list-join', () => {
+        logger.info(`🔔 Socket ${socket.id} joined livestreams:list`);
+        socket.join('livestreams:list');
+        // Send snapshot of viewer counts
+        const counts = Array.from(this.livestreamRooms.entries()).map(([id, set]) => ({ id, viewerCount: set.size }));
+        socket.emit('livestreams:viewer-counts', counts);
+      });
+      socket.on('livestreams:list-leave', () => {
+        logger.info(`🔕 Socket ${socket.id} left livestreams:list`);
+        socket.leave('livestreams:list');
+      });
     });
   }
 
@@ -106,6 +135,8 @@ export class SocketService {
 
     // Broadcast viewer count update
     this.io.to(livestreamId).emit('viewer-count', { viewerCount });
+    // Also inform list subscribers in 'livestreams:list'
+    this.io.to('livestreams:list').emit('livestream:viewer-count', { id: livestreamId, viewerCount });
 
     // Notify others user joined
     socket.to(livestreamId).emit('user-joined', {
@@ -162,6 +193,7 @@ export class SocketService {
         this.livestreamRooms.delete(livestreamId);
       } else {
         this.io.to(livestreamId).emit('viewer-count', { viewerCount });
+        this.io.to('livestreams:list').emit('livestream:viewer-count', { id: livestreamId, viewerCount });
       }
     }
   }
@@ -179,6 +211,7 @@ export class SocketService {
           this.livestreamRooms.delete(livestreamId);
         } else {
           this.io.to(livestreamId).emit('viewer-count', { viewerCount });
+          this.io.to('livestreams:list').emit('livestream:viewer-count', { id: livestreamId, viewerCount });
         }
       }
     });
