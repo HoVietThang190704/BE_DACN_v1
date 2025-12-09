@@ -75,6 +75,65 @@ userRoutes.get(
 
 /**
  * @swagger
+ * /api/users/{userId}/public-profile:
+ *   get:
+ *     summary: Lấy thông tin công khai của người dùng theo ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của người dùng cần lấy thông tin
+ *     responses:
+ *       200:
+ *         description: Lấy thông tin public profile thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Lấy thông tin public profile thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 507f1f77bcf86cd799439011
+ *                     userName:
+ *                       type: string
+ *                       example: Nguyễn Văn A
+ *                     email:
+ *                       type: string
+ *                       example: user@example.com
+ *                     avatar:
+ *                       type: string
+ *                       example: https://example.com/avatar.jpg
+ *                     role:
+ *                       type: string
+ *                       example: customer
+ *                     isVerified:
+ *                       type: boolean
+ *                       example: true
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi server
+ */
+// GET /api/users/:userId/public-profile - Get public profile of any user (no auth required)
+userRoutes.get(
+  '/:userId/public-profile',
+  (req, res) => userController.getPublicProfile(req, res)
+);
+
+/**
+ * @swagger
  * /api/users/me/profile:
  *   put:
  *     summary: Cập nhật hồ sơ người dùng hiện tại
@@ -309,9 +368,97 @@ userRoutes.put('/profile', authenticate, validate(updateProfileSchema), (req, re
  *                       example: 3
  *       401:
  *         description: Chưa đăng nhập
+ *   post:
+ *     summary: Tạo địa chỉ giao hàng mới
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Address'
+ *     responses:
+ *       201:
+ *         description: Tạo địa chỉ thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Chưa đăng nhập
  */
 userRoutes.get('/me/addresses', authenticate, (req, res) => {
   addressController.getUserAddresses(req, res);
+});
+
+userRoutes.post('/me/addresses', authenticate, (req, res) => {
+  addressController.createAddress(req, res);
+});
+
+userRoutes.put('/me/addresses/:id', authenticate, (req, res) => {
+  addressController.updateAddress(req, res);
+});
+
+userRoutes.delete('/me/addresses/:id', authenticate, (req, res) => {
+  addressController.deleteAddress(req, res);
+});
+
+userRoutes.post('/me/addresses', authenticate, (req, res) => {
+  addressController.createAddress(req, res);
+});
+
+/**
+ * @swagger
+ * /api/users/me/addresses/{id}:
+ *   put:
+ *     summary: Cập nhật địa chỉ giao hàng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Address'
+ *     responses:
+ *       200:
+ *         description: Cập nhật địa chỉ thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy địa chỉ
+ *   delete:
+ *     summary: Xóa địa chỉ giao hàng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Xóa địa chỉ thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       404:
+ *         description: Không tìm thấy địa chỉ
+ */
+userRoutes.put('/me/addresses/:id', authenticate, (req, res) => {
+  addressController.updateAddress(req, res);
+});
+
+userRoutes.delete('/me/addresses/:id', authenticate, (req, res) => {
+  addressController.deleteAddress(req, res);
 });
 
 /**

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { getIO } from '../services/socket/socketManager';
 import { Livestream } from '../models/Livestream';
 import { User } from '../models/users/User';
 import { LivestreamMessage } from '../models/LivestreamMessage';
@@ -16,6 +17,15 @@ type LivestreamProductSummary = {
   unit?: string;
   thumbnail?: string;
   stockQuantity?: number;
+};
+
+type LivestreamProductPricingResponse = {
+  productId: string;
+  livePrice: number;
+  maxQuantity?: number | null;
+  claimedQuantity: number;
+  remainingQuantity?: number;
+  active: boolean;
 };
 
 const PRODUCT_SUMMARY_FIELDS = 'name price unit images stockQuantity owner';
@@ -59,6 +69,16 @@ const transformLivestream = (doc: any, productSummaries?: LivestreamProductSumma
   obj.id = obj._id.toString();
   delete obj._id;
   delete obj.__v;
+  if (Array.isArray(obj.productPricing)) {
+    obj.productPricing = (obj.productPricing as any[]).map((p) => ({
+      productId: p.productId,
+      livePrice: p.livePrice,
+      maxQuantity: p.maxQuantity ?? null,
+      claimedQuantity: p.claimedQuantity ?? 0,
+      remainingQuantity: typeof p.maxQuantity === 'number' ? Math.max(0, p.maxQuantity - (p.claimedQuantity ?? 0)) : undefined,
+      active: p.active !== false,
+    }) as LivestreamProductPricingResponse);
+  }
   if (productSummaries) {
     obj.productSummaries = productSummaries;
   }
@@ -107,7 +127,7 @@ const transformLivestream = (doc: any, productSummaries?: LivestreamProductSumma
  */
 router.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), async (req: Request, res: Response) => {
   try {
-    const { title, description, thumbnail, hostAvatar, products, startTime } = req.body;
+    const { title, description, thumbnail, hostAvatar, products, startTime, productPricing } = req.body;
     if (!title) return res.status(400).json({ error: 'title is required' });
     if (!req.user) return res.status(401).json({ error: 'unauthorized' });
 
@@ -140,6 +160,36 @@ router.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), async (req
     const sanitizedHostName = resolvedHostName.replace(/[^a-zA-Z0-9]/g, '') || 'user';
     const channelName = `${sanitizedHostName}-${uuidv4()}`;
 
+    // Build productPricing from request (optional) and clamp limit by stock
+    let normalizedPricing: any[] = [];
+    if (Array.isArray(productPricing)) {
+      const stockMap: Record<string, number | undefined> = {};
+      orderedProductDocs.forEach((doc) => {
+        stockMap[String((doc as any)?._id ?? '')] = typeof doc.stockQuantity === 'number' ? doc.stockQuantity : undefined;
+      });
+
+      normalizedPricing = productPricing
+        .map((p: any) => {
+          const productId = typeof p?.productId === 'string' ? p.productId.trim() : '';
+          const livePrice = typeof p?.livePrice === 'number' ? p.livePrice : Number(p?.livePrice);
+          const requestedMax = p?.maxQuantity === undefined || p?.maxQuantity === null ? null : Number(p?.maxQuantity);
+          const claimedQuantity = 0;
+          const active = p?.active !== false;
+          if (!productId || Number.isNaN(livePrice) || livePrice < 0) return null;
+          const stockQty = stockMap[productId];
+          let maxQuantity = requestedMax;
+          if (stockQty !== undefined && stockQty !== null) {
+            if (maxQuantity === null) {
+              maxQuantity = stockQty;
+            } else {
+              maxQuantity = Math.min(maxQuantity, stockQty);
+            }
+          }
+          return { productId, livePrice, maxQuantity, claimedQuantity, active };
+        })
+        .filter((p: any) => p && normalizedProductIds.includes(p.productId));
+    }
+
     const livestream = new Livestream({
       title,
       description: description || '',
@@ -148,12 +198,19 @@ router.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), async (req
       hostId: host._id.toString(),
       hostName: resolvedHostName,
       products: normalizedProductIds,
+      productPricing: normalizedPricing,
       startTime: startTime ? new Date(startTime) : undefined,
       channelName,
       status: startTime ? 'SCHEDULED' : 'LIVE'
     });
 
     await livestream.save();
+    try {
+      const io = getIO();
+      io.emit('livestream:new', transformLivestream(livestream, productSummaries));
+    } catch (err) {
+      console.warn('Failed to emit livestream:new event', err);
+    }
     return res.status(201).json(transformLivestream(livestream, productSummaries));
   } catch (error) {
     console.error('create livestream error', error);
@@ -246,7 +303,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const { title, description, thumbnail, hostAvatar, products } = req.body;
+    const { title, description, thumbnail, hostAvatar, products, productPricing } = req.body;
     
     if (!req.user) return res.status(401).json({ error: 'unauthorized' });
 
@@ -264,6 +321,7 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
     if (hostAvatar !== undefined) item.hostAvatar = hostAvatar;
 
     let productSummaries: LivestreamProductSummary[] | undefined;
+    let normalizedPricing: any[] | undefined;
     if (products !== undefined) {
       const normalizedProductIds = normalizeProductIds(products);
       if (normalizedProductIds.length === 0) {
@@ -285,13 +343,76 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
       const orderedProductDocs = orderProductDocs(normalizedProductIds, productDocs);
       productSummaries = mapProductsToSummaries(orderedProductDocs);
       item.products = normalizedProductIds;
+
+      // filter existing pricing to keep only remaining product ids
+      if (Array.isArray(item.productPricing)) {
+        item.productPricing = item.productPricing.filter((p: any) => normalizedProductIds.includes(p.productId));
+      }
+    }
+
+    if (productPricing !== undefined) {
+      if (!Array.isArray(productPricing)) {
+        return res.status(400).json({ error: 'invalid_product_pricing' });
+      }
+
+      // Build stock map for existing products
+      const existingProductIds = normalizeProductIds(item.products || []);
+      const productDocs = await Product.find({ _id: { $in: existingProductIds } }).select(PRODUCT_SUMMARY_FIELDS);
+      const stockMap: Record<string, number | undefined> = {};
+      productDocs.forEach((doc: any) => {
+        stockMap[String(doc?._id ?? '')] = typeof doc.stockQuantity === 'number' ? doc.stockQuantity : undefined;
+      });
+
+      const pricing = productPricing
+        .map((p: any) => {
+          const productId = typeof p?.productId === 'string' ? p.productId.trim() : '';
+          const livePrice = typeof p?.livePrice === 'number' ? p.livePrice : Number(p?.livePrice);
+          const requestedMax = p?.maxQuantity === undefined || p?.maxQuantity === null ? null : Number(p?.maxQuantity);
+          const claimedQuantity = typeof p?.claimedQuantity === 'number' ? p.claimedQuantity : 0;
+          const active = p?.active !== false;
+          if (!productId || Number.isNaN(livePrice) || livePrice < 0) return null;
+          const stockQty = stockMap[productId];
+          let maxQuantity = requestedMax;
+          if (stockQty !== undefined && stockQty !== null) {
+            if (maxQuantity === null) {
+              maxQuantity = stockQty;
+            } else {
+              maxQuantity = Math.min(maxQuantity, stockQty);
+            }
+          }
+          return { productId, livePrice, maxQuantity, claimedQuantity, active };
+        })
+        .filter((p: any) => p && !Number.isNaN(p.livePrice) && p.livePrice >= 0);
+
+      const validIds = normalizeProductIds(item.products || []);
+      normalizedPricing = pricing.filter((p): p is { productId: string; livePrice: number; maxQuantity: number | null; claimedQuantity: number; active: boolean } => {
+        return !!p && typeof p.productId === 'string' && validIds.includes(p.productId);
+      });
+      item.productPricing = normalizedPricing;
     }
     
     await item.save();
     if (!productSummaries) {
       productSummaries = await fetchProductSummariesByIds(item.products || []);
     }
-    return res.json(transformLivestream(item, productSummaries));
+
+    const responsePayload = transformLivestream(item, productSummaries);
+
+    try {
+      const io = getIO();
+      io.to(id).emit('livestream:pricing-updated', {
+        productPricing: responsePayload.productPricing,
+      });
+      // Also broadcast globally so list pages can react
+      io.emit('livestream:pricing-updated', {
+        id,
+        productPricing: responsePayload.productPricing,
+      });
+    } catch (err) {
+      console.warn('Failed to emit pricing update', err);
+    }
+
+    return res.json(responsePayload);
   } catch (error) {
     console.error('update livestream error', error);
     return res.status(500).json({ error: 'internal_error' });
@@ -331,7 +452,14 @@ router.put('/:id/status', authenticate, authorizeRoles('shop_owner', 'admin'), a
     
     await item.save();
     const productSummaries = await fetchProductSummariesByIds(item.products || []);
-    return res.json(transformLivestream(item, productSummaries));
+    const payload = transformLivestream(item, productSummaries);
+    try {
+      const io = getIO();
+      io.emit('livestream:status-updated', payload);
+    } catch (err) {
+      console.warn('Failed to emit livestream:status-updated', err);
+    }
+    return res.json(payload);
   } catch (error) {
     console.error('update livestream status error', error);
     return res.status(500).json({ error: 'internal_error' });
@@ -349,6 +477,13 @@ router.put('/:id/viewers', async (req: Request, res: Response) => {
     if (typeof viewerCount === 'number' && viewerCount >= 0) {
       item.viewerCount = viewerCount;
       await item.save();
+      try {
+        const io = getIO();
+        io.to(id).emit('viewer-count', { viewerCount });
+        io.to('livestreams:list').emit('livestream:viewer-count', { id, viewerCount });
+      } catch (err) {
+        console.warn('Failed to emit viewer count update', err);
+      }
     }
     
     return res.json(transformLivestream(item));

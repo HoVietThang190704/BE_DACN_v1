@@ -1,7 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type OTPType = 'phone' | 'email';
+export type OTPPurpose = 'register' | 'reset_password' | 'two_factor';
+
 export interface IOTP extends Document {
-  phone: string;
+  target: string;
+  targetType: OTPType;
+  purpose: OTPPurpose;
   otp: string;
   expiresAt: Date;
   verified: boolean;
@@ -9,14 +14,38 @@ export interface IOTP extends Document {
   createdAt: Date;
 }
 
-const OTPSchema: Schema = new Schema({
-  phone: {
+const PHONE_REGEX = /^(\+84|84|0)[1-9][0-9]{8}$/;
+const EMAIL_REGEX = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+const OTPSchema: Schema<IOTP> = new Schema({
+  target: {
     type: String,
     required: true,
-    match: [
-      /^(\+84|84|0)[1-9][0-9]{8}$/,
-      'Số điện thoại không hợp lệ'
-    ]
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: function(this: IOTP, value: string) {
+        if (this.targetType === 'phone') {
+          return PHONE_REGEX.test(value);
+        }
+        if (this.targetType === 'email') {
+          return EMAIL_REGEX.test(value);
+        }
+        return false;
+      },
+      message: 'Thông tin xác thực không hợp lệ'
+    }
+  },
+  targetType: {
+    type: String,
+    enum: ['phone', 'email'],
+    required: true
+  },
+  purpose: {
+    type: String,
+    enum: ['register', 'reset_password', 'two_factor'],
+    default: 'register',
+    index: true
   },
   otp: {
     type: String,
@@ -26,8 +55,8 @@ const OTPSchema: Schema = new Schema({
   expiresAt: {
     type: Date,
     required: true,
-    default: () => new Date(Date.now() + 5 * 60 * 1000), // 5 minutes from now
-    index: { expires: '5m' } // TTL index - auto delete after expiration
+    default: () => new Date(Date.now() + 5 * 60 * 1000),
+    index: { expires: '5m' }
   },
   verified: {
     type: Boolean,
@@ -36,7 +65,7 @@ const OTPSchema: Schema = new Schema({
   attempts: {
     type: Number,
     default: 0,
-    max: 5 // Maximum 5 verification attempts
+    max: 5
   },
   createdAt: {
     type: Date,
@@ -44,7 +73,6 @@ const OTPSchema: Schema = new Schema({
   }
 });
 
-// Index for quick lookup
-OTPSchema.index({ phone: 1, createdAt: -1 });
+OTPSchema.index({ target: 1, targetType: 1, purpose: 1, createdAt: -1 });
 
 export const OTP = mongoose.model<IOTP>('OTP', OTPSchema);

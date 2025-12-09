@@ -126,13 +126,20 @@ export const authRoutes = Router();
  */
 authRoutes.post('/register', async (req: Request, res: Response): Promise<any> => {
   try {
-  const { email, password, userName, phone, date_of_birth, address } = req.body;
+  const { email, password, userName, phone, date_of_birth, address, otp } = req.body;
 
     // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Email và password là bắt buộc'
+      });
+    }
+
+    if (!otp || String(otp).trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP là bắt buộc'
       });
     }
 
@@ -145,6 +152,22 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
       });
     }
 
+    const sanitizedOtp = String(otp).trim();
+    if (sanitizedOtp.length !== 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không hợp lệ'
+      });
+    }
+
+    const otpValid = await OTPService.verifyEmailOTP(email, sanitizedOtp);
+    if (!otpValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác hoặc đã hết hạn'
+      });
+    }
+
     // Create new user
     const user = new User({
       email: email.toLowerCase(),
@@ -154,7 +177,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
       date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
       address: address || undefined,
       role: 'customer', // Mặc định là customer
-      isVerified: false // Mặc định chưa xác thực
+      isVerified: true // Đã xác thực thông qua email OTP
     });
 
     await user.save();
@@ -797,6 +820,291 @@ authRoutes.post('/reset-password', async (req: Request, res: Response) => {
  */
 authRoutes.post('/change-password', authenticate, async (req: Request, res: Response) => {
   await userController.changePassword(req, res);
+});
+
+/**
+ * @swagger
+ * /api/auth/email/send-otp:
+ *   post:
+ *     summary: Gửi mã OTP xác thực email đăng ký
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: OTP đã được gửi tới email
+ *       400:
+ *         description: Email không hợp lệ
+ *       409:
+ *         description: Email đã tồn tại
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/email/send-otp', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email là bắt buộc'
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email không hợp lệ'
+      });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email đã được sử dụng'
+      });
+    }
+
+    const { otp, expiresAt } = await OTPService.createEmailOTP(normalizedEmail);
+    const sent = await OTPService.sendEmailOTP(normalizedEmail, otp);
+
+    if (!sent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể gửi OTP. Vui lòng thử lại sau.'
+      });
+    }
+
+    const responseBody: Record<string, unknown> = {
+      success: true,
+      message: 'Mã OTP đã được gửi đến email của bạn',
+      expiresAt
+    };
+
+    if (config.NODE_ENV === 'development') {
+      responseBody.devOtp = otp;
+    }
+
+    return res.json(responseBody);
+  } catch (error) {
+    logger.error('Send email OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi gửi OTP email'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/password/forgot:
+ *   post:
+ *     summary: Gửi OTP đặt lại mật khẩu qua email
+ *     tags: [Authentication]
+ *     description: Người dùng nhập email, hệ thống sẽ gửi mã OTP để xác thực yêu cầu quên mật khẩu.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "customer@example.com"
+ *     responses:
+ *       200:
+ *         description: Nếu email hợp lệ, OTP đã được gửi
+ *       400:
+ *         description: Email không hợp lệ
+ *       500:
+ *         description: Lỗi server khi gửi OTP
+ */
+authRoutes.post('/password/forgot', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email là bắt buộc'
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email không hợp lệ'
+      });
+    }
+
+    const baseResponse: Record<string, unknown> = {
+      success: true,
+      message: 'Nếu email hợp lệ, mã OTP đặt lại mật khẩu đã được gửi.'
+    };
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      logger.warn(`Password reset requested for non-existent email: ${normalizedEmail}`);
+      return res.json(baseResponse);
+    }
+
+    const { otp, expiresAt } = await OTPService.createEmailOTP(normalizedEmail, 'reset_password');
+    const sent = await OTPService.sendPasswordResetEmailOTP(normalizedEmail, otp);
+
+    if (!sent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Không thể gửi OTP. Vui lòng thử lại sau.'
+      });
+    }
+
+    baseResponse.expiresAt = expiresAt;
+
+    if (config.NODE_ENV === 'development') {
+      baseResponse.devOtp = otp;
+    }
+
+    return res.json(baseResponse);
+  } catch (error) {
+    logger.error('Send password reset OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi xử lý yêu cầu quên mật khẩu'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/password/reset-with-otp:
+ *   post:
+ *     summary: Đặt lại mật khẩu bằng OTP gửi qua email
+ *     tags: [Authentication]
+ *     description: Xác thực mã OTP và cập nhật mật khẩu mới.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "customer@example.com"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: "StrongPass123"
+ *     responses:
+ *       200:
+ *         description: Đặt lại mật khẩu thành công
+ *       400:
+ *         description: OTP không hợp lệ hoặc dữ liệu sai
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi server
+ */
+authRoutes.post('/password/reset-with-otp', async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, OTP và mật khẩu mới là bắt buộc'
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email không hợp lệ'
+      });
+    }
+
+    const sanitizedOtp = String(otp).trim();
+
+    if (sanitizedOtp.length !== 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không hợp lệ'
+      });
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có từ 6 đến 100 ký tự'
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
+      });
+    }
+
+    const otpValid = await OTPService.verifyEmailOTP(normalizedEmail, sanitizedOtp, 'reset_password');
+
+    if (!otpValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã OTP không chính xác hoặc đã hết hạn'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.'
+    });
+  } catch (error) {
+    logger.error('Reset password via OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi đặt lại mật khẩu'
+    });
+  }
 });
 
 /**

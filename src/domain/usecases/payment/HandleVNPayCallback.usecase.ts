@@ -1,6 +1,8 @@
 import { config } from '../../../config';
 import { IPaymentRepository } from '../../repositories/IPaymentRepository';
 import { IOrderRepository } from '../../repositories/IOrderRepository';
+import { IProductRepository } from '../../repositories/IProductRepository';
+import { OrderEntity } from '../../entities/Order.entity';
 import { IVNPayGateway } from '../../services/IVNPayGateway';
 import { logger } from '../../../shared/utils/logger';
 
@@ -21,8 +23,18 @@ export class HandleVNPayCallbackUseCase {
   constructor(
     private readonly paymentRepository: IPaymentRepository,
     private readonly orderRepository: IOrderRepository,
+    private readonly productRepository: IProductRepository,
     private readonly vnPayGateway: IVNPayGateway
   ) {}
+
+  private async deductStockForOrder(order: OrderEntity): Promise<void> {
+    for (const item of order.items) {
+      const ok = await this.productRepository.reduceStock(item.productId, item.quantity);
+      if (!ok) {
+        throw new Error(`Không đủ tồn kho cho sản phẩm ${item.productName}`);
+      }
+    }
+  }
 
   private extractString(value?: string | string[]): string | undefined {
     if (!value) return undefined;
@@ -85,6 +97,12 @@ export class HandleVNPayCallbackUseCase {
 
     const providerPaymentId = this.extractString(request.query.vnp_TransactionNo) ?? this.extractString(request.query.vnp_BankTranNo);
     const success = responseCode === '00';
+    const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
+    let stockDeducted = metadata.stockDeducted === true;
+    let orderId = payment.orderId;
+    let orderNumber = payment.orderNumber;
+    let finalSuccess = success;
+    let redirectMessage = success ? undefined : `VNPay code ${responseCode}`;
 
     await this.paymentRepository.updateStatus(payment.id, success ? 'succeeded' : 'failed', {
       providerPaymentId,
@@ -94,47 +112,74 @@ export class HandleVNPayCallbackUseCase {
 
     if (success) {
       try {
-        // If payment is linked to an order, mark it paid
-        if (payment.orderId) {
-          await this.orderRepository.updatePaymentStatus(payment.orderId, 'paid');
-        } else {
-          // no order yet -> create final order from stored checkout snapshot if available
-          const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
+        let order: OrderEntity | null = null;
+
+        if (orderId) {
+          order = await this.orderRepository.findById(orderId);
+          if (!order) {
+            logger.warn('Payment succeeded but order not found when linking payment', { transactionRef, orderId });
+          } else {
+            orderNumber = order.orderNumber;
+          }
+        }
+
+        // no order yet -> create final order from stored checkout snapshot if available
+        if (!order) {
           const checkoutPayload = metadata.checkoutPayload as any | undefined;
 
           if (!checkoutPayload) {
             logger.warn('Payment succeeded but no checkout snapshot to create order', { transactionRef });
           } else {
             try {
-              // ensure userId is set
               if (!checkoutPayload.userId) {
-                // fall back: use payment.userId
                 checkoutPayload.userId = payment.userId;
               }
 
               const createdOrder = await this.orderRepository.create(checkoutPayload);
+              order = createdOrder;
+              orderId = createdOrder.id;
+              orderNumber = createdOrder.orderNumber;
 
-              // link payment -> order and set succeeded
               await this.paymentRepository.updateById(payment.id, {
                 orderId: createdOrder.id,
                 orderNumber: createdOrder.orderNumber,
                 status: 'succeeded',
                 metadata: { ...(payment.metadata ?? {}), createdOrderId: createdOrder.id, createdOrderNumber: createdOrder.orderNumber }
               });
-
-              // mark the newly created order as paid
-              await this.orderRepository.updatePaymentStatus(createdOrder.id, 'paid');
             } catch (error) {
               logger.error('Unable to create order from checkout snapshot after VNPay success', error);
-              // mark payment failed due to order creation problems
               await this.paymentRepository.updateStatus(payment.id, 'failed', { failureReason: 'Unable to create order after successful payment' });
+              finalSuccess = false;
+              redirectMessage = 'Thanh toán thành công nhưng không thể tạo đơn hàng';
               const redirectUrl = this.buildRedirectUrl(undefined, {
                 status: 'failed',
-                message: 'Thanh toán thành công nhưng không thể tạo đơn hàng (vui lòng liên hệ hỗ trợ)'
+                message: redirectMessage
               });
-              return { isValid: false, redirectUrl, message: 'Thanh toán thành công nhưng không thể tạo đơn hàng' };
+              return { isValid: false, redirectUrl, message: redirectMessage };
             }
           }
+        }
+
+        if (order) {
+          if (!stockDeducted) {
+            try {
+              await this.deductStockForOrder(order);
+              stockDeducted = true;
+            } catch (error) {
+              logger.error('Unable to deduct stock after VNPay success', error);
+              await this.paymentRepository.updateStatus(payment.id, 'failed', { failureReason: 'Out of stock after payment' });
+              await this.orderRepository.updatePaymentStatus(order.id, 'failed');
+              finalSuccess = false;
+              redirectMessage = 'Sản phẩm đã hết hàng sau khi thanh toán';
+              const redirectUrl = this.buildRedirectUrl(undefined, {
+                status: 'failed',
+                message: redirectMessage
+              });
+              return { isValid: false, redirectUrl, message: redirectMessage };
+            }
+          }
+
+          await this.orderRepository.updatePaymentStatus(order.id, 'paid');
         }
       } catch (error) {
         logger.error('Unable to update order payment status after VNPay callback', error);
@@ -149,26 +194,38 @@ export class HandleVNPayCallbackUseCase {
       }
     }
 
-    const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
+    const updatedMetadata = {
+      ...metadata,
+      ...(stockDeducted ? { stockDeducted: true } : {}),
+      ...(orderId && !metadata.createdOrderId ? { createdOrderId: orderId, createdOrderNumber: orderNumber } : {})
+    };
+
+    if (orderId || stockDeducted) {
+      await this.paymentRepository.updateById(payment.id, {
+        ...(orderId ? { orderId, orderNumber } : {}),
+        metadata: updatedMetadata
+      });
+    }
+
     const customRedirect = typeof metadata.frontendRedirectUrl === 'string'
       ? (metadata.frontendRedirectUrl as string)
       : undefined;
     const redirectUrl = this.buildRedirectUrl(customRedirect, {
-      status: success ? 'success' : 'failed',
+      status: finalSuccess ? 'success' : 'failed',
       code: responseCode,
-      orderId: payment.orderId,
-      orderNumber: payment.orderNumber,
-      message: success ? undefined : `VNPay code ${responseCode}`,
+      orderId,
+      orderNumber,
+      message: finalSuccess ? undefined : redirectMessage,
       info: orderInfo
     });
 
     return {
-      isValid: success,
+      isValid: finalSuccess,
       redirectUrl,
-      orderId: payment.orderId,
-      orderNumber: payment.orderNumber,
+      orderId,
+      orderNumber,
       responseCode,
-      message: success ? 'Thanh toán thành công' : `Thanh toán thất bại (mã ${responseCode})`
+      message: finalSuccess ? 'Thanh toán thành công' : redirectMessage || `Thanh toán thất bại (mã ${responseCode})`
     };
   }
 }

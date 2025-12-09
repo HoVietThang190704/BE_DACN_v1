@@ -24,6 +24,7 @@ export interface IProductEntity {
   images: string[];
   inStock: boolean;
   stockQuantity: number;
+  sold: number;
   tags: string[];
   rating: number;
   reviewCount: number;
@@ -43,6 +44,7 @@ export class ProductEntity implements IProductEntity {
   images: string[];
   inStock: boolean;
   stockQuantity: number;
+  sold: number;
   tags: string[];
   rating: number;
   reviewCount: number;
@@ -61,6 +63,7 @@ export class ProductEntity implements IProductEntity {
     this.images = data.images;
     this.inStock = data.inStock;
     this.stockQuantity = data.stockQuantity;
+    this.sold = data.sold;
     this.tags = data.tags;
     this.rating = data.rating;
     this.reviewCount = data.reviewCount;

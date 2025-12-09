@@ -68,6 +68,7 @@ export class CreateProductUseCase {
       images: input.images || [],
       inStock: stockQuantity > 0,
       stockQuantity,
+      sold: 0,
       tags: normalizedTags,
       rating: 0,
       reviewCount: 0

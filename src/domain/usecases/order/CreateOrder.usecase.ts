@@ -6,6 +6,7 @@ import { IAddressRepository } from '../../repositories/IAddressRepository';
 import { IVoucherRepository } from '../../repositories/IVoucherRepository';
 import { ValidateVoucherUseCase } from '../voucher/ValidateVoucher.usecase';
 import { PaymentMethod, PaymentStatus, ShippingAddress } from '../../entities/Order.entity';
+import { getIO } from '../../../services/socket/socketManager';
 
 interface ShippingAddressInput {
   recipientName: string;
@@ -30,6 +31,7 @@ export interface CreateOrderInput {
   saveShippingAddress?: boolean;
   productId?: string; // buy now product id
   quantity?: number; // buy now product quantity
+  livestreamId?: string; // optional livestream context for live pricing
 }
 
 export class CreateOrderUseCase {
@@ -67,6 +69,38 @@ export class CreateOrderUseCase {
     return date;
   }
 
+  private async resolveLivePricing(
+    livestreamId: string | undefined,
+    productId: string,
+    requestedQty: number
+  ): Promise<{ price: number | null; claimedQty: number }>
+  {
+    if (!livestreamId) return { price: null, claimedQty: 0 };
+
+    try {
+      // Lazy import to avoid circular deps
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { Livestream } = require('../../../models/Livestream');
+      const livestream = await Livestream.findById(livestreamId).lean();
+      if (!livestream) return { price: null, claimedQty: 0 };
+
+      if (!Array.isArray(livestream.productPricing)) return { price: null, claimedQty: 0 };
+      const pricing = livestream.productPricing.find((p: any) => p.productId === String(productId));
+      if (!pricing || pricing.active === false) return { price: null, claimedQty: 0 };
+
+      const maxQty: number | null = pricing.maxQuantity === null || pricing.maxQuantity === undefined ? null : Number(pricing.maxQuantity);
+      const claimed: number = Number(pricing.claimedQuantity || 0);
+
+      if (maxQty !== null && (claimed + requestedQty) > maxQty) {
+        return { price: null, claimedQty: 0 };
+      }
+
+      return { price: Number(pricing.livePrice), claimedQty: requestedQty };
+    } catch (err) {
+      return { price: null, claimedQty: 0 };
+    }
+  }
+
   async execute(input: CreateOrderInput) {
     const {
       userId,
@@ -77,9 +111,11 @@ export class CreateOrderUseCase {
       shippingAddressId,
       shippingAddress,
       saveShippingAddress,
+      livestreamId,
     } = input;
 
     const buyNow = !!input.productId;
+    let hasLiveClaimed = false;
     let cart = null;
     if (!buyNow) {
       cart = await this.cartRepository.findByUserId(userId);
@@ -133,7 +169,9 @@ export class CreateOrderUseCase {
 
       managerId = product.owner.id;
 
-      const price = item.price ?? product.price;
+      // Determine live price if livestream context applies and limit not exceeded
+      const livePricing = await this.resolveLivePricing(livestreamId, product.id, item.quantity);
+      const price = livePricing.price !== null ? livePricing.price : (item.price ?? product.price);
       const itemSubtotal = price * item.quantity;
 
       orderItems.push({
@@ -146,6 +184,21 @@ export class CreateOrderUseCase {
       });
 
       subtotal += itemSubtotal;
+
+      // If we used live pricing with limited quantity, increment claimed count best-effort
+      if (livestreamId && livePricing.price !== null && livePricing.claimedQty > 0) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { Livestream } = require('../../../models/Livestream');
+          await Livestream.updateOne(
+            { _id: livestreamId, 'productPricing.productId': product.id },
+            { $inc: { 'productPricing.$.claimedQuantity': livePricing.claimedQty } }
+          );
+          hasLiveClaimed = true;
+        } catch (err) {
+          // ignore increment failure to avoid blocking order
+        }
+      }
     }
 
     let resolvedAddress: ShippingAddress | null = null;
@@ -261,17 +314,77 @@ export class CreateOrderUseCase {
       deliveredAt: undefined,
     });
 
-    await Promise.all(
-      orderItems.map(async (item) => {
-        const success = await this.productRepository.reduceStock(item.productId, item.quantity);
-        if (!success) {
-          throw new Error('Không thể cập nhật tồn kho cho sản phẩm');
-        }
-      })
-    );
+    // Only deduct stock immediately for COD; online payments will deduct after payment succeeds
+    const shouldReduceStockNow = paymentMethod === 'cod';
+    const reducedProducts: string[] = [];
+
+    if (shouldReduceStockNow) {
+      await Promise.all(
+        orderItems.map(async (item) => {
+          const success = await this.productRepository.reduceStock(item.productId, item.quantity);
+          if (!success) {
+            throw new Error('Không thể cập nhật tồn kho cho sản phẩm');
+          }
+          reducedProducts.push(item.productId);
+        })
+      );
+    }
 
     if (!buyNow && selectedItems.length > 0) {
       await this.cartRepository.removeItems(userId, selectedItems.map((item) => item.id));
+    }
+
+    // Emit realtime pricing update when live-claimed quantities changed
+    if (livestreamId && hasLiveClaimed) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { Livestream } = require('../../../models/Livestream');
+        const updated = await Livestream.findById(livestreamId).lean();
+        if (updated && Array.isArray(updated.productPricing)) {
+          const productPricing = (updated.productPricing as any[]).map((p) => ({
+            productId: String(p.productId),
+            livePrice: p.livePrice,
+            maxQuantity: p.maxQuantity ?? null,
+            claimedQuantity: p.claimedQuantity ?? 0,
+            remainingQuantity:
+              typeof p.maxQuantity === 'number'
+                ? Math.max(0, p.maxQuantity - (p.claimedQuantity ?? 0))
+                : undefined,
+            active: p.active !== false,
+          }));
+
+          try {
+            const io = getIO();
+            io.to(livestreamId).emit('livestream:pricing-updated', { productPricing });
+          } catch {
+          }
+        }
+      } catch {
+      }
+    }
+
+    // Emit realtime product stock update for impacted products
+    if (livestreamId && reducedProducts.length > 0) {
+      try {
+        const productDtos: Array<{ productId: string; stockQuantity: number | null }> = [];
+        // Build list of updated product stocks
+        for (const pid of Array.from(new Set(reducedProducts))) {
+          try {
+            const p = await this.productRepository.findById(pid);
+            if (p) {
+              productDtos.push({ productId: String(p.id), stockQuantity: p.stockQuantity ?? null });
+            }
+          } catch {}
+        }
+        if (productDtos.length > 0) {
+          try {
+            const io = getIO();
+            io.to(livestreamId).emit('livestream:product-stock-updated', {
+              products: productDtos,
+            });
+          } catch {}
+        }
+      } catch {}
     }
 
     return order;

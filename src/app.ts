@@ -40,6 +40,7 @@ import paymentsRoutes from './routes/payments';
 import supportRoutes from './routes/support';
 import { registerShopOwnerRoutes } from './routes/registerShopOwner';
 import { adminRoutes } from './routes/admin';
+import aiRoutes from './routes/ai';
 
 const app = express();
 
@@ -143,6 +144,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/register-shop-owner', registerShopOwnerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Setup Swagger documentation TRƯỚC khi định nghĩa 404 handler
 setupSwagger(app);

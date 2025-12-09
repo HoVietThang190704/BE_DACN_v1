@@ -15,6 +15,7 @@ export interface ProductResponseDTO {
   images: string[];
   inStock: boolean;
   stockQuantity: number;
+  sold?: number;
   rating: number;
   reviewCount: number;
   tags: string[];
@@ -69,6 +70,7 @@ export class ProductMapper {
       images: product.images,
       inStock: product.inStock,
       stockQuantity: product.stockQuantity,
+      sold: product.sold,
       rating: product.rating,
       reviewCount: product.reviewCount,
       tags: product.tags,

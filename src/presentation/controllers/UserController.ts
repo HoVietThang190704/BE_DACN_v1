@@ -319,6 +319,7 @@ export class UserController {
       });
     }
   }
+
   async lockUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -336,6 +337,59 @@ export class UserController {
       res.status(400).json({
         success: false,
         message: err.message
+      });
+    }
+  }
+
+
+
+  /**
+   * GET /api/users/:userId/public-profile
+   * Get public profile of any user by ID (no authentication required)
+   */
+  async getPublicProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+
+      if (!userId) {
+        res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+        return;
+      }
+
+      const user = await this.getUserProfileUseCase.execute(userId);
+      
+      // Only return public information
+      const publicProfile = {
+        id: user.id,
+        userName: user.userName,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+        isVerified: user.isVerified,
+      };
+
+      res.json({
+        success: true,
+        message: 'Lấy thông tin public profile thành công',
+        data: publicProfile
+      });
+    } catch (error: any) {
+      logger.error('Get public profile error:', error);
+
+      if (error.message === 'User not found') {
+        res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy người dùng'
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi lấy thông tin profile'
       });
     }
   }
