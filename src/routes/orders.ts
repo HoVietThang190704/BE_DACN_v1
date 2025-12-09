@@ -1,6 +1,53 @@
 import { Router } from 'express';
+import { Order } from '../models/Order';
 
 export const orderRoutes = Router();
+
+// GET /api/orders - lấy tất cả đơn hàng (admin)
+orderRoutes.get('/', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      Order.find()
+        .populate("userId", "userName email")
+        .populate("managerId", "userName email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments()
+    ]);
+
+    // Đảm bảo mỗi order có trường id
+    const ordersWithId = orders.map(order => {
+      return {
+        ...order,
+        id: order._id ? order._id.toString() : undefined
+      };
+    });
+
+    res.status(200).json({
+      message: 'Lấy danh sách tất cả đơn hàng thành công',
+      data: {
+        orders: ordersWithId,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Lỗi khi lấy danh sách đơn hàng',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 orderRoutes.get('/quote-shipping', (req, res) => {
   const cartId = req.query.cartId || 'demo';
@@ -88,4 +135,52 @@ orderRoutes.get('/:id/tracking', (req, res) => {
       estimatedDelivery: '2025-09-27T16:00:00Z'
     }
   });
+});
+
+// PATCH /api/orders/:id/status - cập nhật trạng thái đơn hàng
+orderRoutes.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status, note } = req.body;
+  if (!id || id === 'undefined') {
+    return res.status(400).json({ message: 'Thiếu hoặc sai orderId' });
+  }
+  try {
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+    // Kiểm tra trạng thái hợp lệ
+    type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'shipping' | 'delivered' | 'cancelled' | 'refunded';
+    const validStatuses: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled', 'refunded'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: `Trạng thái không hợp lệ: ${status}` });
+    }
+    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['preparing', 'cancelled'],
+      preparing: ['shipping', 'cancelled'],
+      shipping: ['delivered', 'refunded'],
+      delivered: [],
+      cancelled: [],
+      refunded: []
+    };
+    const currentStatus = order.status as OrderStatus;
+    const nextStatus = status as OrderStatus;
+    if (!allowedTransitions[currentStatus]?.includes(nextStatus)) {
+      return res.status(400).json({ message: `Không thể chuyển trạng thái từ ${order.status} sang ${status}` });
+    }
+    // Lưu trạng thái cũ vào history
+    order.statusHistory = order.statusHistory || [];
+    order.statusHistory.push({
+      status,
+      changedAt: new Date(),
+      changedBy: 'manager', // hoặc lấy từ auth
+      note: note || ''
+    });
+    order.status = status;
+    await order.save();
+    return res.json({ success: true, message: 'Cập nhật trạng thái thành công', data: order });
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi khi cập nhật trạng thái', error: error instanceof Error ? error.message : 'Unknown error' });
+  }
 });

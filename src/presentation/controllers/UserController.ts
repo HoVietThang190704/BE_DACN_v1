@@ -17,7 +17,8 @@ export class UserController {
     private updateUserProfileUseCase: UpdateUserProfileUseCase,
     private resetPasswordUseCase: ResetPasswordUseCase,
     private changePasswordUseCase: ChangePasswordUseCase,
-    private updateUserAvatarUseCase: UpdateUserAvatarUseCase
+    private updateUserAvatarUseCase: UpdateUserAvatarUseCase,
+    private lockUserUseCase: any // Thêm thuộc tính LockUserUseCase
   ) {}
 
   /**
@@ -319,6 +320,29 @@ export class UserController {
     }
   }
 
+  async lockUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { isLocked } = req.body;
+
+      const updated = await this.lockUserUseCase.execute(id, isLocked);
+      const userDto = UserMapper.toResponseDto(updated);
+
+      res.json({
+        success: true,
+        message: isLocked ? "User has been locked" : "User has been unlocked",
+        data: userDto
+      });
+    } catch (err: any) {
+      res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+  }
+
+
+
   /**
    * GET /api/users/:userId/public-profile
    * Get public profile of any user by ID (no authentication required)
@@ -369,4 +393,5 @@ export class UserController {
       });
     }
   }
+
 }

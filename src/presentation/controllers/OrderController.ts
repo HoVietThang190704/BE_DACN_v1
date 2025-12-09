@@ -640,4 +640,74 @@ export class OrderController {
       });
     }
   };
+  /**
+   * GET /api/admin/orders
+   * Lấy tất cả đơn hàng - chỉ dành cho admin hoặc shop_owner
+   */
+  public getAllOrders = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.userId;
+      const role = req.user?.role;
+
+      if (!userId) {
+        res.status(401).json({ message: 'Vui lòng đăng nhập' });
+        return;
+      }
+
+      if (role !== 'admin' && role !== 'shop_owner') {
+        res.status(403).json({ message: 'Bạn không có quyền truy cập chức năng này' });
+        return;
+      }
+
+      // Filters
+      const filters: OrderFilters = {};
+      if (req.query.status) filters.status = req.query.status as any;
+      if (req.query.paymentStatus) filters.paymentStatus = req.query.paymentStatus as any;
+      if (req.query.fromDate) filters.fromDate = new Date(req.query.fromDate as string);
+      if (req.query.toDate) filters.toDate = new Date(req.query.toDate as string);
+      if (req.query.search) filters.search = req.query.search as string;
+      if (req.query.orderNumber) filters.orderNumber = req.query.orderNumber as string;
+
+      // Pagination
+      const pagination: OrderPagination = {
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 20
+      };
+
+      const managerId =
+          role === 'admin'
+            ? typeof req.query.managerId === 'string' && req.query.managerId.length > 0
+              ? req.query.managerId
+              : userId // fallback to userId if managerId is not provided
+            : userId;
+
+      const result = await this.getManagedOrdersUseCase.execute(
+        managerId,
+        filters,
+        pagination
+      );
+
+      const orders = await this.mapManagedOrdersWithCustomers(result.orders);
+
+      res.status(200).json({
+        message: 'Lấy danh sách tất cả đơn hàng thành công',
+        data: {
+          orders,
+          pagination: {
+            page: result.page,
+            limit: result.limit,
+            total: result.total,
+            totalPages: result.totalPages
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Get all orders error:', error);
+      res.status(500).json({
+        message: 'Lỗi khi lấy tất cả đơn hàng',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  };
 }

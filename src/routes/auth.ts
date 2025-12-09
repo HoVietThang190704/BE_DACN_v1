@@ -284,6 +284,15 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
       });
     }
 
+
+    // Check if user is locked
+    if (user.locked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.'
+      });
+    }
+
     // Check if user is verified (skip in development mode)
     if (!user.isVerified && config.NODE_ENV === 'production') {
       return res.status(401).json({
