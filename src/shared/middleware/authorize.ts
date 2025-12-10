@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { HttpStatus } from '../constants/httpStatus';
 
 export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({
+      res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
         message: 'Vui lòng đăng nhập để tiếp tục'
       });
@@ -16,7 +17,7 @@ export const authorizeRoles = (...roles: string[]) => {
     if (!roles.includes(userRole)) {
       logger.warn(`Authorization failed for user ${req.user.userId}: required ${roles.join(', ')}, has ${userRole}`);
       
-      res.status(403).json({
+      res.status(HttpStatus.FORBIDDEN).json({
         success: false,
         message: 'Bạn không có quyền thực hiện hành động này'
       });

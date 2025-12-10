@@ -12,6 +12,12 @@ import { User } from '../../models/users/User';
 import mongoose from 'mongoose';
 import { logger } from '../../shared/utils/logger';
 import { buildVietnameseRegex, normalizeVietnameseText } from '../../shared/utils/textSearch';
+import { createCache } from '../../shared/cache/simpleCache';
+
+const categorySlugCache = createCache<string, string>({ ttlMs: 5 * 60 * 1000, maxItems: 200 });
+const ownerEmailCache = createCache<string, string[]>({ ttlMs: 2 * 60 * 1000, maxItems: 200 });
+const categoryListCache = createCache<string, string[]>({ ttlMs: 5 * 60 * 1000, maxItems: 5 });
+const CATEGORY_LIST_CACHE_KEY = 'product-category-list';
 
 export class ProductRepository implements IProductRepository {
 
@@ -224,6 +230,47 @@ export class ProductRepository implements IProductRepository {
     return { [sorting.sortBy]: order };
   }
 
+  private async resolveCategoryIdFromSlug(slug: string): Promise<mongoose.Types.ObjectId | null> {
+    const cached = categorySlugCache.get(slug);
+    if (cached) {
+      return new mongoose.Types.ObjectId(cached);
+    }
+
+    try {
+      const found = await Category.findOne({ slug }).select('_id').lean();
+      if (found?._id) {
+        const cachedId = String(found._id);
+        categorySlugCache.set(slug, cachedId);
+        return new mongoose.Types.ObjectId(cachedId);
+      }
+    } catch (error) {
+      logger.warn('ProductRepository.resolveCategoryIdFromSlug error:', error);
+    }
+
+    return null;
+  }
+
+  private async resolveOwnerIdsFromEmail(term: string): Promise<mongoose.Types.ObjectId[]> {
+    const cached = ownerEmailCache.get(term);
+    if (cached) {
+      return cached.map(id => new mongoose.Types.ObjectId(id));
+    }
+
+    try {
+      const owners = await User.find({ email: new RegExp(term, 'i') }).select('_id').lean();
+      const normalizedIds = owners.map(o => String(o._id));
+      ownerEmailCache.set(term, normalizedIds);
+      return normalizedIds.map(id => new mongoose.Types.ObjectId(id));
+    } catch (error) {
+      logger.warn('ProductRepository.resolveOwnerIdsFromEmail error:', error);
+      return [];
+    }
+  }
+
+  private invalidateCategoryListCache(): void {
+    categoryListCache.delete(CATEGORY_LIST_CACHE_KEY);
+  }
+
   async findById(id: string): Promise<ProductEntity | null> {
     try {
       const product = await ProductModel.findById(id)
@@ -247,13 +294,9 @@ export class ProductRepository implements IProductRepository {
       let filter = await this.buildFilter(filters);
       // If slug marker present, try to resolve to id
       if (filter.__categorySlug) {
-        try {
-          const found = await Category.findOne({ slug: filter.__categorySlug }).lean();
-          if (found) {
-            filter.category = new mongoose.Types.ObjectId(found._id);
-          }
-        } catch (e) {
-          // leave filter as-is
+        const categoryId = await this.resolveCategoryIdFromSlug(filter.__categorySlug);
+        if (categoryId) {
+          filter.category = categoryId;
         }
         delete filter.__categorySlug;
       }
@@ -290,15 +333,8 @@ export class ProductRepository implements IProductRepository {
         }
       }
       if (filter.__ownerEmail) {
-        try {
-          const owners = await User.find(
-            { email: new RegExp(filter.__ownerEmail, 'i') },
-            { _id: 1 }
-          ).lean();
-          filter.owner = owners.length > 0 ? { $in: owners.map(o => o._id) } : { $in: [] };
-        } catch (e) {
-          logger.warn('ProductRepository.findAll owner email filter error:', e);
-        }
+        const ownerIds = await this.resolveOwnerIdsFromEmail(filter.__ownerEmail);
+        filter.owner = ownerIds.length > 0 ? { $in: ownerIds } : { $in: [] };
         delete filter.__ownerEmail;
       }
       const searchCategoryIds: mongoose.Types.ObjectId[] | undefined = filter.__searchCategoryIn;
@@ -434,6 +470,8 @@ export class ProductRepository implements IProductRepository {
         .populate('category', 'name slug')
         .lean();
 
+      this.invalidateCategoryListCache();
+
       return this.toDomainEntity((populated || newProduct) as unknown as IProduct);
     } catch (error) {
       // Log full error for debugging (preserve original message if available)
@@ -482,6 +520,9 @@ export class ProductRepository implements IProductRepository {
         .populate('owner', 'email userName role avatar')
         .populate('category', 'name slug')
         .lean();
+      if (updated) {
+        this.invalidateCategoryListCache();
+      }
       return updated ? this.toDomainEntity(updated as unknown as IProduct) : null;
     } catch (error) {
       logger.error('ProductRepository.update error:', error);
@@ -492,6 +533,9 @@ export class ProductRepository implements IProductRepository {
   async delete(id: string): Promise<boolean> {
     try {
       const result = await ProductModel.findByIdAndDelete(id);
+      if (result) {
+        this.invalidateCategoryListCache();
+      }
       return result !== null;
     } catch (error) {
       logger.error('ProductRepository.delete error:', error);
@@ -503,13 +547,9 @@ export class ProductRepository implements IProductRepository {
     try {
       const filter = await this.buildFilter(filters);
       if (filter.__categorySlug) {
-        try {
-          const found = await Category.findOne({ slug: filter.__categorySlug }).lean();
-          if (found) {
-            filter.category = new mongoose.Types.ObjectId(found._id);
-          }
-        } catch (e) {
-          // ignore
+        const categoryId = await this.resolveCategoryIdFromSlug(filter.__categorySlug);
+        if (categoryId) {
+          filter.category = categoryId;
         }
         delete filter.__categorySlug;
       }
@@ -549,15 +589,8 @@ export class ProductRepository implements IProductRepository {
       }
 
       if (filter.__ownerEmail) {
-        try {
-          const owners = await User.find(
-            { email: new RegExp(filter.__ownerEmail, 'i') },
-            { _id: 1 }
-          ).lean();
-          filter.owner = owners.length > 0 ? { $in: owners.map(o => o._id) } : { $in: [] };
-        } catch (e) {
-          logger.warn('ProductRepository.count owner email filter error:', e);
-        }
+        const ownerIds = await this.resolveOwnerIdsFromEmail(filter.__ownerEmail);
+        filter.owner = ownerIds.length > 0 ? { $in: ownerIds } : { $in: [] };
         delete filter.__ownerEmail;
       }
       const searchCategoryIds: mongoose.Types.ObjectId[] | undefined = filter.__searchCategoryIn;
@@ -600,8 +633,15 @@ export class ProductRepository implements IProductRepository {
 
   async getCategories(): Promise<string[]> {
     try {
+      const cached = categoryListCache.get(CATEGORY_LIST_CACHE_KEY);
+      if (cached) {
+        return cached;
+      }
+
       const categories = await ProductModel.distinct('category') as Array<string | mongoose.Types.ObjectId>;
-      return categories.map(c => String(c));
+      const normalized = categories.map(c => String(c));
+      categoryListCache.set(CATEGORY_LIST_CACHE_KEY, normalized);
+      return normalized;
     } catch (error) {
       logger.error('ProductRepository.getCategories error:', error);
       throw new Error('Lỗi khi lấy danh sách danh mục');

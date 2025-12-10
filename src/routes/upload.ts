@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authMiddleware } from '../shared/middleware/auth.middleware';
+import { HttpStatus } from '../shared/constants/httpStatus';
 import { CloudinaryService } from '../services/cloudinary.service';
 
 const router = Router();
@@ -90,7 +91,7 @@ router.post('/images', authMiddleware, upload.array('images', 10), async (req: R
     console.info('[upload] origin:', req.headers.origin || 'none', 'files:', files.map(f => f.originalname));
     
     if (!files || files.length === 0) {
-      res.status(400).json({
+      res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'No images uploaded'
       });
@@ -103,7 +104,7 @@ router.post('/images', authMiddleware, upload.array('images', 10), async (req: R
     const urls = uploadResults.map(result => result.url);
     const publicIds = uploadResults.map(result => result.publicId);
 
-    res.status(200).json({
+    res.status(HttpStatus.OK).json({
       success: true,
       data: {
         urls,
@@ -112,7 +113,7 @@ router.post('/images', authMiddleware, upload.array('images', 10), async (req: R
     });
   } catch (error: any) {
     console.error('Error uploading images:', error);
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: error.message || 'Failed to upload images'
     });
@@ -149,13 +150,13 @@ router.delete('/images/:publicId', authMiddleware, async (req: Request, res: Res
     // Delete from Cloudinary
     await CloudinaryService.deleteImage(decodedPublicId);
 
-    res.status(200).json({
+    res.status(HttpStatus.OK).json({
       success: true,
       message: 'Image deleted successfully'
     });
   } catch (error: any) {
     console.error('Error deleting image:', error);
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: error.message || 'Failed to delete image'
     });

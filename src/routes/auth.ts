@@ -5,6 +5,7 @@ import { User, IUser } from '../models/users/User';
 import { config } from '../config';
 import { logger } from '../shared/utils/logger';
 import { userController } from '../di/container';
+import { HttpStatus } from '../shared/constants/httpStatus';
 import { authenticate } from '../shared/middleware/auth';
 import AuthGoogleController from '../presentation/controllers/AuthGoogleController';
 import AuthFacebookController from '../presentation/controllers/AuthFacebookController';
@@ -130,14 +131,14 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Email và password là bắt buộc'
       });
     }
 
     if (!otp || String(otp).trim().length === 0) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Mã OTP là bắt buộc'
       });
@@ -146,7 +147,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(409).json({
+      return res.status(HttpStatus.CONFLICT).json({
         success: false,
         message: 'Email đã được sử dụng'
       });
@@ -154,7 +155,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     const sanitizedOtp = String(otp).trim();
     if (sanitizedOtp.length !== 6) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Mã OTP không hợp lệ'
       });
@@ -162,7 +163,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     const otpValid = await OTPService.verifyEmailOTP(email, sanitizedOtp);
     if (!otpValid) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Mã OTP không chính xác hoặc đã hết hạn'
       });
@@ -191,7 +192,7 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
 
     logger.info(`New user registered: ${email}`);
 
-    res.status(201).json({
+    res.status(HttpStatus.CREATED).json({
       success: true,
       message: 'Đăng ký thành công',
       user: {
@@ -210,14 +211,14 @@ authRoutes.post('/register', async (req: Request, res: Response): Promise<any> =
     logger.error('Register error:', error);
     
     if (error.name === 'ValidationError') {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Dữ liệu không hợp lệ',
         errors: Object.values(error.errors).map((err: any) => err.message)
       });
     }
 
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server, vui lòng thử lại sau'
     });
@@ -269,7 +270,7 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Email và password là bắt buộc'
       });
@@ -278,7 +279,7 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
     // Find user by email
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(401).json({
+      return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
         message: 'Email hoặc mật khẩu không đúng'
       });
@@ -286,7 +287,7 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
 
     // Check if user is verified (skip in development mode)
     if (!user.isVerified && config.NODE_ENV === 'production') {
-      return res.status(401).json({
+      return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
         message: 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email để xác thực.'
       });
@@ -300,7 +301,7 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
         message: 'Email hoặc mật khẩu không đúng'
       });
@@ -335,7 +336,7 @@ authRoutes.post('/login', async (req: Request, res: Response): Promise<any> => {
 
   } catch (error) {
     logger.error('Login error:', error);
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server, vui lòng thử lại sau'
     });
@@ -453,7 +454,7 @@ authRoutes.post('/verify-email', async (req: Request, res: Response): Promise<an
     const { email, token } = req.body;
 
     if (!email || !token) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Email và token là bắt buộc'
       });
@@ -461,7 +462,7 @@ authRoutes.post('/verify-email', async (req: Request, res: Response): Promise<an
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({
+      return res.status(HttpStatus.NOT_FOUND).json({
         success: false,
         message: 'Không tìm thấy tài khoản'
       });
@@ -487,14 +488,14 @@ authRoutes.post('/verify-email', async (req: Request, res: Response): Promise<an
         message: 'Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.'
       });
     } else {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Token xác thực không hợp lệ'
       });
     }
   } catch (error) {
     logger.error('❌ Email verification error:', error);
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server khi xác thực email'
     });
@@ -533,7 +534,7 @@ authRoutes.post('/resend-verification', async (req: Request, res: Response): Pro
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Email là bắt buộc'
       });
@@ -541,14 +542,14 @@ authRoutes.post('/resend-verification', async (req: Request, res: Response): Pro
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({
+      return res.status(HttpStatus.NOT_FOUND).json({
         success: false,
         message: 'Không tìm thấy tài khoản với email này'
       });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({
+      return res.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Tài khoản đã được xác thực'
       });
@@ -568,7 +569,7 @@ authRoutes.post('/resend-verification', async (req: Request, res: Response): Pro
     });
   } catch (error) {
     logger.error('❌ Resend verification error:', error);
-    res.status(500).json({
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server khi gửi lại email xác thực'
     });

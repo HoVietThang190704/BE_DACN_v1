@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { User } from '../../models/users/User';
 import { config } from '../../config';
 import { logger } from '../../shared/utils/logger';
+import { HttpStatus } from '../../shared/constants/httpStatus';
 
 const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
@@ -12,7 +13,7 @@ export default class AuthGoogleController {
   static async token(req: Request, res: Response) {
     try {
       const { id_token } = req.body;
-      if (!id_token) return res.status(400).json({ success: false, message: 'id_token required' });
+      if (!id_token) return res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: 'id_token required' });
 
       // TEMP DEBUG: decode token without verification to inspect `aud` claim
       let decodedAud: string | string[] | undefined | null = null;
@@ -43,12 +44,12 @@ export default class AuthGoogleController {
         logger.error('AuthGoogleController.verifyIdToken failed:', verifyErr);
         logger.info(`Debug (post-verify) decoded aud: ${JSON.stringify(decodedAud)}`);
         if (config.NODE_ENV !== 'production') {
-          return res.status(400).json({ success: false, message: 'Invalid Google token (aud mismatch)', data: { token_aud: decodedAud, expected_aud: config.GOOGLE_CLIENT_ID } });
+          return res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: 'Invalid Google token (aud mismatch)', data: { token_aud: decodedAud, expected_aud: config.GOOGLE_CLIENT_ID } });
         }
-        return res.status(401).json({ success: false, message: 'Invalid Google token' });
+        return res.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: 'Invalid Google token' });
       }
       const payload = ticket.getPayload();
-      if (!payload) return res.status(401).json({ success: false, message: 'Invalid Google token' });
+      if (!payload) return res.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: 'Invalid Google token' });
 
       const googleId = payload.sub as string;
       const email = (payload.email || '').toLowerCase();
@@ -113,7 +114,7 @@ export default class AuthGoogleController {
 
     } catch (error) {
       logger.error('AuthGoogleController.token error:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Internal server error' });
     }
   }
 }

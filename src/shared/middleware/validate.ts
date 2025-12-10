@@ -1,5 +1,6 @@
 import { ZodTypeAny } from 'zod';
 import { Request, Response, NextFunction } from 'express';
+import { HttpStatus } from '../constants/httpStatus';
 
 export const validate = (schema: ZodTypeAny) => (req: Request, res: Response, next: NextFunction) => {
   const toValidate = {
@@ -43,7 +44,7 @@ export const validate = (schema: ZodTypeAny) => (req: Request, res: Response, ne
     const parsedBodyOnly = schema.safeParse(req.body);
     if (!parsedBodyOnly.success) {
       // return original issues (prefer full-structure parsing issues)
-      return res.status(400).json({ message: 'Validation error', errors: parsed.error.issues });
+      return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Validation error', errors: parsed.error.issues });
     }
     data = { body: parsedBodyOnly.data };
   } else {

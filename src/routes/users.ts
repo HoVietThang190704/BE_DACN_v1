@@ -6,6 +6,7 @@ import { validate } from '../shared/middleware/validate';
 import { updateProfileSchema } from '../shared/validation/user.schema';
 import { UserMapper } from '../presentation/dto/user/User.dto';
 import { uploadAvatar } from '../shared/middleware/upload';
+import { HttpStatus } from '../shared/constants/httpStatus';
 
 export const userRoutes = Router();
 
@@ -317,7 +318,7 @@ userRoutes.post(
   (req, res, next) => {
     uploadAvatar(req, res, (err: any) => {
       if (err) {
-        return res.status(400).json({
+        return res.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: err.message || 'Lỗi khi upload file'
         });

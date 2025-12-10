@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { HttpStatus } from '../../shared/constants/httpStatus';
 import { CreateShopUseCase } from '../../domain/usecases/shop/CreateShop.usecase';
 import { UpdateShopUseCase } from '../../domain/usecases/shop/UpdateShop.usecase';
 import { DeleteShopUseCase } from '../../domain/usecases/shop/DeleteShop.usecase';
@@ -25,7 +26,7 @@ export class ShopController {
       const { ownerId: bodyOwnerId, shopName, story, slug, isActive } = req.body as any;
       const ownerId = bodyOwnerId || (req.user ? req.user.userId : undefined);
       if (!ownerId) {
-        res.status(401).json({ success: false, message: 'Bạn cần đăng nhập để tạo shop' });
+          res.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: 'Bạn cần đăng nhập để tạo shop' });
         return;
       }
       const shop = await this.createShopUseCase.execute({ ownerId, shopName, story, slug, isActive });
@@ -37,7 +38,7 @@ export class ShopController {
         res.status(400).json({ success: false, message: error.message });
         return;
       }
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi tạo shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi tạo shop' });
     }
   }
 
@@ -48,7 +49,7 @@ export class ShopController {
       // ownership check: only owner or admin can update
       const existing = await this.getShopByIdUseCase.execute(id);
       if (!existing) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy shop' });
+          res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy shop' });
         return;
       }
       const userId = req.user?.userId;
@@ -64,14 +65,14 @@ export class ShopController {
         return;
       }
       const dto = ShopMapper.toDTO(shop);
-      res.status(200).json({ success: true, message: 'Cập nhật shop thành công', data: dto });
+        res.status(HttpStatus.OK).json({ success: true, message: 'Cập nhật shop thành công', data: dto });
     } catch (error: any) {
       logger.error('ShopController.updateShop error:', error);
       if (error.message && (error.message.includes('Slug đã tồn tại') || error.message.includes('không được để trống') || error.message.includes('không hợp lệ'))) {
         res.status(400).json({ success: false, message: error.message });
         return;
       }
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi cập nhật shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi cập nhật shop' });
     }
   }
 
@@ -80,7 +81,7 @@ export class ShopController {
       const { id } = req.params;
       const existing = await this.getShopByIdUseCase.execute(id);
       if (!existing) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy shop' });
+          res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy shop' });
         return;
       }
       const userId = req.user?.userId;
@@ -94,7 +95,7 @@ export class ShopController {
       res.status(200).json({ success: true, message: 'Xóa shop thành công' });
     } catch (error: any) {
       logger.error('ShopController.deleteShop error:', error);
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi xóa shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi xóa shop' });
     }
   }
 
@@ -103,14 +104,14 @@ export class ShopController {
       const { id } = req.params;
       const shop = await this.getShopByIdUseCase.execute(id);
       if (!shop) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy shop' });
+          res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy shop' });
         return;
       }
       const dto = ShopMapper.toDTO(shop);
       res.status(200).json({ success: true, data: dto });
     } catch (error: any) {
       logger.error('ShopController.getShopById error:', error);
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi lấy shop' });
     }
   }
 
@@ -118,7 +119,7 @@ export class ShopController {
   async listPending(req: Request, res: Response): Promise<void> {
     try {
       if (!this.findPendingShopsUseCase) {
-        res.status(500).json({ success: false, message: 'Not implemented' });
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Not implemented' });
         return;
       }
       const limit = parseInt(String(req.query.limit || '50'), 10);
@@ -128,7 +129,7 @@ export class ShopController {
       res.status(200).json({ success: true, data });
     } catch (error: any) {
       logger.error('ShopController.listPending error:', error);
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy danh sách shop chờ duyệt' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi lấy danh sách shop chờ duyệt' });
     }
   }
 
@@ -136,7 +137,7 @@ export class ShopController {
   async approveShop(req: Request, res: Response): Promise<void> {
     try {
       if (!this.approveShopUseCase) {
-        res.status(500).json({ success: false, message: 'Not implemented' });
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Not implemented' });
         return;
       }
       const { id } = req.params;
@@ -148,13 +149,13 @@ export class ShopController {
       const { reviewMessage } = req.body as any;
       const shop = await this.approveShopUseCase.execute(id, reviewerId, reviewMessage);
       if (!shop) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy shop' });
+          res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy shop' });
         return;
       }
       res.status(200).json({ success: true, message: 'Duyệt shop thành công', data: ShopMapper.toDTO(shop) });
     } catch (error: any) {
       logger.error('ShopController.approveShop error:', error);
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi duyệt shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi duyệt shop' });
     }
   }
 
@@ -162,7 +163,7 @@ export class ShopController {
   async rejectShop(req: Request, res: Response): Promise<void> {
     try {
       if (!this.rejectShopUseCase) {
-        res.status(500).json({ success: false, message: 'Not implemented' });
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Not implemented' });
         return;
       }
       const { id } = req.params;
@@ -174,13 +175,13 @@ export class ShopController {
       const { reviewMessage } = req.body as any;
       const shop = await this.rejectShopUseCase.execute(id, reviewerId, reviewMessage);
       if (!shop) {
-        res.status(404).json({ success: false, message: 'Không tìm thấy shop' });
+          res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy shop' });
         return;
       }
       res.status(200).json({ success: true, message: 'Từ chối shop thành công', data: ShopMapper.toDTO(shop) });
     } catch (error: any) {
       logger.error('ShopController.rejectShop error:', error);
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi từ chối shop' });
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi từ chối shop' });
     }
   }
 }
