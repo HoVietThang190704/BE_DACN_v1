@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../shared/middleware/auth';
 import { authorizeRoles } from '../shared/middleware/authorize';
 import { registerShopOwnerController } from '../di/container';
+import { HttpStatus } from '../shared/constants/httpStatus';
 import { uploadCertificate } from '../shared/middleware/upload';
 import { validate } from '../shared/middleware/validate';
 import { listRegisterShopOwnerQuerySchema, reviewRegisterShopOwnerSchema } from '../shared/validation/registerShopOwner.schema';
@@ -16,7 +17,7 @@ registerShopOwnerRoutes.post(
   (req, res, next) => {
     uploadCertificate(req, res, (err: any) => {
       if (err) {
-        res.status(400).json({ success: false, message: err.message });
+        res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: err.message });
         return;
       }
       next();

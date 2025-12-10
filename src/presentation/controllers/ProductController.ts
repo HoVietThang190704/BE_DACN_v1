@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { HttpStatus } from '../../shared/constants/httpStatus';
 import { GetProductsUseCase } from '../../domain/usecases/product/GetProducts.usecase';
 import { GetProductByIdUseCase } from '../../domain/usecases/product/GetProductById.usecase';
 import { GetCategoriesUseCase } from '../../domain/usecases/product/GetCategories.usecase';
@@ -90,7 +91,7 @@ export class ProductController {
         true // Include computed fields
       );
 
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         data: response.products,
         pagination: {
@@ -102,7 +103,7 @@ export class ProductController {
       });
     } catch (error: any) {
       logger.error('ProductController.getProducts error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: error.message || 'Lỗi khi lấy danh sách sản phẩm'
       });
@@ -123,7 +124,7 @@ export class ProductController {
       // Map to DTO
       const response = ProductMapper.toDTO(product, true);
 
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         data: response
       });
@@ -138,7 +139,7 @@ export class ProductController {
         return;
       }
 
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: error.message || 'Lỗi khi lấy thông tin sản phẩm'
       });
@@ -159,13 +160,13 @@ export class ProductController {
         locale
       });
 
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         data: ShareInfoMapper.toDTO(shareInfo)
       });
     } catch (error: any) {
       logger.error('ProductController.getProductShareInfo error:', error);
-      const status = error.message === 'Không tìm thấy sản phẩm' ? 404 : 400;
+      const status = error.message === 'Không tìm thấy sản phẩm' ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
       res.status(status).json({
         success: false,
         message: error.message || 'Không thể tạo liên kết chia sẻ cho sản phẩm'
@@ -182,7 +183,7 @@ export class ProductController {
       const { id } = req.params;
 
       // Execute use case
-      res.status(410).json({
+      res.status(HttpStatus.GONE).json({
         success: false,
         message: 'Tính năng truy xuất nguồn gốc hiện không khả dụng'
       });
@@ -197,7 +198,7 @@ export class ProductController {
         return;
       }
 
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: error.message || 'Lỗi khi lấy thông tin truy xuất nguồn gốc'
       });
@@ -213,13 +214,13 @@ export class ProductController {
       // Execute use case
       const categories = await this.getCategoriesUseCase.execute();
 
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         data: categories
       });
     } catch (error: any) {
       logger.error('ProductController.getCategories error:', error);
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: error.message || 'Lỗi khi lấy danh sách danh mục'
       });
@@ -252,7 +253,7 @@ export class ProductController {
 
       logger.info(`Product created: ${product.id}`);
 
-      res.status(201).json({
+      res.status(HttpStatus.CREATED).json({
         success: true,
         message: 'Tạo sản phẩm thành công',
         data: response
@@ -262,17 +263,17 @@ export class ProductController {
 
       // If it's a Mongoose validation error or contains validation info, return 400 with details
       if (error && (error.name === 'ValidationError' || /validation failed/i.test(error.message || '') || /Path `/.test(error.message || ''))) {
-        res.status(400).json({ success: false, message: error.message });
+        res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: error.message });
         return;
       }
 
       // If message contains common client-side keywords (Vietnamese checks), map to 400
       if (error && error.message && (error.message.includes('không được để trống') || error.message.includes('phải') || error.message.includes('không hợp lệ') || error.message.includes('hết hạn'))) {
-        res.status(400).json({ success: false, message: error.message });
+        res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: error.message });
         return;
       }
 
-      res.status(500).json({ success: false, message: error.message || 'Lỗi khi tạo sản phẩm' });
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Lỗi khi tạo sản phẩm' });
     }
   }
 
@@ -293,7 +294,7 @@ export class ProductController {
 
       logger.info(`Product updated: ${id}`);
 
-      res.status(200).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         message: 'Cập nhật sản phẩm thành công',
         data: response
@@ -302,7 +303,7 @@ export class ProductController {
       logger.error('ProductController.updateProduct error:', error);
 
       if (error.message === 'Không tìm thấy sản phẩm') {
-        res.status(404).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           success: false,
           message: error.message
         });
@@ -312,14 +313,14 @@ export class ProductController {
       if (error.message.includes('không được để trống') ||
           error.message.includes('phải') ||
           error.message.includes('không hợp lệ')) {
-        res.status(400).json({
+        res.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: error.message
         });
         return;
       }
 
-      res.status(500).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Lỗi khi cập nhật sản phẩm'
       });

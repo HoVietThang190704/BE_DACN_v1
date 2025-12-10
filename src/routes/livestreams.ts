@@ -6,6 +6,7 @@ import { LivestreamMessage } from '../models/LivestreamMessage';
 import { Product, IProduct } from '../models/Product';
 import { authenticate } from '../shared/middleware/auth';
 import { authorizeRoles } from '../shared/middleware/authorize';
+import { HttpStatus } from '../shared/constants/httpStatus';
 const { v4: uuidv4 } = require('uuid');
 
 const router = Router();
@@ -128,28 +129,28 @@ const transformLivestream = (doc: any, productSummaries?: LivestreamProductSumma
 router.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), async (req: Request, res: Response) => {
   try {
     const { title, description, thumbnail, hostAvatar, products, startTime, productPricing } = req.body;
-    if (!title) return res.status(400).json({ error: 'title is required' });
-    if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+    if (!title) return res.status(HttpStatus.BAD_REQUEST).json({ error: 'title is required' });
+    if (!req.user) return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'unauthorized' });
 
     const normalizedProductIds = normalizeProductIds(products);
     if (normalizedProductIds.length === 0) {
-      return res.status(400).json({ error: 'products_required' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'products_required' });
     }
 
     const host = await User.findById(req.user.userId).select('userName email avatar role');
     if (!host) {
-      return res.status(404).json({ error: 'host_not_found' });
+      return res.status(HttpStatus.NOT_FOUND).json({ error: 'host_not_found' });
     }
 
     const productDocs = await Product.find({ _id: { $in: normalizedProductIds } }).select(PRODUCT_SUMMARY_FIELDS);
     if (productDocs.length !== normalizedProductIds.length) {
-      return res.status(400).json({ error: 'invalid_products' });
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: 'invalid_products' });
     }
 
     if (req.user.role !== 'admin') {
       const unauthorizedProduct = productDocs.find((doc) => doc.owner?.toString() !== req.user?.userId);
       if (unauthorizedProduct) {
-        return res.status(403).json({ error: 'product_owner_mismatch' });
+        return res.status(HttpStatus.FORBIDDEN).json({ error: 'product_owner_mismatch' });
       }
     }
 
@@ -211,10 +212,10 @@ router.post('/', authenticate, authorizeRoles('shop_owner', 'admin'), async (req
     } catch (err) {
       console.warn('Failed to emit livestream:new event', err);
     }
-    return res.status(201).json(transformLivestream(livestream, productSummaries));
+    return res.status(HttpStatus.CREATED).json(transformLivestream(livestream, productSummaries));
   } catch (error) {
     console.error('create livestream error', error);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'internal_error' });
   }
 });
 /**
@@ -273,7 +274,7 @@ router.get('/', async (req: Request, res: Response) => {
     return res.json(transformed);
   } catch (error) {
     console.error('list livestreams error', error);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'internal_error' });
   }
 });
 
@@ -281,7 +282,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     const item = await Livestream.findById(id);
-    if (!item) return res.status(404).json({ error: 'not_found' });
+    if (!item) return res.status(HttpStatus.NOT_FOUND).json({ error: 'not_found' });
     const productSummaries = await fetchProductSummariesByIds(item.products || []);
     const obj = transformLivestream(item, productSummaries);
     // If hostAvatar missing, try to fetch from user profile
@@ -296,7 +297,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     return res.json(obj);
   } catch (error) {
     console.error('get livestream error', error);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'internal_error' });
   }
 });
 
@@ -305,14 +306,14 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
     const id = req.params.id;
     const { title, description, thumbnail, hostAvatar, products, productPricing } = req.body;
     
-    if (!req.user) return res.status(401).json({ error: 'unauthorized' });
+    if (!req.user) return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'unauthorized' });
 
     const item = await Livestream.findById(id);
-    if (!item) return res.status(404).json({ error: 'not_found' });
+    if (!item) return res.status(HttpStatus.NOT_FOUND).json({ error: 'not_found' });
 
     const isAdmin = req.user.role === 'admin';
     if (!isAdmin && item.hostId && item.hostId !== req.user.userId) {
-      return res.status(403).json({ error: 'not_host' });
+      return res.status(HttpStatus.FORBIDDEN).json({ error: 'not_host' });
     }
     
     if (title) item.title = title;
@@ -325,18 +326,18 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
     if (products !== undefined) {
       const normalizedProductIds = normalizeProductIds(products);
       if (normalizedProductIds.length === 0) {
-        return res.status(400).json({ error: 'products_required' });
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: 'products_required' });
       }
 
       const productDocs = await Product.find({ _id: { $in: normalizedProductIds } }).select(PRODUCT_SUMMARY_FIELDS);
       if (productDocs.length !== normalizedProductIds.length) {
-        return res.status(400).json({ error: 'invalid_products' });
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: 'invalid_products' });
       }
 
       if (!isAdmin) {
         const unauthorizedProduct = productDocs.find((doc) => doc.owner?.toString() !== req.user?.userId);
         if (unauthorizedProduct) {
-          return res.status(403).json({ error: 'product_owner_mismatch' });
+          return res.status(HttpStatus.FORBIDDEN).json({ error: 'product_owner_mismatch' });
         }
       }
 
@@ -352,7 +353,7 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
 
     if (productPricing !== undefined) {
       if (!Array.isArray(productPricing)) {
-        return res.status(400).json({ error: 'invalid_product_pricing' });
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: 'invalid_product_pricing' });
       }
 
       // Build stock map for existing products
@@ -415,7 +416,7 @@ router.put('/:id', authenticate, authorizeRoles('shop_owner', 'admin'), async (r
     return res.json(responsePayload);
   } catch (error) {
     console.error('update livestream error', error);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'internal_error' });
   }
 });
 
@@ -430,7 +431,7 @@ router.put('/:id/status', authenticate, authorizeRoles('shop_owner', 'admin'), a
     }
     
     const item = await Livestream.findById(id);
-    if (!item) return res.status(404).json({ error: 'not_found' });
+    if (!item) return res.status(HttpStatus.NOT_FOUND).json({ error: 'not_found' });
 
     const isAdmin = req.user.role === 'admin';
     if (!isAdmin && item.hostId && item.hostId !== req.user.userId) {
@@ -462,7 +463,7 @@ router.put('/:id/status', authenticate, authorizeRoles('shop_owner', 'admin'), a
     return res.json(payload);
   } catch (error) {
     console.error('update livestream status error', error);
-    return res.status(500).json({ error: 'internal_error' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'internal_error' });
   }
 });
 

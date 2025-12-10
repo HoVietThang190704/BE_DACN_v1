@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../shared/middleware/errorHandler';
 import { categoryController } from '../di/container';
+import { HttpStatus } from '../shared/constants/httpStatus';
 import { authenticate } from '../shared/middleware/auth';
 import { authorizeRoles } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
@@ -512,13 +513,13 @@ categoryRoutes.patch('/:id/image', authenticate, authorizeRoles('admin'), upload
   const { id } = req.params;
   const file = req.file as Express.Multer.File | undefined;
   if (!file) {
-    return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh' });
+    return res.status(HttpStatus.BAD_REQUEST).json({ success: false, message: 'Vui lòng chọn ảnh' });
   }
 
   // find existing category
   const category = await repositories.categoryRepository.findById(id);
   if (!category) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy danh mục' });
+    return res.status(HttpStatus.NOT_FOUND).json({ success: false, message: 'Không tìm thấy danh mục' });
   }
 
   // upload new image
@@ -526,7 +527,7 @@ categoryRoutes.patch('/:id/image', authenticate, authorizeRoles('admin'), upload
   try {
     uploadResult = await uploadToCloudinary(file, 'categories');
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Lỗi khi upload ảnh' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Lỗi khi upload ảnh' });
   }
 
   // delete old image from Cloudinary if exists
@@ -543,11 +544,11 @@ categoryRoutes.patch('/:id/image', authenticate, authorizeRoles('admin'), upload
   // update category
   const updated = await repositories.categoryRepository.update(id, { image: uploadResult.url, imagePublicId: uploadResult.publicId } as any);
   if (!updated) {
-    return res.status(500).json({ success: false, message: 'Không thể cập nhật ảnh danh mục' });
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Không thể cập nhật ảnh danh mục' });
   }
 
   const response = CategoryMapper.toDTO(updated);
-  return res.status(200).json({ success: true, message: 'Cập nhật ảnh danh mục thành công', data: response });
+  return res.status(HttpStatus.OK).json({ success: true, message: 'Cập nhật ảnh danh mục thành công', data: response });
 
 }));
 

@@ -6,6 +6,7 @@ import { authenticate } from '../shared/middleware/auth';
 import { authorizeRoles, isShopOwnerOrAdmin } from '../shared/middleware/authorize';
 import { validate } from '../shared/middleware/validate';
 import { createShopSchema, updateShopSchema } from '../shared/validation/shop.schema';
+import { HttpStatus } from '../shared/constants/httpStatus';
 
 export const shopRoutes = Router();
 
@@ -23,7 +24,7 @@ export const shopRoutes = Router();
 shopRoutes.get('/', asyncHandler(async (req: Request, res: Response) => {
   const shops = await repositories.shopRepository.findAll();
   const data = shops.map(s => ShopMapper.toDTO(s));
-  res.status(200).json({ success: true, data });
+  res.status(HttpStatus.OK).json({ success: true, data });
 }));
 
 /**

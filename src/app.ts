@@ -11,6 +11,7 @@ import { errorHandler } from './shared/middleware/errorHandler';
 import { logger } from './shared/utils/logger';
 import { database } from './shared/database/connection';
 import { setupSwagger } from './shared/swagger/setup';
+import { HttpStatus } from './shared/constants/httpStatus';
 import { SocketService } from './services/socket/SocketService';
 import { setIO } from './services/socket/socketManager';
 import notificationRoutes from './routes/notifications';
@@ -110,7 +111,7 @@ app.get('/health', (req, res) => {
 // Database health check
 app.get('/health/db', (req, res) => {
   const dbReady = database.isConnectionReady();
-  res.status(dbReady ? 200 : 503).json({
+  res.status(dbReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).json({
     status: dbReady ? 'OK' : 'DB_NOT_READY',
     database: dbReady ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
@@ -170,7 +171,7 @@ app.get('/api', (req, res) => {
 // Error handling
 app.use(errorHandler);
 app.use((req, res) => {
-  res.status(404).json({
+  res.status(HttpStatus.NOT_FOUND).json({
     error: 'Endpoint không tìm thấy',
     message: `${req.method} ${req.originalUrl} không tồn tại`
   });

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { HttpStatus } from '../constants/httpStatus';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
 
@@ -17,7 +18,7 @@ export const authMiddleware = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ message: 'No token provided' });
+      res.status(HttpStatus.UNAUTHORIZED).json({ message: 'No token provided' });
       return;
     }
 
@@ -39,9 +40,9 @@ export const authMiddleware = (
     };
 
     next();
-  } catch (error) {
+    } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(401).json({ message: 'Invalid or expired token' });
+    res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid or expired token' });
   }
 };
 
