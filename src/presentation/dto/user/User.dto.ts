@@ -29,6 +29,7 @@ export interface UserResponseDto {
   dateOfBirth?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  locked?: boolean;
 }
 
 export class UserMapper {
@@ -46,7 +47,8 @@ export class UserMapper {
       isVerified: user.isVerified,
       dateOfBirth: user.dateOfBirth,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
+      locked: user.locked
     };
   }
 }

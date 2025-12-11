@@ -844,3 +844,9 @@ userRoutes.post('/me/vouchers/apply', authenticate, (req, res) => {
  *         description: Danh sách người dùng trả về thành công
  */
 userRoutes.get('/', authenticate, isAdmin, (req, res) => adminUserController.listUsers(req, res));
+
+// Khóa/mở khóa tài khoản (chỉ admin)
+userRoutes.patch('/:id/lock', authenticate, isAdmin, (req, res) => userController.lockUser(req, res));
+
+// Cập nhật thông tin user theo id (chỉ admin)
+userRoutes.put('/:id', authenticate, isAdmin, (req, res) => adminUserController.updateUser(req, res));

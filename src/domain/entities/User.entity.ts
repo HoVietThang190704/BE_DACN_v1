@@ -24,6 +24,7 @@ export interface IUserEntity {
   dateOfBirth?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  locked?: boolean;
 }
 
 export class UserEntity implements IUserEntity {
@@ -48,7 +49,8 @@ export class UserEntity implements IUserEntity {
     },
     public dateOfBirth?: Date,
     public createdAt?: Date,
-    public updatedAt?: Date
+    public updatedAt?: Date,
+    public locked?: boolean
   ) {}
 
   /**
