@@ -45,7 +45,13 @@ import aiRoutes from './routes/ai';
 const app = express();
 
 // Middleware
-app.use(helmet());
+// Middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // tắt CSP để Swagger UI load được JS/CSS
+  }),
+);
+
 
 // CORS: use a dynamic origin allowlist driven by environment variable
 // If ALLOWED_ORIGINS is empty, default to allowing same-origin and server-to-server calls.
