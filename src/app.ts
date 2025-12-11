@@ -261,7 +261,7 @@ async function startServer() {
             .catch(err => logger.error('❌ Elasticsearch reindex failed:', err));
         })
         .catch((error) => {
-          logger.error('❌ Elasticsearch connection failed:', error);
+          logger.error('❌ Elasticsearch connection failedw31333333333333333333333:', error);
           logger.warn('⚠️  Search features will fall back to MongoDB queries');
         });
     } else {
