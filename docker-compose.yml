@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  backend:
+    build: .
+    container_name: be_dacn
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:strong_password@172.17.0.1:27019/DAChuyenNganh?authSource=admin
+      JWT_SECRET: super_secret_key
+      JWT_EXPIRES_IN: 7d
+    networks:
+      - be_net
+
+networks:
+  be_net:
+    driver: bridge
