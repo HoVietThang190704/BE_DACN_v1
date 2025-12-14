@@ -28,6 +28,10 @@ export class ProgrammableSearchService {
   private readonly apiKey = config.GOOGLE_SEARCH_API_KEY;
   private readonly searchEngineId = config.GOOGLE_SEARCH_ENGINE_ID;
 
+  constructor() {
+    logger.info(`[ProgrammableSearchService] Initialized - API Key: ${this.apiKey ? 'SET' : 'NOT SET'}, Engine ID: ${this.searchEngineId ? 'SET' : 'NOT SET'}`);
+  }
+
   isEnabled(): boolean {
     return Boolean(this.apiKey && this.searchEngineId);
   }
@@ -39,6 +43,7 @@ export class ProgrammableSearchService {
     options?: SearchOptions
   ): Promise<KnowledgeInsight[]> {
     if (!this.isEnabled()) {
+      logger.warn('[ProgrammableSearchService] Google Search is NOT enabled - missing API key or Engine ID');
       return [];
     }
 
@@ -46,6 +51,8 @@ export class ProgrammableSearchService {
     if (!query) {
       return [];
     }
+
+    logger.info(`[ProgrammableSearchService] 🔍 Searching Google for: "${query}"`);
 
     try {
       const { data } = await axios.get<{ items?: GoogleSearchItem[] }>(SEARCH_ENDPOINT, {
@@ -90,9 +97,10 @@ export class ProgrammableSearchService {
         }
       }
 
+      logger.info(`[ProgrammableSearchService] ✅ Found ${insights.length} results from Google`);
       return insights;
     } catch (error) {
-      logger.warn('[ProgrammableSearchService] Failed to fetch insights', error);
+      logger.warn('[ProgrammableSearchService] ❌ Failed to fetch insights', error);
       return [];
     }
   }

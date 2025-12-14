@@ -11,6 +11,7 @@ import { FallbackKnowledgeService, KnowledgeInsight } from '../../../services/ai
 import { ProgrammableSearchService } from '../../../services/ai/ProgrammableSearchService';
 import { ProductEntity } from '../../entities/Product.entity';
 import { CategoryEntity } from '../../entities/Category.entity';
+import { logger } from '../../../shared/utils/logger';
 
 interface QueryIntent {
   wantsCookingGuide: boolean;
@@ -307,21 +308,27 @@ export class AskAiAssistantUseCase {
     const priceSummary = this.buildPriceSummary(selectedProducts, responseLocale);
 
     const catalogState = this.resolveCatalogState(selectedProducts, selectedCategories);
+    
+    // Always try to fetch external insights for cooking/recipe questions or when catalog is limited
     const shouldFetchExternal = this.needsExternalInsights(
       sanitizedQuestion,
       catalogState,
       history,
       wantsCookingGuide || needsStepByStep
     );
-    const fallbackInsights = shouldFetchExternal
-      ? await this.resolveFallbackInsights(
-          catalogState,
-          externalQuestion,
-          responseLocale,
-          wantsCookingGuide,
-          needsStepByStep
-        )
-      : [];
+    
+    logger.info(`[AskAiAssistant] catalogState=${catalogState}, wantsCookingGuide=${wantsCookingGuide}, needsStepByStep=${needsStepByStep}, shouldFetchExternal=${shouldFetchExternal}, programmableSearchEnabled=${this.programmableSearchService?.isEnabled()}`);
+    
+    // Fetch Google Search results in parallel with fallback knowledge
+    const [googleSearchResults, fallbackInsights] = await Promise.all([
+      shouldFetchExternal && this.programmableSearchService?.isEnabled()
+        ? this.fetchGoogleSearchResults(externalQuestion, responseLocale, wantsCookingGuide, needsStepByStep)
+        : Promise.resolve(''),
+      shouldFetchExternal
+        ? this.resolveFallbackInsights(catalogState, externalQuestion, responseLocale, wantsCookingGuide, needsStepByStep)
+        : Promise.resolve([]),
+    ]);
+    
     const fallbackSection = this.buildFallbackContext(fallbackInsights, responseLocale);
 
     const context = [
@@ -330,7 +337,6 @@ export class AskAiAssistantUseCase {
       productSection,
       priceSummary,
       sellerSection,
-      fallbackSection,
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -343,6 +349,7 @@ export class AskAiAssistantUseCase {
       dataAvailability: catalogState,
       fallbackInsights: fallbackInsights.length ? fallbackSection : '',
       intentDirectives: this.buildIntentDirectives(intent, responseLocale),
+      externalSearchResults: googleSearchResults,
     });
 
     return {
@@ -360,24 +367,52 @@ export class AskAiAssistantUseCase {
     history: AiAssistantHistoryMessage[],
     wantsCookingGuide: boolean
   ): boolean {
+    // Always search externally if catalog is limited
     if (state !== 'full') {
       return true;
     }
+    
     const normalized = stripDiacritics(question.toLowerCase());
-    if (question.includes('?')) {
-      return true;
-    }
+    
+    // Short greetings don't need external search
     if (normalized.length <= 2) {
       return false;
     }
+    
+    // Questions always benefit from external context
+    if (question.includes('?')) {
+      return true;
+    }
+    
+    // General information queries
     if (GENERAL_QUERY_MARKERS.some((marker) => normalized.includes(marker))) {
       return true;
     }
-    const isInstructional = normalized.startsWith('cach ') || normalized.startsWith('huong dan') || normalized.startsWith('lam sao');
-    if (isInstructional || wantsCookingGuide) {
+    
+    // Cooking/recipe related queries - always search
+    if (wantsCookingGuide || COOKING_QUERY_MARKERS.some((marker) => normalized.includes(stripDiacritics(marker)))) {
       return true;
     }
+    
+    // Instructional queries
+    const isInstructional = normalized.startsWith('cach ') || 
+                            normalized.startsWith('huong dan') || 
+                            normalized.startsWith('lam sao') ||
+                            normalized.includes('lam the nao') ||
+                            normalized.includes('cong thuc') ||
+                            normalized.includes('recipe');
+    if (isInstructional) {
+      return true;
+    }
+    
+    // User explicitly asks for search
     if (SEARCH_REQUEST_MARKERS.some((marker) => normalized.includes(marker))) {
+      return true;
+    }
+    
+    // Nutrition, health, storage questions
+    const healthKeywords = ['dinh duong', 'vitamin', 'protein', 'calo', 'bao quan', 'tuoi', 'fresh', 'nutrition', 'healthy', 'diet'];
+    if (healthKeywords.some((keyword) => normalized.includes(keyword))) {
       return true;
     }
 
@@ -570,6 +605,55 @@ export class AskAiAssistantUseCase {
     }
 
     return insights.slice(0, limit);
+  }
+
+  private async fetchGoogleSearchResults(
+    searchTerm: string,
+    locale: 'vi' | 'en',
+    wantsCookingGuide: boolean,
+    needsStepByStep: boolean
+  ): Promise<string> {
+    if (!this.programmableSearchService?.isEnabled()) {
+      return '';
+    }
+
+    try {
+      const insights = await this.programmableSearchService.searchInsights(
+        searchTerm,
+        locale,
+        4,
+        { cookingHint: wantsCookingGuide, stepByStep: needsStepByStep }
+      );
+
+      if (!insights.length) {
+        return '';
+      }
+
+      const header = locale === 'en'
+        ? '🔍 Google Search Results:'
+        : '🔍 Kết quả tìm kiếm từ Google:';
+
+      const lines = insights.map((insight, index) => {
+        const parts: string[] = [`${index + 1}. **${insight.title}**`];
+        if (insight.summary) {
+          parts.push(`   ${insight.summary}`);
+        }
+        if (insight.instructions?.length) {
+          parts.push(`   📝 ${locale === 'en' ? 'Steps' : 'Các bước'}:`);
+          insight.instructions.slice(0, 4).forEach((step, stepIndex) => {
+            parts.push(`      ${stepIndex + 1}. ${step}`);
+          });
+        }
+        if (insight.source) {
+          parts.push(`   📌 ${locale === 'en' ? 'Source' : 'Nguồn'}: ${insight.source}`);
+        }
+        return parts.join('\n');
+      });
+
+      return [header, ...lines].join('\n\n');
+    } catch (error) {
+      return '';
+    }
   }
 
   private buildFallbackContext(insights: KnowledgeInsight[], locale: 'vi' | 'en'): string {

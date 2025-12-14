@@ -3,32 +3,65 @@ import { config } from '../../config';
 import { logger } from '../../shared/utils/logger';
 import { AiAssistantHistoryMessage } from '../../domain/entities/ai/AiAssistant.types';
 
-const DEFAULT_MODEL = config.GEMINI_MODEL || 'gemini-2.0-flash';
+const DEFAULT_MODEL = config.GEMINI_MODEL || 'gemini-2.5-flash';
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+
+interface ApiKeyConfig {
+  key: string;
+  label: string;
+}
 
 export class GeminiAssistantService {
-  private readonly model: GenerativeModel | null;
+  private readonly apiKeys: ApiKeyConfig[];
+  private currentKeyIndex = 0;
+  private readonly modelName: string;
 
-  constructor(private readonly apiKey: string = config.GEMINI_API_KEY) {
-    if (!apiKey) {
-      logger.warn('[GeminiAssistantService] Missing GEMINI_API_KEY, AI assistant is disabled');
-      this.model = null;
-      return;
+  constructor() {
+    this.apiKeys = this.initializeApiKeys();
+    this.modelName = DEFAULT_MODEL;
+    
+    if (this.apiKeys.length === 0) {
+      logger.warn('[GeminiAssistantService] No GEMINI_API_KEY configured, AI assistant is disabled');
+    } else {
+      logger.info(`[GeminiAssistantService] Initialized with ${this.apiKeys.length} API key(s), model: ${this.modelName}`);
     }
+  }
 
+  private initializeApiKeys(): ApiKeyConfig[] {
+    const keys: ApiKeyConfig[] = [];
+    
+    if (config.GEMINI_API_KEY) {
+      keys.push({ key: config.GEMINI_API_KEY, label: 'primary' });
+    }
+    if (config.GEMINI_API_KEY_BACKUP && config.GEMINI_API_KEY_BACKUP !== config.GEMINI_API_KEY) {
+      keys.push({ key: config.GEMINI_API_KEY_BACKUP, label: 'backup' });
+    }
+    
+    return keys;
+  }
+
+  private createModel(apiKey: string, modelName: string): GenerativeModel {
     const client = new GoogleGenerativeAI(apiKey);
-    this.model = client.getGenerativeModel({
-      model: DEFAULT_MODEL,
+    return client.getGenerativeModel({
+      model: modelName,
       generationConfig: {
-        temperature: 0.55,
-        topP: 0.9,
-        topK: 32,
-        maxOutputTokens: 896,
+        temperature: 0.7,
+        topP: 0.92,
+        topK: 40,
+        maxOutputTokens: 1200,
       },
     });
   }
 
+  private rotateApiKey(): void {
+    if (this.apiKeys.length > 1) {
+      this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+      logger.info(`[GeminiAssistantService] Rotated to ${this.apiKeys[this.currentKeyIndex].label} API key`);
+    }
+  }
+
   isEnabled(): boolean {
-    return Boolean(this.model && this.apiKey);
+    return this.apiKeys.length > 0;
   }
 
   async generateResponse(params: {
@@ -39,8 +72,9 @@ export class GeminiAssistantService {
     dataAvailability?: 'full' | 'partial' | 'empty';
     fallbackInsights?: string;
     intentDirectives?: string[];
+    externalSearchResults?: string;
   }): Promise<string> {
-    if (!this.isEnabled() || !this.model) {
+    if (!this.isEnabled()) {
       throw new Error('AI assistant is not configured. Please set GEMINI_API_KEY.');
     }
 
@@ -52,78 +86,213 @@ export class GeminiAssistantService {
       dataAvailability = 'full',
       fallbackInsights,
       intentDirectives = [],
+      externalSearchResults,
     } = params;
+    
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion) {
       throw new Error('Question cannot be empty');
     }
 
-    const filteredHistory = history
-      .filter((item) => item?.content?.trim())
-      .slice(-6)
-      .map((item) => `${item.role === 'assistant' ? 'Assistant' : 'Customer'}: ${item.content.trim()}`)
-      .join('\n');
+    const prompt = this.buildPrompt({
+      question: trimmedQuestion,
+      locale,
+      context,
+      history,
+      dataAvailability,
+      fallbackInsights,
+      intentDirectives,
+      externalSearchResults,
+    });
 
-    const languageDirective = locale === 'en' ? 'English' : 'Vietnamese';
-    const availabilityDirective = this.buildAvailabilityDirective(dataAvailability, locale);
-    const fallbackBlock = fallbackInsights?.trim()
-      ? fallbackInsights.trim()
-      : (locale === 'en'
-          ? 'External insights: (none supplied)'
-          : 'Thông tin tham khảo bên ngoài: (chưa có)');
-    const intentDirectiveBlock = intentDirectives.filter(Boolean).join(' ');
+    // Try with multiple keys and models
+    const maxAttempts = this.apiKeys.length * FALLBACK_MODELS.length * 2;
+    let lastError: Error | null = null;
 
-    const systemPrompt = [
-      'You are FreshBuddy, a helpful, friendly AI shopping assistant for the Fresh Food Platform.',
-      'Always reply only in the customer\'s language (English or Vietnamese). Do not mix languages in a single response.',
-      'Use only the provided catalog context (categories, products, sellers, promotions) to craft responses; do not fabricate information.',
-      'If the user is asking "who is selling <product>", list seller names and a brief availability/price line for each seller using data from the catalog context.',
-      'When listing multiple options, prefer short bullet points and be concise. Use natural, conversational language appropriate to the customer\'s locale.',
-      'Never include internal IDs, API keys, or backend implementation information.',
-      'If information is missing from the context, acknowledge it and explain what additional detail you need (e.g., location, variant).',
-      'Keep answers concise and suitable for a chat UI, ideally no longer than 180 words.',
-      availabilityDirective,
-      intentDirectiveBlock,
-      `Respond in ${languageDirective}.`,
-    ]
-      .filter(Boolean)
-      .join(' ');
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const keyConfig = this.apiKeys[this.currentKeyIndex];
+      const modelName = FALLBACK_MODELS[Math.floor(attempt / this.apiKeys.length) % FALLBACK_MODELS.length] || this.modelName;
 
-    const promptSections = [
-      systemPrompt,
-      context ? `Catalog context:\n${context}` : 'Catalog context: (no catalog data provided)',
-      fallbackBlock,
-      filteredHistory ? `Conversation so far:\n${filteredHistory}` : 'Conversation so far: (first turn)',
-      `Customer question: ${trimmedQuestion}`,
-      'Assistant response:',
-    ];
+      try {
+        const model = this.createModel(keyConfig.key, modelName);
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text()?.trim();
+        
+        if (!responseText) {
+          throw new Error('Gemini returned an empty response');
+        }
+        
+        return responseText;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const errorMessage = lastError.message || '';
 
-    try {
-      const result = await this.model.generateContent(promptSections.join('\n\n'));
-      const responseText = result.response.text()?.trim();
-      if (!responseText) {
-        throw new Error('Gemini returned an empty response');
+        // Handle rate limit - rotate key and retry
+        if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('quota')) {
+          logger.warn(`[GeminiAssistantService] Rate limit on ${keyConfig.label} key with ${modelName}, rotating...`);
+          this.rotateApiKey();
+          await this.delay(500);
+          continue;
+        }
+
+        // Handle model not found - try next model
+        if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+          logger.warn(`[GeminiAssistantService] Model ${modelName} not found, trying next...`);
+          continue;
+        }
+
+        // Other errors - log and continue
+        logger.error(`[GeminiAssistantService] Error on attempt ${attempt + 1}:`, error);
+        
+        if (attempt < maxAttempts - 1) {
+          this.rotateApiKey();
+          await this.delay(300);
+          continue;
+        }
       }
-      return responseText;
-    } catch (error) {
-      logger.error('[GeminiAssistantService] Failed to generate response', error);
-      throw new Error('Failed to contact AI assistant');
     }
+
+    // All attempts failed
+    throw new Error(
+      locale === 'vi'
+        ? 'Hệ thống AI đang bận. Vui lòng thử lại sau vài giây.'
+        : 'AI assistant is currently busy. Please try again in a few seconds.'
+    );
   }
 
-  private buildAvailabilityDirective(state: 'full' | 'partial' | 'empty', locale: string): string {
+  private buildPrompt(params: {
+    question: string;
+    locale: string;
+    context: string;
+    history: AiAssistantHistoryMessage[];
+    dataAvailability: 'full' | 'partial' | 'empty';
+    fallbackInsights?: string;
+    intentDirectives: string[];
+    externalSearchResults?: string;
+  }): string {
+    const {
+      question,
+      locale,
+      context,
+      history,
+      dataAvailability,
+      fallbackInsights,
+      intentDirectives,
+      externalSearchResults,
+    } = params;
+
+    const languageDirective = locale === 'en' ? 'English' : 'Vietnamese';
+    
+    const filteredHistory = history
+      .filter((item) => item?.content?.trim())
+      .slice(-8)
+      .map((item) => `${item.role === 'assistant' ? 'FreshBuddy' : 'Khách hàng'}: ${item.content.trim()}`)
+      .join('\n');
+
+    const systemPrompt = this.buildSystemPrompt(locale, dataAvailability, intentDirectives);
+
+    const sections: string[] = [
+      systemPrompt,
+      '',
+      '=== DỮ LIỆU SẢN PHẨM/DANH MỤC TỪ HỆ THỐNG ===',
+      context || '(Không có dữ liệu sản phẩm phù hợp)',
+    ];
+
+    if (externalSearchResults?.trim()) {
+      sections.push('');
+      sections.push('=== KẾT QUẢ TÌM KIẾM TỪ GOOGLE (Thông tin bên ngoài) ===');
+      sections.push(externalSearchResults);
+    }
+
+    if (fallbackInsights?.trim()) {
+      sections.push('');
+      sections.push('=== THÔNG TIN THAM KHẢO BỔ SUNG ===');
+      sections.push(fallbackInsights);
+    }
+
+    if (filteredHistory) {
+      sections.push('');
+      sections.push('=== LỊCH SỬ HỘI THOẠI ===');
+      sections.push(filteredHistory);
+    }
+
+    sections.push('');
+    sections.push(`=== CÂU HỎI CỦA KHÁCH HÀNG ===`);
+    sections.push(question);
+    sections.push('');
+    sections.push(`[Trả lời bằng tiếng ${languageDirective}, thân thiện và hữu ích]`);
+    sections.push('FreshBuddy:');
+
+    return sections.join('\n');
+  }
+
+  private buildSystemPrompt(
+    locale: string,
+    dataAvailability: 'full' | 'partial' | 'empty',
+    intentDirectives: string[]
+  ): string {
+    const isVietnamese = locale !== 'en';
+    
+    const basePrompt = isVietnamese
+      ? `Bạn là FreshBuddy - trợ lý AI thông minh của nền tảng thực phẩm tươi sống Fresh Food Platform.
+
+NHIỆM VỤ CHÍNH:
+• Tư vấn sản phẩm: Giới thiệu sản phẩm tươi ngon có sẵn trong hệ thống
+• Hướng dẫn nấu ăn: Chia sẻ công thức, cách chế biến các món ăn từ nguyên liệu
+• Gợi ý nguyên liệu: Kết nối món ăn với sản phẩm đang bán (VD: "Để nấu phở, bạn cần thịt bò - đang có ở shop X, giá Y đồng")
+• Tìm kiếm thông minh: Sử dụng thông tin từ Google Search để trả lời câu hỏi về dinh dưỡng, mẹo nấu ăn, bảo quản thực phẩm
+
+NGUYÊN TẮC TRẢ LỜI:
+• Luôn ưu tiên giới thiệu sản phẩm trong hệ thống nếu có liên quan
+• Khi hướng dẫn nấu ăn, LUÔN liên kết với sản phẩm đang bán (nếu có)
+• Nếu không có sản phẩm phù hợp, vẫn trả lời câu hỏi dựa trên thông tin tìm kiếm
+• Trả lời ngắn gọn, dễ hiểu, phù hợp với giao diện chat (tối đa 250 từ)
+• Sử dụng bullet points khi liệt kê
+• Thêm emoji phù hợp để sinh động hơn 🥬🍖🍳
+
+ĐỊNH DẠNG:
+• Dùng • hoặc - cho danh sách
+• Bôi đậm **tên sản phẩm** và **giá**
+• Ghi rõ nguồn nếu lấy thông tin từ bên ngoài`
+      : `You are FreshBuddy - an intelligent AI assistant for the Fresh Food Platform.
+
+MAIN TASKS:
+• Product consultation: Recommend fresh products available in the system
+• Cooking guidance: Share recipes and cooking methods
+• Ingredient suggestions: Connect dishes with products for sale
+• Smart search: Use Google Search info to answer nutrition, cooking tips, food storage questions
+
+RESPONSE PRINCIPLES:
+• Always prioritize products in the system if relevant
+• When giving cooking instructions, ALWAYS link to products being sold (if available)
+• If no matching products, still answer based on search information
+• Keep answers concise, suitable for chat UI (max 250 words)
+• Use bullet points when listing
+• Add appropriate emojis 🥬🍖🍳`;
+
+    const availabilityNote = this.buildAvailabilityNote(dataAvailability, isVietnamese);
+    const intentNote = intentDirectives.filter(Boolean).join(' ');
+
+    return [basePrompt, availabilityNote, intentNote].filter(Boolean).join('\n\n');
+  }
+
+  private buildAvailabilityNote(state: 'full' | 'partial' | 'empty', isVietnamese: boolean): string {
     if (state === 'empty') {
-      return locale === 'en'
-        ? 'Catalog data is empty. Begin your answer with "Our web catalog does not have this item yet." Immediately follow up with clearly labeled external tips pulled from the provided insights.'
-        : 'Không có dữ liệu nào trong web. Mở đầu câu trả lời bằng câu "Hiện web chưa có dữ liệu này." Sau đó chia sẻ các gợi ý tham khảo bên ngoài được cung cấp.';
+      return isVietnamese
+        ? '⚠️ LƯU Ý: Không tìm thấy sản phẩm phù hợp trong hệ thống. Hãy trả lời dựa trên thông tin tìm kiếm bên ngoài và đề xuất khách hàng tìm kiếm thêm trên website.'
+        : '⚠️ NOTE: No matching products found in the system. Answer based on external search info and suggest the customer search more on the website.';
     }
     if (state === 'partial') {
-      return locale === 'en'
-        ? 'Only a few catalog items match. Mention that availability is limited before offering suggestions.'
-        : 'Dữ liệu trong web hiện khá ít, hãy nói rõ chúng đang hạn chế trước khi gợi ý.';
+      return isVietnamese
+        ? '📝 GHI CHÚ: Chỉ tìm thấy một số sản phẩm liên quan. Hãy giới thiệu những gì có và bổ sung thông tin từ nguồn bên ngoài.'
+        : '📝 NOTE: Only a few related products found. Present what\'s available and supplement with external info.';
     }
-    return locale === 'en'
-      ? 'Catalog data is available. Lead with platform items before optional tips.'
-      : 'Dữ liệu web đã sẵn sàng, hãy ưu tiên giới thiệu sản phẩm trong hệ thống trước khi thêm gợi ý khác.';
+    return isVietnamese
+      ? '✅ Dữ liệu sản phẩm đầy đủ. Ưu tiên giới thiệu sản phẩm trong hệ thống.'
+      : '✅ Full product data available. Prioritize system products.';
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
