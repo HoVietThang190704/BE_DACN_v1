@@ -40,7 +40,8 @@ export const config = {
   EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS || '',
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'DACN Platform',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || '',
-  GEMINI_MODEL: process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || 'gemini-2.0-flash',
+  GEMINI_API_KEY_BACKUP: process.env.GEMINI_API_KEY_BACKUP || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || 'gemini-2.5-flash',
   GOOGLE_SEARCH_API_KEY:
     process.env.GOOGLE_SEARCH_API_KEY || process.env.GOOGLE_PROGRAMMABLE_SEARCH_KEY || process.env.GOOGLE_CSE_API_KEY || '',
   GOOGLE_SEARCH_ENGINE_ID:
