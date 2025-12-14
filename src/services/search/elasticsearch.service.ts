@@ -69,8 +69,18 @@ export class ElasticsearchService {
   }
 
   private createClient(): Client {
+    const auth = config.ELASTICSEARCH_API_KEY
+      ? { apiKey: config.ELASTICSEARCH_API_KEY }
+      : config.ELASTICSEARCH_USERNAME && config.ELASTICSEARCH_PASSWORD
+        ? { username: config.ELASTICSEARCH_USERNAME, password: config.ELASTICSEARCH_PASSWORD }
+        : undefined;
+
+    const tls = config.ELASTICSEARCH_REJECT_UNAUTHORIZED ? undefined : { rejectUnauthorized: false };
+
     return new Client({
-      node: this.node
+      node: this.node,
+      auth,
+      tls
     });
   }
 
