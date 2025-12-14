@@ -76,7 +76,7 @@ export class CreateProductUseCase {
 
     const product = await this.productRepository.create(productData);
 
-    await this.elasticsearchService?.indexProduct(product);
+    // await this.elasticsearchService?.indexProduct(product);
 
     logger.info(`Product created: ${product.id} - ${product.name}`);
 

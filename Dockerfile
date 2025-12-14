@@ -21,3 +21,4 @@ EXPOSE 5000
 
 # Start app
 CMD ["node", "dist/app.js"]
+
