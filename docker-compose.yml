@@ -1,13 +1,81 @@
 services:
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    profiles: ["traefik"]
+    restart: always
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # CHANGE THIS to your real email (Let's Encrypt notifications)
+      - --certificatesresolvers.le.acme.email=change-me@example.com
+      - --certificatesresolvers.le.acme.storage=/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - be_net
+
   mongo:
     image: mongo:6.0
     container_name: mongo_dacn
     restart: always
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--auth", "--keyFile", "/etc/mongo-keyfile"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: strong_password
+    volumes:
+      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
     ports:
       - "27019:27017"   # nếu bạn muốn truy cập từ host bằng 27019
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u admin -p strong_password --authenticationDatabase admin --eval 'db.runCommand({ ping: 1 }).ok' | grep 1 >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks:
+      - be_net
+
+  mongo-init-replica:
+    image: mongo:6.0
+    container_name: mongo_init_replica
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint:
+      - bash
+      - -lc
+      - |
+        mongosh --quiet -u "admin" -p "strong_password" --authenticationDatabase admin --host mongo:27017 --eval '
+          const desiredHost = "mongo:27017";
+          try {
+            const status = rs.status();
+            if (status && status.ok === 1) {
+              const conf = rs.conf();
+              if (conf?.members?.length && conf.members[0].host !== desiredHost) {
+                conf.members[0].host = desiredHost;
+                conf.version = (conf.version || 1) + 1;
+                rs.reconfig(conf, { force: true });
+                print("Replica set reconfigured to " + desiredHost);
+              } else {
+                print("Replica set already initialized");
+              }
+            }
+          } catch (e) {
+            rs.initiate({ _id: "rs0", members: [{ _id: 0, host: desiredHost }] });
+            print("Replica set initiated");
+          }
+        '
     networks:
       - be_net
 
@@ -19,17 +87,27 @@ services:
     restart: always
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     environment:
       PORT: 5000
       NODE_ENV: production
 
       # ✅ Connect nội bộ qua network bằng tên service "mongo"
-      MONGODB_URI: mongodb://admin:strong_password@mongo:27017/DAChuyenNganh?authSource=admin
+      MONGODB_URI: mongodb://admin:strong_password@mongo:27017/DAChuyenNganh?authSource=admin&replicaSet=rs0
 
       JWT_SECRET: super_secret_key
       JWT_EXPIRES_IN: 7d
     depends_on:
-      - mongo
+      mongo-init-replica:
+        condition: service_completed_successfully
+    labels:
+      - traefik.enable=true
+      # Public API hostname (recommended to avoid clashing with your frontend domain)
+      - traefik.http.routers.api.rule=Host(`api.nongsansomotvn.io.vn`)
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=le
+      - traefik.http.services.api.loadbalancer.server.port=5000
     networks:
       - be_net
 

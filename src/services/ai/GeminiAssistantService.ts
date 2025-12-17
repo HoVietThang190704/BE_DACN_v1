@@ -48,7 +48,7 @@ export class GeminiAssistantService {
         temperature: 0.7,
         topP: 0.92,
         topK: 40,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 3072,
       },
     });
   }

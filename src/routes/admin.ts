@@ -8,9 +8,15 @@ export const adminRoutes = Router();
 // GET /api/admin/stats - Dashboard tổng hợp cho admin
 adminRoutes.get('/stats', async (req, res) => {
   try {
+    // NOTE:
+    // In practice, many deployments keep orders in `pending` for a while (e.g. before payment
+    // completion / fulfillment). To avoid showing an empty admin dashboard, we compute stats on
+    // all non-cancelled, non-refunded orders.
+    const orderMatch = { status: { $nin: ['cancelled', 'refunded'] } };
+
     // Tổng doanh thu
     const totalRevenue = await Order.aggregate([
-      { $match: { status: 'confirmed' } },
+      { $match: orderMatch },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
 
@@ -18,7 +24,7 @@ adminRoutes.get('/stats', async (req, res) => {
     const subscriptions = await Shop.countDocuments();
 
     // Tổng sales (số đơn hàng hoàn thành)
-    const sales = await Order.countDocuments({ status: 'confirmed' });
+    const sales = await Order.countDocuments(orderMatch);
 
     // Số người dùng đang active (ví dụ: đăng nhập trong 24h qua)
     const since = new Date(Date.now() - 1000 * 60 * 60 * 24);
@@ -26,7 +32,7 @@ adminRoutes.get('/stats', async (req, res) => {
 
     // Dữ liệu overview (doanh thu từng tháng)
     const monthlyRevenue = await Order.aggregate([
-      { $match: { status: 'confirmed' } },
+      { $match: orderMatch },
       { $group: {
         _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
         total: { $sum: '$total' }
@@ -39,7 +45,7 @@ adminRoutes.get('/stats', async (req, res) => {
     }));
 
     // Recent sales (5 đơn hàng gần nhất)
-    const recentOrders = await Order.find({ status: 'confirmed' })
+    const recentOrders = await Order.find(orderMatch)
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('userId', 'userName email')
