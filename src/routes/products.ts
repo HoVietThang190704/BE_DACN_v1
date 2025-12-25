@@ -342,6 +342,10 @@ productRoutes.get('/categories/list', asyncHandler(async (req: Request, res: Res
   await productController.getCategories(req, res);
 }));
 
+productRoutes.get('/recommendations/by-text', asyncHandler(async (req: Request, res: Response) => {
+  await productController.getRecommendationsByText(req, res);
+}));
+
 // GET /api/products/:id/traceability - Truy xuất nguồn gốc
 productRoutes.get('/:id/traceability', asyncHandler(async (req: Request, res: Response) => {
   await productController.getProductTraceability(req, res);
@@ -373,6 +377,10 @@ productRoutes.get('/:id/traceability', asyncHandler(async (req: Request, res: Re
  */
 productRoutes.get('/:id/share-info', asyncHandler(async (req: Request, res: Response) => {
   await productController.getProductShareInfo(req, res);
+}));
+
+productRoutes.get('/:id/recommendations', asyncHandler(async (req: Request, res: Response) => {
+  await productController.getProductRecommendations(req, res);
 }));
 
 // GET /api/products/:id - Chi tiết sản phẩm

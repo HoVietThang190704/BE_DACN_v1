@@ -12,6 +12,7 @@ import { ShareInfoMapper } from '../dto/share/ShareInfo.dto';
 import { ProductFilters, ProductSorting, ProductPagination } from '../../domain/repositories/IProductRepository';
 import { logger } from '../../shared/utils/logger';
 import { GetProductShareInfoUseCase } from '../../domain/usecases/product/GetProductShareInfo.usecase';
+import { GetContentRecommendationsUseCase } from '../../domain/usecases/product/GetContentRecommendations.usecase';
 
 /**
  * Product Controller - HTTP Layer
@@ -26,7 +27,8 @@ export class ProductController {
     private updateProductUseCase: UpdateProductUseCase,
     private deleteProductUseCase: DeleteProductUseCase,
     private uploadProductImagesUseCase: UploadProductImagesUseCase,
-    private getProductShareInfoUseCase: GetProductShareInfoUseCase
+    private getProductShareInfoUseCase: GetProductShareInfoUseCase,
+    private getContentRecommendationsUseCase: GetContentRecommendationsUseCase
   ) {}
 
   /**
@@ -509,5 +511,92 @@ export class ProductController {
 
       res.status(500).json({ success: false, message: 'Lỗi khi xóa vĩnh viễn sản phẩm' });
     }
+  }
+
+  /**
+   * GET /api/products/:id/recommendations
+   * Recommend similar products based on TF-IDF service
+   */
+  async getProductRecommendations(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const limit = this.resolveRecommendationLimit(req.query.k || req.query.limit);
+
+      const result = await this.getContentRecommendationsUseCase.recommendByProduct(id, limit);
+
+      const response = {
+        source: ProductMapper.toDTO(result.source, true),
+        total: result.recommendations.length,
+        recommendations: result.recommendations.map((item) => ({
+          score: Number(item.score.toFixed(4)),
+          product: ProductMapper.toDTO(item.product, true),
+          fallback: item.fallback,
+        })),
+      };
+
+      res.status(HttpStatus.OK).json({
+        success: true,
+        data: response,
+      });
+    } catch (error: any) {
+      logger.error('ProductController.getProductRecommendations error:', error);
+      const message = error?.message || 'Không thể lấy gợi ý sản phẩm tương tự';
+      const status = this.resolveRecommendationStatus(message);
+      res.status(status).json({ success: false, message });
+    }
+  }
+
+  /**
+   * GET /api/products/recommendations/by-text
+   * Recommend products based on arbitrary text
+   */
+  async getRecommendationsByText(req: Request, res: Response): Promise<void> {
+    try {
+      const query = (req.query.q as string) || (req.query.text as string) || '';
+      const limit = this.resolveRecommendationLimit(req.query.k || req.query.limit);
+
+      const result = await this.getContentRecommendationsUseCase.recommendByText(query, limit);
+
+      const response = {
+        query: result.query,
+        total: result.recommendations.length,
+        recommendations: result.recommendations.map((item) => ({
+          score: Number(item.score.toFixed(4)),
+          product: ProductMapper.toDTO(item.product, true),
+          fallback: item.fallback,
+        })),
+      };
+
+      res.status(HttpStatus.OK).json({
+        success: true,
+        data: response,
+      });
+    } catch (error: any) {
+      logger.error('ProductController.getRecommendationsByText error:', error);
+      const message = error?.message || 'Không thể lấy gợi ý theo mô tả';
+      const status = this.resolveRecommendationStatus(message);
+      res.status(status).json({ success: false, message });
+    }
+  }
+
+  private resolveRecommendationLimit(rawValue: unknown, fallback: number = 6): number {
+    if (!rawValue) {
+      return fallback;
+    }
+    const parsed = parseInt(String(rawValue), 10);
+    if (Number.isNaN(parsed)) {
+      return fallback;
+    }
+    return Math.min(20, Math.max(1, parsed));
+  }
+
+  private resolveRecommendationStatus(message: string): number {
+    if (message.includes('Không tìm thấy sản phẩm')) {
+      return HttpStatus.NOT_FOUND;
+    }
+    if (message.includes('bắt buộc') || message.includes('cấu hình') || message.includes('tham số')) {
+      return HttpStatus.BAD_REQUEST;
+    }
+    return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 }

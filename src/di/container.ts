@@ -25,6 +25,7 @@ import { ChatSupportRepository } from '../data/repositories/ChatSupportRepositor
 import { GeminiAssistantService } from '../services/ai/GeminiAssistantService';
 import { FallbackKnowledgeService } from '../services/ai/FallbackKnowledgeService';
 import { ProgrammableSearchService } from '../services/ai/ProgrammableSearchService';
+import { ContentRecommenderService } from '../services/ai/ContentRecommenderService';
 
 // ==================== USE CASES ====================
 // User Use Cases
@@ -44,6 +45,7 @@ import { UpdateProductUseCase } from '../domain/usecases/product/UpdateProduct.u
 import { DeleteProductUseCase } from '../domain/usecases/product/DeleteProduct.usecase';
 import { UploadProductImagesUseCase } from '../domain/usecases/product/UploadProductImages.usecase';
 import { GetProductShareInfoUseCase } from '../domain/usecases/product/GetProductShareInfo.usecase';
+import { GetContentRecommendationsUseCase } from '../domain/usecases/product/GetContentRecommendations.usecase';
 
 // Category Use Cases
 import { GetCategoriesTreeUseCase } from '../domain/usecases/category/GetCategoriesTree.usecase';
@@ -167,6 +169,7 @@ const chatSupportRepository = new ChatSupportRepository();
 const geminiAssistantService = new GeminiAssistantService();
 const fallbackKnowledgeService = new FallbackKnowledgeService();
 const programmableSearchService = new ProgrammableSearchService();
+const contentRecommenderService = new ContentRecommenderService();
 
 // ==================== USE CASE INSTANCES ====================
 // User Use Cases
@@ -187,6 +190,7 @@ const updateProductUseCase = new UpdateProductUseCase(productRepository, elastic
 const deleteProductUseCase = new DeleteProductUseCase(productRepository, elasticsearchService);
 const uploadProductImagesUseCase = new UploadProductImagesUseCase(productRepository);
 const getProductShareInfoUseCase = new GetProductShareInfoUseCase(productRepository, qrCodeService, config.FRONTEND_BASE_URL);
+const getContentRecommendationsUseCase = new GetContentRecommendationsUseCase(productRepository, contentRecommenderService);
 const searchProductsUseCase = new SearchProductsUseCase(productRepository, categoryRepository, elasticsearchService);
 const suggestProductsUseCase = new SuggestProductsUseCase(productRepository, elasticsearchService);
 
@@ -303,7 +307,8 @@ export const productController = new ProductController(
   updateProductUseCase,
   deleteProductUseCase,
   uploadProductImagesUseCase,
-  getProductShareInfoUseCase
+  getProductShareInfoUseCase,
+  getContentRecommendationsUseCase
 );
 
 export const categoryController = new CategoryController(

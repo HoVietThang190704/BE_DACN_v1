@@ -9,6 +9,8 @@ export const config = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   NODE_IP: process.env.IP || 'localhost',
   FRONTEND_BASE_URL: process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3000',
+  RECOMMENDER_BASE_URL: process.env.RECOMMENDER_BASE_URL || process.env.RECOMMENDER_SERVICE_URL || 'http://localhost:7001',
+  RECOMMENDER_TIMEOUT_MS: parseInt(process.env.RECOMMENDER_TIMEOUT_MS || '5000', 10),
   // Database - MongoDB
   MONGODB_URI: process.env.MONGODB_URI || (() => {
     console.error('❌ MONGODB_URI environment variable is required!');
