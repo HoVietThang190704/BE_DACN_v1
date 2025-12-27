@@ -73,17 +73,12 @@ export class ProductRepository implements IProductRepository {
     if (!filters) return filter;
     
     if (filters.search) {
-      // Smart multi-field search with case-insensitivity and Vietnamese support
       const searchTerm = filters.search.trim();
       if (searchTerm) {
-        // Normalize Vietnamese characters for relevance scoring
           const normalizedSearch = normalizeVietnameseText(searchTerm);
         
-        // Create flexible regex that matches Vietnamese with/without diacritics
-        // e.g., "ca" matches "ca", "cà", "cá", "Cá", etc.
         const flexibleRegex = buildVietnameseRegex(searchTerm);
         
-        // Search across multiple fields with $or operator
         filter.$or = [
           { name: flexibleRegex },
           { nameEn: flexibleRegex },
@@ -91,7 +86,6 @@ export class ProductRepository implements IProductRepository {
           { tags: flexibleRegex }
         ];
         
-        // Store the original search term for relevance scoring later
         filter.__searchTerm = searchTerm.toLowerCase();
           filter.__normalizedSearch = normalizeVietnameseText(searchTerm);
       }
@@ -152,7 +146,6 @@ export class ProductRepository implements IProductRepository {
   }
 
   private calculateRelevanceScore(product: IProduct, searchTerm: string, normalizedSearch: string): number {
-    // Higher score = more relevant
     let score = 0;
     
     const name = (product.name || '').toLowerCase();
@@ -164,47 +157,38 @@ export class ProductRepository implements IProductRepository {
       const normalizedName = normalizeVietnameseText(name);
       const normalizedNameEn = normalizeVietnameseText(nameEn);
     
-    // Exact match in name (highest priority)
     if (name === search || nameEn === search) {
       score += 100;
     }
     
-    // Exact match in normalized name
     if (normalizedName === normalizedSearch || normalizedNameEn === normalizedSearch) {
       score += 90;
     }
     
-    // Starts with search term in name
     if (name.startsWith(search) || nameEn.startsWith(search)) {
       score += 80;
     }
     
-    // Starts with in normalized name
     if (normalizedName.startsWith(normalizedSearch) || normalizedNameEn.startsWith(normalizedSearch)) {
       score += 70;
     }
     
-    // Contains in name
     if (name.includes(search) || nameEn.includes(search)) {
       score += 50;
     }
     
-    // Contains in normalized name
     if (normalizedName.includes(normalizedSearch) || normalizedNameEn.includes(normalizedSearch)) {
       score += 40;
     }
     
-    // Exact match in tags
     if (tags.some(tag => tag === search)) {
       score += 60;
     }
     
-    // Contains in tags
     if (tags.some(tag => tag.includes(search))) {
       score += 30;
     }
     
-    // Contains in description
     if (description.includes(search)) {
       score += 20;
     }
@@ -292,7 +276,6 @@ export class ProductRepository implements IProductRepository {
     try {
       logger.info('[ProductRepository] findAll called', { hasSearch: Boolean(filters?.search) });
       let filter = await this.buildFilter(filters);
-      // If slug marker present, try to resolve to id
       if (filter.__categorySlug) {
         const categoryId = await this.resolveCategoryIdFromSlug(filter.__categorySlug);
         if (categoryId) {
@@ -340,12 +323,10 @@ export class ProductRepository implements IProductRepository {
       const searchCategoryIds: mongoose.Types.ObjectId[] | undefined = filter.__searchCategoryIn;
       delete filter.__searchCategoryIn;
       
-      // Extract search metadata for relevance scoring
       const searchTerm = filter.__searchTerm;
       const normalizedSearch = filter.__normalizedSearch;
       const isSearchQuery = !!searchTerm;
       
-      // Clean up temporary markers
       delete filter.__searchTerm;
       delete filter.__normalizedSearch;
       
@@ -369,13 +350,12 @@ export class ProductRepository implements IProductRepository {
       const limit = pagination?.limit || 20;
       const skip = (page - 1) * limit;
       
-      // For search queries, fetch more results for relevance sorting
       const fetchLimit = isSearchQuery ? Math.min(Math.max(limit * 6, limit + 24), 150) : limit;
       
       const [products, total] = await Promise.all([
         ProductModel.find(filter)
           .sort(sort)
-          .skip(isSearchQuery ? 0 : skip) // Don't skip for search, we'll sort and paginate after
+          .skip(isSearchQuery ? 0 : skip)
           .limit(fetchLimit)
           .populate('owner', 'email userName role avatar')
           .populate('category', 'name slug')
@@ -385,18 +365,14 @@ export class ProductRepository implements IProductRepository {
       
       let finalProducts = products;
       
-      // Apply relevance scoring for search queries
       if (isSearchQuery && searchTerm) {
-        // Calculate relevance scores
         const productsWithScores = products.map(p => ({
           product: p,
           score: this.calculateRelevanceScore(p as unknown as IProduct, searchTerm, normalizedSearch)
         }));
         
-        // Sort by relevance score (descending)
         productsWithScores.sort((a, b) => b.score - a.score);
         
-        // Apply pagination after sorting
         finalProducts = productsWithScores
           .slice(skip, skip + limit)
           .map(item => item.product);

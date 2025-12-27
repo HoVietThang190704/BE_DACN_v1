@@ -1,9 +1,6 @@
 import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { CategoryEntity } from '../../entities/Category.entity';
 
-/**
- * Use Case: Get Category By ID
- */
 export class GetCategoryByIdUseCase {
   constructor(private categoryRepository: ICategoryRepository) {}
 

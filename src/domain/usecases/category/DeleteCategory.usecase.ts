@@ -3,14 +3,9 @@ import { IProductRepository } from '../../repositories/IProductRepository';
 import { logger } from '../../../shared/utils/logger';
 import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
-/**
- * Use Case: Delete Category
- * Business logic for deleting a category (soft delete)
- */
-
 export interface DeleteCategoryOptions {
-  force?: boolean; // Force delete even if has products (for admin)
-}
+  force?: boolean;
+} 
 
 export class DeleteCategoryUseCase {
   constructor(
@@ -20,34 +15,26 @@ export class DeleteCategoryUseCase {
   ) {}
 
   async execute(categoryId: string, options?: DeleteCategoryOptions): Promise<boolean> {
-    // Check if category exists
     const category = await this.categoryRepository.findById(categoryId);
     if (!category) {
       throw new Error('Không tìm thấy danh mục');
     }
 
-    // Check if already deleted
     if (!category.isActive) {
-      // If caller didn't ask to force delete, stop and inform client
       if (!options?.force) {
         throw new Error('Danh mục đã bị xóa trước đó');
       }
-      // otherwise proceed to hard delete (force)
     }
 
-    // Check if has active children
     const children = await this.categoryRepository.getChildren(categoryId, false);
     if (children.length > 0) {
       throw new Error('Không thể xóa danh mục có danh mục con đang hoạt động. Vui lòng xóa hoặc di chuyển các danh mục con trước.');
     }
 
-    // Check if has products (unless force delete)
     if (!options?.force && category.productCount > 0) {
       throw new Error(`Không thể xóa danh mục có ${category.productCount} sản phẩm. Vui lòng di chuyển hoặc xóa các sản phẩm trước.`);
     }
 
-  // Perform hard delete (remove document from DB)
-  // NOTE: this will permanently remove the category. Be sure this is intended.
   const deleted = await this.categoryRepository.hardDelete(categoryId);
 
     if (!deleted) {

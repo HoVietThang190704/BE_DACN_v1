@@ -50,9 +50,7 @@ export class VoucherRepository {
   }
 
   async incrementUsageAtomic(voucherId: string) {
-    // Attempts to increment usageCount if usageLimit not yet reached
     const filter: any = { _id: voucherId, isActive: true };
-    // Only allow increment if usageLimit not set or usageCount < usageLimit
     filter.$expr = { $lt: [ '$usageCount', { $ifNull: [ '$usageLimit', Number.MAX_SAFE_INTEGER ] } ] };
     const updated = await Voucher.findOneAndUpdate(filter, { $inc: { usageCount: 1 } }, { new: true });
     return updated;

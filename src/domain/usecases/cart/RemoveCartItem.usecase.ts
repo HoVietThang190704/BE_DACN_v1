@@ -12,7 +12,6 @@ export class RemoveCartItemUseCase {
     const cart = await this.cartRepository.removeItem(userId, itemId);
     if (!cart) return null;
 
-    // Populate stock for all items in the cart
     for (const cartItem of cart.items) {
       try {
         const product = await this.productRepository.findById(cartItem.productId);

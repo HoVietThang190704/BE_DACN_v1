@@ -9,12 +9,8 @@ export interface CreateVNPayPaymentRequest {
   clientIp?: string;
   frontendRedirectUrl?: string;
   locale?: 'vn' | 'en';
-  /**
-   * Optional checkout payload — when orderId is not provided we accept a checkout snapshot
-   * that will be stored with the payment and used to create the order upon successful callback.
-   */
   checkoutPayload?: Record<string, unknown> | null;
-}
+} 
 
 export interface CreateVNPayPaymentResponse {
   paymentUrl: string;
@@ -38,7 +34,6 @@ export class CreateVNPayPaymentUseCase {
   async execute(request: CreateVNPayPaymentRequest): Promise<CreateVNPayPaymentResponse> {
     const { orderId, userId, clientIp, frontendRedirectUrl, locale } = request;
 
-    // if an orderId is provided we use the existing order (existing behaviour)
     if (orderId) {
       const order = await this.orderRepository.findById(orderId);
       if (!order) {
@@ -88,7 +83,6 @@ export class CreateVNPayPaymentUseCase {
       };
     }
 
-    // No orderId — treat this as a payment session for a checkout snapshot (no order created yet)
     const payloadAmount = Number(request.checkoutPayload?.['total'] ?? request.checkoutPayload?.['amount']);
     if (!payloadAmount || isNaN(payloadAmount) || payloadAmount <= 0) {
       throw new Error('Thiếu tổng số tiền cho phiên thanh toán');
@@ -104,7 +98,6 @@ export class CreateVNPayPaymentUseCase {
       locale: locale ?? 'vn'
     });
 
-    // store checkout snapshot in metadata so callback can create the final order
     const metadata = {
       checkoutPayload: request.checkoutPayload ?? undefined,
       frontendRedirectUrl: frontendRedirectUrl ?? undefined

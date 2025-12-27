@@ -9,9 +9,7 @@ export class UpdateCartItemUseCase {
   ) {}
 
   async execute(userId: string, itemId: string, payload: UpdateCartItemDTO): Promise<CartEntity | null> {
-    // Check stock if quantity is being updated
     if (payload.quantity !== undefined) {
-      // Get current cart item to find productId
       const currentCart = await this.cartRepository.findByUserId(userId);
       if (!currentCart) {
         throw new Error('Giỏ hàng không tồn tại');
@@ -22,7 +20,6 @@ export class UpdateCartItemUseCase {
         throw new Error('Sản phẩm không tồn tại trong giỏ hàng');
       }
 
-      // Check product stock
       const product = await this.productRepository.findById(cartItem.productId);
       if (!product) {
         throw new Error('Sản phẩm không tồn tại');
@@ -40,7 +37,6 @@ export class UpdateCartItemUseCase {
     const cart = await this.cartRepository.updateItem(userId, itemId, payload);
     if (!cart) return null;
 
-    // Populate stock for all items in the cart
     for (const cartItem of cart.items) {
       try {
         const product = await this.productRepository.findById(cartItem.productId);

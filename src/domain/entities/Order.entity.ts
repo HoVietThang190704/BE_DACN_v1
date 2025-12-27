@@ -47,18 +47,15 @@ export interface IOrderEntity {
   items: OrderItem[];
   shippingAddress: ShippingAddress;
   
-  // Pricing
   subtotal: number;
   shippingFee: number;
   discount: number;
   total: number;
   
-  // Status
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   
-  // Tracking
   note?: string;
   cancelReason?: string;
   trackingNumber?: string;
@@ -117,51 +114,30 @@ export class OrderEntity implements IOrderEntity {
     this.updatedAt = data.updatedAt;
   }
 
-  /**
-   * Check if order can be cancelled
-   */
   canBeCancelled(): boolean {
     return ['pending', 'confirmed'].includes(this.status);
   }
 
-  /**
-   * Check if order is in progress
-   */
   isInProgress(): boolean {
     return ['pending', 'confirmed', 'preparing', 'shipping'].includes(this.status);
   }
 
-  /**
-   * Check if order is completed
-   */
   isCompleted(): boolean {
     return this.status === 'delivered';
   }
 
-  /**
-   * Check if order is cancelled
-   */
   isCancelled(): boolean {
     return this.status === 'cancelled';
   }
 
-  /**
-   * Check if payment is completed
-   */
   isPaid(): boolean {
     return this.paymentStatus === 'paid';
   }
 
-  /**
-   * Get total items count
-   */
   getTotalItems(): number {
     return this.items.reduce((sum, item) => sum + item.quantity, 0);
   }
 
-  /**
-   * Get order status display
-   */
   getStatusDisplay(): string {
     const statusMap: Record<OrderStatus, string> = {
       pending: 'Chờ xác nhận',
@@ -175,9 +151,6 @@ export class OrderEntity implements IOrderEntity {
     return statusMap[this.status];
   }
 
-  /**
-   * Get payment method display
-   */
   getPaymentMethodDisplay(): string {
     const methodMap: Record<PaymentMethod, string> = {
       cod: 'Thanh toán khi nhận hàng (COD)',
@@ -186,9 +159,6 @@ export class OrderEntity implements IOrderEntity {
     return methodMap[this.paymentMethod];
   }
 
-  /**
-   * Calculate days until estimated delivery
-   */
   getDaysUntilDelivery(): number | null {
     if (!this.estimatedDelivery) return null;
     
@@ -197,9 +167,6 @@ export class OrderEntity implements IOrderEntity {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
-  /**
-   * Check if order is delayed
-   */
   isDelayed(): boolean {
     if (!this.estimatedDelivery || this.isCompleted() || this.isCancelled()) {
       return false;
@@ -208,9 +175,6 @@ export class OrderEntity implements IOrderEntity {
     return new Date() > this.estimatedDelivery;
   }
 
-  /**
-   * Validate order data
-   */
   validate(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -236,9 +200,6 @@ export class OrderEntity implements IOrderEntity {
     };
   }
 
-  /**
-   * Convert to JSON
-   */
   toJSON(): IOrderEntity {
     return {
       id: this.id,

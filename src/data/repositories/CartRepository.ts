@@ -64,13 +64,11 @@ export class CartRepository implements ICartRepository {
           });
 
           if (existing) {
-            // Increment quantity atomically on the matched subdocument
             const updated = await Cart.findOneAndUpdate(
               { userId: userObjId },
               {
                 $inc: { 'items.$[it].quantity': item.quantity },
                 $set: {
-                  // Only update snapshot fields if provided
                   ...(item.price !== undefined ? { 'items.$[it].price': item.price } : {}),
                   ...(item.title !== undefined ? { 'items.$[it].title': item.title } : {}),
                   ...(item.thumbnail !== undefined ? { 'items.$[it].thumbnail': item.thumbnail } : {})
@@ -89,7 +87,6 @@ export class CartRepository implements ICartRepository {
           }
         }
 
-        // If no existing item found, push new one (upsert cart if needed)
         const updated = await Cart.findOneAndUpdate(
           { userId: userObjId },
           {

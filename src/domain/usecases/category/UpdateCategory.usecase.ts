@@ -3,11 +3,6 @@ import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
 import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
-/**
- * Use Case: Update Category
- * Business logic for updating an existing category
- */
-
 export interface UpdateCategoryInput {
   name?: string;
   nameEn?: string;
@@ -27,16 +22,13 @@ export class UpdateCategoryUseCase {
   ) {}
 
   async execute(categoryId: string, input: UpdateCategoryInput): Promise<CategoryEntity> {
-    // Check if category exists
     const existingCategory = await this.categoryRepository.findById(categoryId);
     if (!existingCategory) {
       throw new Error('Không tìm thấy danh mục');
     }
 
-    // Validate input
     this.validateInput(input);
 
-    // Check if new slug exists (if slug is being changed)
     if (input.slug && input.slug !== existingCategory.slug) {
       const slugExists = await this.categoryRepository.slugExists(input.slug, categoryId);
       if (slugExists) {
@@ -44,15 +36,12 @@ export class UpdateCategoryUseCase {
       }
     }
 
-    // Handle parent change
     let newLevel = existingCategory.level;
     if (input.parentId !== undefined) {
-      // Check for circular reference
       if (input.parentId === categoryId) {
         throw new Error('Danh mục không thể là cha của chính nó');
       }
 
-      // Check if new parent exists and get its level
       if (input.parentId) {
         const parentCategory = await this.categoryRepository.findById(input.parentId);
         if (!parentCategory) {
@@ -62,7 +51,6 @@ export class UpdateCategoryUseCase {
           throw new Error('Không thể gán danh mục cha đã bị vô hiệu hóa');
         }
 
-        // Check if trying to set a descendant as parent (circular reference)
         const descendants = await this.categoryRepository.getDescendants(categoryId);
         const isDescendant = descendants.some(d => d.id === input.parentId);
         if (isDescendant) {
@@ -71,12 +59,10 @@ export class UpdateCategoryUseCase {
 
         newLevel = parentCategory.level + 1;
       } else {
-        // Moving to root level
         newLevel = 0;
       }
     }
 
-    // Build update data
     const updateData: Partial<CategoryEntity> = {};
     
     if (input.name !== undefined) updateData.name = input.name.trim();
