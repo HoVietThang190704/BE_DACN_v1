@@ -10,9 +10,6 @@ export interface CreatePostDTO {
   visibility?: 'public' | 'friends' | 'private';
 }
 
-/**
- * Use Case: Create Post
- */
 export class CreatePostUseCase {
   constructor(
     private postRepository: IPostRepository,
@@ -20,19 +17,16 @@ export class CreatePostUseCase {
   ) {}
 
   async execute(dto: CreatePostDTO): Promise<PostEntity> {
-    // Validate input
     if (!dto.userId || dto.userId.trim().length === 0) {
       throw new Error('User ID không được để trống');
     }
 
-    // Post must have content OR images (or both)
     const hasContent = dto.content && dto.content.trim().length > 0;
     const hasImages = dto.images && dto.images.length > 0;
     
     if (!hasContent && !hasImages) {
       throw new Error('Bài viết phải có nội dung hoặc hình ảnh');
     }
-
     if (dto.content && dto.content.length > 10000) {
       throw new Error('Nội dung bài viết không được vượt quá 10,000 ký tự');
     }

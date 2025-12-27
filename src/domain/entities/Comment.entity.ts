@@ -1,8 +1,3 @@
-/**
- * Comment Entity - Pure domain model for post comments (3-level nesting support)
- * Contains business logic and validation rules
- */
-
 export interface ICommentEntity {
   id: string;
   postId: string;
@@ -11,21 +6,17 @@ export interface ICommentEntity {
   images: string[];
   cloudinaryPublicIds: string[];
   
-  // Nested comments (3 levels: comment -> reply -> nested reply)
-  parentCommentId?: string; // null for top-level comments
-  level: number; // 0 = top-level, 1 = reply, 2 = nested reply
-  mentionedUserId?: string; // User being replied to
+  parentCommentId?: string;
+  level: number;
+  mentionedUserId?: string;
   
-  // Engagement
-  likes: string[]; // Array of user IDs who liked
+  likes: string[];
   likesCount: number;
   repliesCount: number;
   
-  // Metadata
   isEdited: boolean;
   editedAt?: Date;
   
-  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,68 +58,43 @@ export class CommentEntity implements ICommentEntity {
     this.updatedAt = data.updatedAt;
   }
 
-  // Business Logic Methods
-
-  /**
-   * Check if this is a top-level comment
-   */
   isTopLevel(): boolean {
     return this.level === 0 && !this.parentCommentId;
   }
 
-  /**
-   * Check if this is a reply to another comment
-   */
   isReply(): boolean {
     return this.level === 1 && !!this.parentCommentId;
   }
 
-  /**
-   * Check if this is a nested reply (reply to a reply)
-   */
   isNestedReply(): boolean {
     return this.level === 2 && !!this.parentCommentId;
   }
 
-  /**
-   * Check if comment can have more replies (max 3 levels)
-   */
   canHaveReplies(): boolean {
     return this.level < 2;
   }
 
-  /**
-   * Check if user has liked this comment
-   */
   isLikedBy(userId: string): boolean {
     return this.likes.includes(userId);
   }
 
-  /**
-   * Toggle like for a user
-   */
   toggleLike(userId: string): boolean {
     const index = this.likes.indexOf(userId);
     
     if (index > -1) {
-      // User already liked, remove like
       this.likes.splice(index, 1);
       this.likesCount = Math.max(0, this.likesCount - 1);
-      return false; // unliked
+      return false;
     } else {
-      // User hasn't liked yet, add like
       this.likes.push(userId);
       this.likesCount += 1;
-      return true; // liked
+      return true;
     }
   }
 
-  /**
-   * Add a like from user
-   */
   addLike(userId: string): boolean {
     if (this.isLikedBy(userId)) {
-      return false; // Already liked
+      return false;
     }
     
     this.likes.push(userId);
@@ -136,14 +102,11 @@ export class CommentEntity implements ICommentEntity {
     return true;
   }
 
-  /**
-   * Remove a like from user
-   */
   removeLike(userId: string): boolean {
     const index = this.likes.indexOf(userId);
     
     if (index === -1) {
-      return false; // Not liked yet
+      return false;
     }
     
     this.likes.splice(index, 1);
@@ -151,51 +114,30 @@ export class CommentEntity implements ICommentEntity {
     return true;
   }
 
-  /**
-   * Increment replies count
-   */
   incrementRepliesCount(): void {
     this.repliesCount += 1;
   }
 
-  /**
-   * Decrement replies count
-   */
   decrementRepliesCount(): void {
     this.repliesCount = Math.max(0, this.repliesCount - 1);
   }
 
-  /**
-   * Check if comment has images
-   */
   hasImages(): boolean {
     return this.images.length > 0;
   }
 
-  /**
-   * Check if user is owner of comment
-   */
   isOwnedBy(userId: string): boolean {
     return this.userId === userId;
   }
 
-  /**
-   * Check if user can edit this comment
-   */
   canBeEditedBy(userId: string): boolean {
     return this.isOwnedBy(userId);
   }
 
-  /**
-   * Check if user can delete this comment
-   */
   canBeDeletedBy(userId: string, isAdmin: boolean = false): boolean {
     return this.isOwnedBy(userId) || isAdmin;
   }
 
-  /**
-   * Update comment content
-   */
   updateContent(newContent: string): void {
     if (!newContent || newContent.trim().length === 0) {
       throw new Error('Nội dung bình luận không được để trống');
@@ -207,9 +149,6 @@ export class CommentEntity implements ICommentEntity {
     this.updatedAt = new Date();
   }
 
-  /**
-   * Update comment images
-   */
   updateImages(images: string[], cloudinaryPublicIds: string[]): void {
     this.images = images;
     this.cloudinaryPublicIds = cloudinaryPublicIds;
@@ -218,39 +157,24 @@ export class CommentEntity implements ICommentEntity {
     this.updatedAt = new Date();
   }
 
-  /**
-   * Get comment age in minutes
-   */
   getAgeInMinutes(): number {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - this.createdAt.getTime());
     return Math.floor(diffTime / (1000 * 60));
   }
 
-  /**
-   * Get comment age in hours
-   */
   getAgeInHours(): number {
     return Math.floor(this.getAgeInMinutes() / 60);
   }
 
-  /**
-   * Check if comment is recent (less than 1 hour old)
-   */
   isRecent(): boolean {
     return this.getAgeInMinutes() < 60;
   }
 
-  /**
-   * Check if comment can be edited (within 15 minutes of creation)
-   */
   canBeEditedWithinTimeLimit(): boolean {
     return this.getAgeInMinutes() <= 15;
   }
 
-  /**
-   * Validate comment data
-   */
   validate(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 

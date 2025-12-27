@@ -132,6 +132,8 @@ const COOKING_QUERY_MARKERS = [
   'cach nau',
   'huong dan nau',
   'huong dan lam',
+  'huong dan cach',
+  'day nau',
   'mon ngon',
   'mon gi',
   'lam mon',
@@ -140,6 +142,7 @@ const COOKING_QUERY_MARKERS = [
   'cook',
   'cooking',
   'how to cook',
+  'how to make',
   'chien',
   'xao',
   'nuong',
@@ -156,6 +159,11 @@ const COOKING_QUERY_MARKERS = [
   'cac buoc nau',
   'buoc nau',
   'nguyen lieu',
+  'nau an',
+  'lam gi',
+  'an gi',
+  'goi y mon',
+  'goi y',
 ];
 
 const STEP_QUERY_MARKERS = [
@@ -309,7 +317,6 @@ export class AskAiAssistantUseCase {
 
     const catalogState = this.resolveCatalogState(selectedProducts, selectedCategories);
     
-    // Always try to fetch external insights for cooking/recipe questions or when catalog is limited
     const shouldFetchExternal = this.needsExternalInsights(
       sanitizedQuestion,
       catalogState,
@@ -319,7 +326,6 @@ export class AskAiAssistantUseCase {
     
     logger.info(`[AskAiAssistant] catalogState=${catalogState}, wantsCookingGuide=${wantsCookingGuide}, needsStepByStep=${needsStepByStep}, shouldFetchExternal=${shouldFetchExternal}, programmableSearchEnabled=${this.programmableSearchService?.isEnabled()}`);
     
-    // Fetch Google Search results in parallel with fallback knowledge
     const [googleSearchResults, fallbackInsights] = await Promise.all([
       shouldFetchExternal && this.programmableSearchService?.isEnabled()
         ? this.fetchGoogleSearchResults(externalQuestion, responseLocale, wantsCookingGuide, needsStepByStep)
@@ -367,34 +373,28 @@ export class AskAiAssistantUseCase {
     history: AiAssistantHistoryMessage[],
     wantsCookingGuide: boolean
   ): boolean {
-    // Always search externally if catalog is limited
     if (state !== 'full') {
       return true;
     }
     
     const normalized = stripDiacritics(question.toLowerCase());
     
-    // Short greetings don't need external search
     if (normalized.length <= 2) {
       return false;
     }
     
-    // Questions always benefit from external context
     if (question.includes('?')) {
       return true;
     }
     
-    // General information queries
     if (GENERAL_QUERY_MARKERS.some((marker) => normalized.includes(marker))) {
       return true;
     }
     
-    // Cooking/recipe related queries - always search
     if (wantsCookingGuide || COOKING_QUERY_MARKERS.some((marker) => normalized.includes(stripDiacritics(marker)))) {
       return true;
     }
     
-    // Instructional queries
     const isInstructional = normalized.startsWith('cach ') || 
                             normalized.startsWith('huong dan') || 
                             normalized.startsWith('lam sao') ||
@@ -405,12 +405,10 @@ export class AskAiAssistantUseCase {
       return true;
     }
     
-    // User explicitly asks for search
     if (SEARCH_REQUEST_MARKERS.some((marker) => normalized.includes(marker))) {
       return true;
     }
     
-    // Nutrition, health, storage questions
     const healthKeywords = ['dinh duong', 'vitamin', 'protein', 'calo', 'bao quan', 'tuoi', 'fresh', 'nutrition', 'healthy', 'diet'];
     if (healthKeywords.some((keyword) => normalized.includes(keyword))) {
       return true;
@@ -581,9 +579,7 @@ export class AskAiAssistantUseCase {
     needsStepByStep: boolean
   ): Promise<KnowledgeInsight[]> {
     if (state === 'full') {
-      // When catalog is full but question needs external info we still want a small set of snippets
-      // so the calling code should gate this method. If invoked for a "full" state we still
-      // provide lightweight context.
+
     }
 
     const limit = state === 'empty' ? 4 : state === 'partial' ? 3 : 2;
@@ -634,7 +630,7 @@ export class AskAiAssistantUseCase {
         : '🔍 Kết quả tìm kiếm từ Google:';
 
       const lines = insights.map((insight, index) => {
-        const parts: string[] = [`${index + 1}. **${insight.title}**`];
+        const parts: string[] = [`${index + 1}. "${insight.title}"`];
         if (insight.summary) {
           parts.push(`   ${insight.summary}`);
         }

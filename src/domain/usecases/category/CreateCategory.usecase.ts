@@ -3,11 +3,6 @@ import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
 import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
-/**
- * Use Case: Create Category
- * Business logic for creating a new category
- */
-
 export interface CreateCategoryInput {
   name: string;
   nameEn?: string;
@@ -28,16 +23,13 @@ export class CreateCategoryUseCase {
   ) {}
 
   async execute(input: CreateCategoryInput): Promise<CategoryEntity> {
-    // Validate input
     this.validateInput(input);
 
-    // Check if slug already exists
     const slugExists = await this.categoryRepository.slugExists(input.slug);
     if (slugExists) {
       throw new Error('Slug đã tồn tại');
     }
 
-    // Determine level based on parent
     let level = 0;
     let parentCategory: CategoryEntity | null = null;
 
@@ -52,7 +44,6 @@ export class CreateCategoryUseCase {
       level = parentCategory.level + 1;
     }
 
-    // Create category data
     const categoryData: Omit<CategoryEntity, 'id' | 'createdAt' | 'updatedAt'> = {
       name: input.name.trim(),
       nameEn: input.nameEn?.trim(),
@@ -69,7 +60,6 @@ export class CreateCategoryUseCase {
       children: []
     } as any;
 
-    // Create category
     const category = await this.categoryRepository.create(categoryData);
 
     await this.elasticsearchService?.indexCategory(category);

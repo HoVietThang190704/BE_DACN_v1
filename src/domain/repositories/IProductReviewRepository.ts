@@ -1,7 +1,3 @@
-/**
- * Product Review Repository Interface
- */
-
 import { ProductReviewEntity } from '../entities/ProductReview.entity';
 
 export interface ProductReviewFilters {

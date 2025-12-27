@@ -1,9 +1,6 @@
 import { IAddressRepository } from '../../repositories/IAddressRepository';
 import { AddressEntity } from '../../entities/Address.entity';
 
-/**
- * Use Case: Create Address
- */
 export class CreateAddressUseCase {
   constructor(private addressRepository: IAddressRepository) {}
 
@@ -19,7 +16,6 @@ export class CreateAddressUseCase {
     label?: string;
     note?: string;
   }): Promise<AddressEntity> {
-    // Create temporary entity for validation
     const tempEntity = new AddressEntity({
       id: '',
       userId: data.userId,
@@ -36,13 +32,11 @@ export class CreateAddressUseCase {
       updatedAt: new Date()
     });
 
-    // Validate
     const validation = tempEntity.validate();
     if (!validation.isValid) {
       throw new Error(validation.errors.join(', '));
     }
 
-    // Create
     return await this.addressRepository.create({
       userId: data.userId,
       recipientName: data.recipientName,

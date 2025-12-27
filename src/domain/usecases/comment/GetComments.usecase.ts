@@ -3,30 +3,23 @@ import { ICommentRepository, CommentPagination, PaginatedComments } from '../../
 export interface GetCommentsByPostIdDTO {
   postId: string;
   pagination?: CommentPagination;
-  withNested?: boolean; // Get comments with nested structure
+  withNested?: boolean;
 }
 
-/**
- * Use Case: Get Comments By Post ID
- */
 export class GetCommentsByPostIdUseCase {
   constructor(private commentRepository: ICommentRepository) {}
 
   async execute(dto: GetCommentsByPostIdDTO): Promise<PaginatedComments> {
-    // Validate input
     if (!dto.postId || dto.postId.trim().length === 0) {
       throw new Error('Post ID không hợp lệ');
     }
 
-    // Get comments
     if (dto.withNested) {
-      // Get comments with nested structure (hierarchical)
       return await this.commentRepository.findByPostIdWithNested(
         dto.postId,
         dto.pagination
       );
     } else {
-      // Get top-level comments only
       return await this.commentRepository.findByPostId(
         dto.postId,
         dto.pagination

@@ -4,11 +4,6 @@ import { ICategoryRepository } from '../../repositories/ICategoryRepository';
 import { logger } from '../../../shared/utils/logger';
 import { ElasticsearchService } from '../../../services/search/elasticsearch.service';
 
-/**
- * Use Case: Create Product
- * Business logic for creating a new product
- */
-
 export interface CreateProductInput {
   name: string;
   nameEn?: string;
@@ -86,7 +81,6 @@ export class CreateProductUseCase {
   private async resolveCategoryId(category: string): Promise<string | null> {
     if (!category) return null;
 
-    // direct lookup by id
     const byId = await this.categoryRepository.findById(category);
     if (byId) {
       return byId.id;

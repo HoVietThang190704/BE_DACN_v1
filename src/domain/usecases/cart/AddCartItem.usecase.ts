@@ -9,7 +9,6 @@ export class AddCartItemUseCase {
   ) {}
 
   async execute(userId: string, item: AddCartItemDTO): Promise<CartEntity> {
-    // Check product existence and stock
     const product = await this.productRepository.findById(item.productId);
     if (!product) {
       throw new Error('Sản phẩm không tồn tại');
@@ -19,8 +18,6 @@ export class AddCartItemUseCase {
       throw new Error('Sản phẩm đã hết hàng');
     }
 
-    // Check if adding this quantity would exceed available stock
-    // First, get current cart to see existing quantity of this product
     const currentCart = await this.cartRepository.findByUserId(userId);
     let existingQuantity = 0;
     if (currentCart && currentCart.items) {
@@ -37,7 +34,6 @@ export class AddCartItemUseCase {
 
     const cart = await this.cartRepository.addItem(userId, item);
 
-    // Populate stock for all items in the cart
     for (const cartItem of cart.items) {
       try {
         const itemProduct = await this.productRepository.findById(cartItem.productId);

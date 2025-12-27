@@ -78,8 +78,6 @@ export class CreateOrderUseCase {
     if (!livestreamId) return { price: null, claimedQty: 0 };
 
     try {
-      // Lazy import to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Livestream } = require('../../../models/Livestream');
       const livestream = await Livestream.findById(livestreamId).lean();
       if (!livestream) return { price: null, claimedQty: 0 };
@@ -135,7 +133,6 @@ export class CreateOrderUseCase {
         thumbnail: undefined
       }];
     } else {
-      // cart is validated above when !buyNow — use non-null assertion to satisfy TS
       selectedItems = cartItemIds && cartItemIds.length > 0
         ? cart!.items.filter((item) => cartItemIds.includes(item.id))
         : cart!.items;
@@ -185,10 +182,8 @@ export class CreateOrderUseCase {
 
       subtotal += itemSubtotal;
 
-      // If we used live pricing with limited quantity, increment claimed count best-effort
       if (livestreamId && livePricing.price !== null && livePricing.claimedQty > 0) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
           const { Livestream } = require('../../../models/Livestream');
           await Livestream.updateOne(
             { _id: livestreamId, 'productPricing.productId': product.id },
@@ -196,7 +191,6 @@ export class CreateOrderUseCase {
           );
           hasLiveClaimed = true;
         } catch (err) {
-          // ignore increment failure to avoid blocking order
         }
       }
     }
@@ -314,9 +308,8 @@ export class CreateOrderUseCase {
       deliveredAt: undefined,
     });
 
-    // Only deduct stock immediately for COD; online payments will deduct after payment succeeds
     const shouldReduceStockNow = paymentMethod === 'cod';
-    const reducedProducts: string[] = [];
+    const reducedProducts: string[] = []; 
 
     if (shouldReduceStockNow) {
       await Promise.all(
@@ -334,10 +327,8 @@ export class CreateOrderUseCase {
       await this.cartRepository.removeItems(userId, selectedItems.map((item) => item.id));
     }
 
-    // Emit realtime pricing update when live-claimed quantities changed
     if (livestreamId && hasLiveClaimed) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { Livestream } = require('../../../models/Livestream');
         const updated = await Livestream.findById(livestreamId).lean();
         if (updated && Array.isArray(updated.productPricing)) {
@@ -363,11 +354,9 @@ export class CreateOrderUseCase {
       }
     }
 
-    // Emit realtime product stock update for impacted products
     if (livestreamId && reducedProducts.length > 0) {
       try {
         const productDtos: Array<{ productId: string; stockQuantity: number | null }> = [];
-        // Build list of updated product stocks
         for (const pid of Array.from(new Set(reducedProducts))) {
           try {
             const p = await this.productRepository.findById(pid);

@@ -1,8 +1,3 @@
-/**
- * Post Entity - Pure domain model for social media posts (Facebook-like)
- * Contains business logic and validation rules
- */
-
 export interface IPostEntity {
   id: string;
   userId: string;
@@ -10,22 +5,18 @@ export interface IPostEntity {
   images: string[];
   cloudinaryPublicIds: string[];
   
-  // Engagement metrics
-  likes: string[]; // Array of user IDs who liked
+  likes: string[];
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
   
-  // Post metadata
   visibility: 'public' | 'friends' | 'private';
   isEdited: boolean;
   editedAt?: Date;
   
-  // Sharing
-  originalPostId?: string; // If this is a shared post
-  sharedBy?: string; // User ID who shared
+  originalPostId?: string;
+  sharedBy?: string;
   
-  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,40 +58,27 @@ export class PostEntity implements IPostEntity {
     this.updatedAt = data.updatedAt;
   }
 
-  // Business Logic Methods
-
-  /**
-   * Check if user has liked this post
-   */
   isLikedBy(userId: string): boolean {
     return this.likes.includes(userId);
   }
 
-  /**
-   * Toggle like for a user
-   */
   toggleLike(userId: string): boolean {
     const index = this.likes.indexOf(userId);
     
     if (index > -1) {
-      // User already liked, remove like
       this.likes.splice(index, 1);
       this.likesCount = Math.max(0, this.likesCount - 1);
-      return false; // unliked
+      return false;
     } else {
-      // User hasn't liked yet, add like
       this.likes.push(userId);
       this.likesCount += 1;
-      return true; // liked
+      return true;
     }
   }
 
-  /**
-   * Add a like from user
-   */
   addLike(userId: string): boolean {
     if (this.isLikedBy(userId)) {
-      return false; // Already liked
+      return false;
     }
     
     this.likes.push(userId);
@@ -108,14 +86,11 @@ export class PostEntity implements IPostEntity {
     return true;
   }
 
-  /**
-   * Remove a like from user
-   */
   removeLike(userId: string): boolean {
     const index = this.likes.indexOf(userId);
     
     if (index === -1) {
-      return false; // Not liked yet
+      return false;
     }
     
     this.likes.splice(index, 1);
@@ -123,65 +98,39 @@ export class PostEntity implements IPostEntity {
     return true;
   }
 
-  /**
-   * Increment comments count
-   */
   incrementCommentsCount(): void {
     this.commentsCount += 1;
   }
 
-  /**
-   * Decrement comments count
-   */
   decrementCommentsCount(): void {
     this.commentsCount = Math.max(0, this.commentsCount - 1);
   }
 
-  /**
-   * Increment shares count
-   */
   incrementSharesCount(): void {
     this.sharesCount += 1;
   }
 
-  /**
-   * Check if post is shared post
-   */
   isSharedPost(): boolean {
     return !!this.originalPostId;
   }
 
-  /**
-   * Check if post has images
-   */
   hasImages(): boolean {
     return this.images.length > 0;
   }
 
-  /**
-   * Check if post is public
-   */
   isPublic(): boolean {
     return this.visibility === 'public';
   }
 
-  /**
-   * Check if user is owner of post
-   */
   isOwnedBy(userId: string): boolean {
     return this.userId === userId;
   }
 
-  /**
-   * Check if user can view this post
-   */
   canBeViewedBy(userId: string, isFriend: boolean = false): boolean {
-    // Owner can always view
     if (this.isOwnedBy(userId)) {
       return true;
     }
 
-    // Check visibility
     switch (this.visibility) {
       case 'public':
         return true;
@@ -194,23 +143,14 @@ export class PostEntity implements IPostEntity {
     }
   }
 
-  /**
-   * Check if user can edit this post
-   */
   canBeEditedBy(userId: string): boolean {
     return this.isOwnedBy(userId);
   }
 
-  /**
-   * Check if user can delete this post
-   */
   canBeDeletedBy(userId: string, isAdmin: boolean = false): boolean {
     return this.isOwnedBy(userId) || isAdmin;
   }
 
-  /**
-   * Update post content
-   */
   updateContent(newContent: string): void {
     if (!newContent || newContent.trim().length === 0) {
       throw new Error('Nội dung bài viết không được để trống');
@@ -222,9 +162,6 @@ export class PostEntity implements IPostEntity {
     this.updatedAt = new Date();
   }
 
-  /**
-   * Update post images
-   */
   updateImages(images: string[], cloudinaryPublicIds: string[]): void {
     this.images = images;
     this.cloudinaryPublicIds = cloudinaryPublicIds;
@@ -233,56 +170,35 @@ export class PostEntity implements IPostEntity {
     this.updatedAt = new Date();
   }
 
-  /**
-   * Update post visibility
-   */
   updateVisibility(visibility: 'public' | 'friends' | 'private'): void {
     this.visibility = visibility;
     this.updatedAt = new Date();
   }
 
-  /**
-   * Get post age in hours
-   */
   getAgeInHours(): number {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - this.createdAt.getTime());
     return Math.floor(diffTime / (1000 * 60 * 60));
   }
 
-  /**
-   * Get post age in days
-   */
   getAgeInDays(): number {
     return Math.floor(this.getAgeInHours() / 24);
   }
 
-  /**
-   * Check if post is recent (less than 24 hours old)
-   */
   isRecent(): boolean {
     return this.getAgeInHours() < 24;
   }
 
-  /**
-   * Get engagement rate (total engagements / age in hours)
-   */
   getEngagementRate(): number {
     const ageInHours = Math.max(1, this.getAgeInHours());
     const totalEngagements = this.likesCount + this.commentsCount + this.sharesCount;
     return totalEngagements / ageInHours;
   }
 
-  /**
-   * Check if post is trending (high engagement rate)
-   */
   isTrending(threshold: number = 10): boolean {
     return this.getEngagementRate() >= threshold;
   }
 
-  /**
-   * Validate post data
-   */
   validate(): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 

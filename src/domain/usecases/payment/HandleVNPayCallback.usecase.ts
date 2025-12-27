@@ -123,7 +123,6 @@ export class HandleVNPayCallbackUseCase {
           }
         }
 
-        // no order yet -> create final order from stored checkout snapshot if available
         if (!order) {
           const checkoutPayload = metadata.checkoutPayload as any | undefined;
 

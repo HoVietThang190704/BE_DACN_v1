@@ -31,7 +31,6 @@ export class CreateShopUseCase {
       if (slugExists) throw new Error('Slug đã tồn tại');
     }
 
-    // Determine creator's role to decide approval flow
     let ownerRole: string | null = null;
     if (this.userRepository) {
       const owner = await this.userRepository.findById(input.ownerId);

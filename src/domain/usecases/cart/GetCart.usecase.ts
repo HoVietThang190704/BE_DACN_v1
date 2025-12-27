@@ -14,7 +14,6 @@ export class GetCartUseCase {
       cart = await this.cartRepository.create(userId);
     }
 
-    // Populate stock for each cart item
     for (const item of cart.items) {
       try {
         const product = await this.productRepository.findById(item.productId);
@@ -25,7 +24,6 @@ export class GetCartUseCase {
           };
         }
       } catch (error) {
-        // If product not found or error, continue without stock info
         console.warn(`Could not fetch stock for product ${item.productId}:`, error);
       }
     }

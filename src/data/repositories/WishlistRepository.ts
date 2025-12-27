@@ -74,7 +74,7 @@ export class WishlistRepository implements IWishlistRepository {
 
     return items.map((item) => {
       const productId = this.normalizeId(item.productId);
-      // prefer an explicit attached product snapshot (item.product) if available
+
       const rawProduct = item.product ?? item.productId;
       const itemId = this.normalizeId(item._id ?? item.id) || productId;
       return {
@@ -100,7 +100,6 @@ export class WishlistRepository implements IWishlistRepository {
   async findByUserId(userId: string): Promise<WishlistEntity | null> {
     try {
       const userObj = this.toObjectId(userId, 'User');
-      // initially try to populate product references
       const wishlistDoc = await Wishlist.findOne({ userId: userObj })
         .populate({
           path: 'items.productId',
@@ -114,8 +113,6 @@ export class WishlistRepository implements IWishlistRepository {
 
       if (!wishlistDoc) return null;
 
-      // If some items still only have ObjectId for productId (populate may not have run or product missing),
-      // fetch product snapshots and attach them into `items.product` so the frontend always receives product data.
       const items = Array.isArray(wishlistDoc.items) ? wishlistDoc.items : [];
       const missingIds: string[] = [];
 

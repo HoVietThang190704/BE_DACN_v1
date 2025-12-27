@@ -252,7 +252,7 @@ NGUYÊN TẮC TRẢ LỜI:
 
 ĐỊNH DẠNG:
 • Dùng • hoặc - cho danh sách
-• Bôi đậm **tên sản phẩm** và **giá**
+• Viết rõ tên sản phẩm và giá (KHÔNG dùng ký tự '*' để bôi đậm); nếu cần nhấn mạnh, sử dụng chữ in hoa, ngoặc kép hoặc dấu gạch ngang
 • Ghi rõ nguồn nếu lấy thông tin từ bên ngoài`
       : `You are FreshBuddy - an intelligent AI assistant for the Fresh Food Platform.
 
@@ -268,7 +268,11 @@ RESPONSE PRINCIPLES:
 • If no matching products, still answer based on search information
 • Keep answers concise, suitable for chat UI (max 250 words)
 • Use bullet points when listing
-• Add appropriate emojis 🥬🍖🍳`;
+• Add appropriate emojis 🥬🍖🍳
+
+FORMAT:
+• Use • or - for lists
+• Do NOT use the '*' character (e.g., '*', '**', '***') for emphasis; if you need to emphasize, use quotation marks, UPPERCASE, or hyphens`;
 
     const availabilityNote = this.buildAvailabilityNote(dataAvailability, isVietnamese);
     const intentNote = intentDirectives.filter(Boolean).join(' ');

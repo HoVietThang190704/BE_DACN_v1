@@ -1,7 +1,3 @@
-/**
- * Product Review Entity - Domain model for product reviews with nested replies
- */
-
 export interface IProductReviewEntity {
   id: string;
   productId: string;
