@@ -28,7 +28,7 @@ import { categoryRoutes } from './routes/categories';
 import cartRoutes from './routes/cart';
 import wishlistRoutes from './routes/wishlist';
 import { agoraRoutes } from './routes/agora';
-import { livestreamRoutes } from './routes/livestreams';
+// import { livestreamRoutes } from './routes/livestreams';
 import postRoutes from './routes/posts';
 import commentRoutes from './routes/comments';
 import productReviewRoutes from './routes/productReviews';
@@ -42,6 +42,10 @@ import supportRoutes from './routes/support';
 import { registerShopOwnerRoutes } from './routes/registerShopOwner';
 import { adminRoutes } from './routes/admin';
 import aiRoutes from './routes/ai';
+import dns from 'node:dns/promises';
+
+// Fix Node.js DNS resolver issues for MongoDB Atlas SRV
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 const app = express();
 
@@ -136,7 +140,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/agora', agoraRoutes);
-app.use('/api/livestreams', livestreamRoutes);
+// app.use('/api/livestreams', livestreamRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/product-reviews', productReviewRoutes);
